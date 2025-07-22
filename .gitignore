@@ -1,0 +1,32 @@
+# ipython checkpoints
+.ipynb_checkpoints/
+sim/los/.ipynb_checkpoints/
+        
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# IDEs/editors
+.vscode/
+.idea/
+
+# Logs and local environment files
+*.log
+*.env
+.env.*
+
+# Python distribution files
+*.egg-info/
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
