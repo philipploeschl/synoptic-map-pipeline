@@ -1,0 +1,11 @@
+echo set_info -c ds="mps_loeschl.phi_b720s" T_REC="2014.05.31_13:53:46_TAI" inclination=inclination.fits azimuth=azimuth.fits field=field.fits disambig=disambig.fits >> ../set_info.log 2>&1
+set_info -c ds="mps_loeschl.phi_b720s" T_REC="2014.05.31_13:53:46_TAI" inclination=inclination.fits azimuth=azimuth.fits field=field.fits disambig=disambig.fits >> ../set_info.log 2>&1
+
+echo vectmag2helio3comp_random in='mps_loeschl.phi_b720s[2014.05.20_12:05:22_TAI]' v2hout='mps_loeschl.B3comp_disambR_remap_720s' histlink=none TSTART='2014.05.20_12:05:22_TAI' TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 VERB=3 >> vectmag.log 2>&1
+vectmag2helio3comp_random in='mps_loeschl.phi_b720s[2014.05.20_12:05:22_TAI]' v2hout='mps_loeschl.B3comp_disambR_remap_720s' histlink=none TSTART='2014.05.20_12:05:22_TAI' TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 VERB=3 >> vectmag.log 2>&1
+
+
+set_info -c ds="mps_loeschl.phi_m720s" T_REC="2014.05.31_13:53:46_TAI" magnetogram=solo_L2_phi-fdt-blos_20210201T123003_V202107130920C_0142010402.fits
+
+
+set_info -c ds="mps_loeschl.phi_m720s_test" T_REC="2021.02.19_12:30:03_TAI" magnetogram=solo_L2_phi-fdt-blos_20210219T123003_V202107130922C_0142190403_drms.fits
