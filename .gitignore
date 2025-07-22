@@ -1,32 +1,65 @@
-# ipython checkpoints
-.ipynb_checkpoints/
-sim/los/.ipynb_checkpoints/
-        
-
-# Byte-compiled / cache
+# ---------------------
+# Python / General
+# ---------------------
 __pycache__/
 *.py[cod]
 *.pyo
 
-# Virtual environment
+# Virtual environments
 .venv/
-env/
 venv/
-
-# IDEs/editors
-.vscode/
-.idea/
-
-# Logs and local environment files
-*.log
-*.env
-.env.*
-
-# Python distribution files
+env/
+ENV/
 *.egg-info/
 dist/
 build/
 
-# OS files
+# Environment & secrets
+*.env
+.env.*
+secrets.*
+
+# ---------------------
+# Jupyter
+# ---------------------
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Output from nbconvert
+*.nbconvert.ipynb
+
+# Stripped notebook metadata (if using nbstripout or similar)
+*.nbstripout.*
+
+# Jupyter runtime and history
+~/.local/share/jupyter/
+~/.ipython/
+
+# Optional: ignore all notebook outputs
+# Uncomment if you use stripped or clean versions
+# *.ipynb
+
+# ---------------------
+# VSCode
+# ---------------------
+.vscode/
+*.code-workspace
+
+# ---------------------
+# Logs & OS
+# ---------------------
+*.log
 .DS_Store
 Thumbs.db
+
+# ---------------------
+# Optional: data, models, results
+# Uncomment or edit based on your project
+# data/
+# *.csv
+# *.h5
+# *.pkl
+# *.npz
+# models/
+# results/
