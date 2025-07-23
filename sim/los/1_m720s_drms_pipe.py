@@ -60,13 +60,13 @@ def main(argv):
     # TODO utilise argv
     
     #path = './output/'
-    path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/'
+    path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
     #path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/feb2021_rev02/drms/'
     #path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/feb2021/drms/'
     
-    rev = "_FDT_test_release_june_2022_defri"#"_rev00_r095"
+    rev = "" #ä"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
     
-    Mr = True
+    Mr = False  # Mr = False = Blos # GHERARDO
     
     if not os.path.isdir(path):
         os.mkdir(path)
@@ -100,6 +100,7 @@ def main(argv):
     #v2hout = 'mps_loeschl.Ml_hiresmap_CR2240_rev02' #'mps_loeschl.Ml_hiresmap_CR2240_fast'
     #rmmout = 'mps_loeschl.Ml_remap_CR2240_rev02' #'mps_loeschl.Ml_remap_CR2240_fast    
     
+    # TODO use Mr/Ml with place holder
     if Mr:
         v2hout = 'mps_loeschl.Mr_hiresmap_CR%s%s'%(cr, rev) #'mps_loeschl.Ml_hiresmap_CR2240_fast'
         rmmout = 'mps_loeschl.Mr_remap_CR%s%s'%(cr, rev) #'mps_loeschl.Ml_remap_CR2240_fast
