@@ -55,7 +55,7 @@ def cmd_args(argv):
 def main():
 
     # moved to config.py
-    #config.phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
+    #config.script_path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
     #config.rev = "" #"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
     #config.Mr = True  # Mr = False = Blos # GHERARDO
     #config.dataseries_input = "hmi.M_720s" # "mps_loeschl.hmi_m720s_nrt"
@@ -68,10 +68,9 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
 
     # create output directory if it does not exist
-    if not os.path.isdir(config.phi_datapath):
-        os.mkdir(config.phi_datapath)
+    if not os.path.isdir(config.script_path):
+        os.mkdir(config.script_path)
         
-    print(config.Mr)
     if config.Mr:
         proj = "Mr"
         mcorlev = 2 # for jv2ts command line 
@@ -122,7 +121,7 @@ def main():
             rmm_log = './log/rmm_%s_%s.log' % (proj, j)
 
             # beginning of new batch script     
-            batch_out = open(config.phi_datapath + 'remap_rebin_%s_%s.sh' % (proj, j), 'w')
+            batch_out = open(config.script_path + 'remap_rebin_%s_%s.sh' % (proj, j), 'w')
             batch_out.write('#!/bin/bash\n')
             # add path change at the end of the script here 
 
