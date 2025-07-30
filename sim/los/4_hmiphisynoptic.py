@@ -906,29 +906,29 @@ def main(inRecs, config):#, hw_overwrite=None):
 
 
 
-    # Synoptic Column calculation
+# Synoptic Column calculation
 
-    def CalcSynCols(start, #int start,
-                end,   #int end,
-                incr,  #int incr,
-                smc,   #MagCol_t **smc,
-                synop, #float *synop,
-                wt,    #int *wt,
-                ww,    #char *ww,               # UNUSED
-                epts,  #float *epts,
-                losSynop, #float *losSynop,
-                length,   #int *len,
-                center,   #float center,
-                nEquivPtsReq, #float nEquivPtsReq,
-                los,          #int los,
-                radialFound,  #int radialFound,
-                sensAdj,  #float sensAdj,
-                noiseS,   #float noiseS,
-                nsig,     #float nsig,
-                maxNoiseAdj,  #float maxNoiseAdj,
-                minOutPts,    #int minOutPts,
-                dlog,         #int dlog
-                kNOISE_EQ):   # added since not global in python
+def CalcSynCols(start, #int start,
+            end,   #int end,
+            incr,  #int incr,
+            smc,   #MagCol_t **smc,
+            synop, #float *synop,
+            wt,    #int *wt,
+            ww,    #char *ww,               # UNUSED
+            epts,  #float *epts,
+            losSynop, #float *losSynop,
+            length,   #int *len,
+            center,   #float center,
+            nEquivPtsReq, #float nEquivPtsReq,
+            los,          #int los,
+            radialFound,  #int radialFound,
+            sensAdj,  #float sensAdj,
+            noiseS,   #float noiseS,
+            nsig,     #float nsig,
+            maxNoiseAdj,  #float maxNoiseAdj,
+            minOutPts,    #int minOutPts,
+            dlog,         #int dlog
+            kNOISE_EQ):   # added since not global in python
 
 
     #float cosrho; #/* equal cos(magnetogram latitude) * cos(magnetogram dlatitude) 
