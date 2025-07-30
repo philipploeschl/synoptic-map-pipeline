@@ -1,21 +1,47 @@
-# Global parameters
+###########################################################
+#################### Global parameters ####################
+###########################################################
+
+# Enable verbose output
 verbose = True
 
-# 1_m720s_drms_pipe.py
 
-#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
+###########################################################
+################### 1_m720s_drms_pipe.py ##################
+###########################################################
+
+# Data path to PHI data for DRMS ingestion
 phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/pipeline_test/'
+#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
 
-#phi_datapath = '../../output/test/' # test
-script_path = '../../output/test/' #synop/output/CR_NUMBER_SESSION_ID/
-Mr = True # Ml/Mr selection -> False = Blos, True = Mr
-dataseries_input = "hmi.M_720s" # HMI source data series 
-dataseries_owner = "mps_loeschl" # owner of the data series, used for output file names
-interval = "" #"@12min" # default/nothing = @12min, change HMI cadence for fast prototyping
-cr = 2258 # Carrington rotation number (primary key for synoptic maps)
+
+# Output path for DRMS scripts - e.g. synop/output/CR_NUMBER_SESSION_ID/
+script_path = '../../output/test/' 
+
+# Ml/Mr selection -> False = Blos, True = Mr
+Mr = True 
+
+# HMI source data series 
+dataseries_input = "hmi.M_720s" 
+
+# HMI cadence for the M_720s data series - default/nothing = @12min, change HMI cadence for fast prototyping
+interval = ""
+
+# Carrington rotation number (primary key for synoptic maps)
+cr = 2258
+
+# HMI data period
 period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI@12m" # CR2258
-rev = "_FDT_test_release_june_2022_defri" # data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
+
+# data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
+rev = "_FDT_test_release_june_2022_defri" 
+
+# Exclude already processed HMI datasets
 filter_duplicates = True
+
+# owner of temporary data series, used for output file names
+dataseries_owner = "mps_loeschl" 
+
 
 # redefine where the bash scripts are stored!
 # automatically create synop/output/CR_NUMBER_SESSION_ID/
@@ -38,8 +64,10 @@ v2hout = '%s.%s_hiresmap_CR%s%s'%(dataseries_owner, proj, cr, rev) #'mps_loeschl
 rmmout = '%s.%s_remap_CR%s%s'%(dataseries_owner, proj, cr, rev) #'mps_loeschl.Ml_remap_CR2240_fast
 
 
+###########################################################
+################# 2_phi_drms_interface.py #################
+###########################################################
 
-# 2_phi_drms_interface.py
 # TEMPORARY OUTPUT FILE
 # TODO revisit after defining script path and temporary data output path
 temp_path = "" # add _DRMS output and bash scripts there
@@ -59,17 +87,15 @@ data_series_remap = "%s.Mr_remap_CR%s%s"    %(dataseries_owner, cr, rev) #"mps_l
 
 
 
+###########################################################
+################### 4_hmiphisynoptic.py ###################
+###########################################################
 
-
-
-
-
-# 4_hmiphisynoptic.ipynb
-# convert to .py!
 
 timestring = ""
 awfs = [5]#, 15, 25, 35, 45, 55]
 cadences = ["12m"] #["2h", "4h", "6h", "8h", "12h", "24h"]
+path_synop = "" # synoptic map output path
 
 # todo fix
 #path = "../output/data/paper/cr%s_Mr_FDT_test_release_june_2022_defringed/awf_0%spct-%spct_%simg/" % (config["cr"], config["awf_cmin"], config["awf_cmax"], config["awf_nimg"])
@@ -124,7 +150,7 @@ cadences = ["12m"] #["2h", "4h", "6h", "8h", "12h", "24h"]
 # - lattitude specific weight function control needs to consider out of ecliptic observations
 # - understand awf_lim and describe it properly
 
-path_synop = "" # synoptic map output path
+
 
 
 """
