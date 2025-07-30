@@ -1,8 +1,6 @@
-import numpy as np
-from astropy.io import fits
 import subprocess
-import sys, os, getopt
-
+import sys, os#, getopt
+import config
 
 
 def get_M_720s_count(data_series, period, interval):
@@ -30,7 +28,7 @@ def get_M_720s_times(data_series, period, interval):
 
     return times 
 
-
+"""
 def cmd_args(argv):
     
     inputfile = ''
@@ -52,95 +50,49 @@ def cmd_args(argv):
             outputfile = arg
     
     return inputfile, outputfile
+"""
 
+def main():
 
-def main(argv):
-     
-    # CHANGE PARAMETERS HERE
-    # TODO utilise argv
-    
-    #path = './output/'
-    path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
-    #path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/feb2021_rev02/drms/'
-    #path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/feb2021/drms/'
-    
-    rev = "" #ä"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
-    
-    Mr = False  # Mr = False = Blos # GHERARDO
-    
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    # moved to config.py
+    #config.phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
+    #config.rev = "" #"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
+    #config.Mr = True  # Mr = False = Blos # GHERARDO
+    #config.dataseries_input = "hmi.M_720s" # "mps_loeschl.hmi_m720s_nrt"
+    #config.period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI@12m" # CR2258
+    #config.interval = ""#"@12m"
+    #config.cr = 2258
+    #config.filter_duplicates = True
+
+    #set cwd to file directory
+    os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
+
+    # create output directory if it does not exist
+    if not os.path.isdir(config.phi_datapath):
+        os.mkdir(config.phi_datapath)
         
-        
-    data_series = "hmi.M_720s"
-    #data_series = "mps_loeschl.hmi_m720s_nrt"
-    
-    #period = "2021.02.19_09:00:00_TAI,2021.02.22_10:48:00_TAI,2021.02.23_06:48:00_TAI,2021.02.24_02:36:00_TAI,2021.02.24_22:36:00_TAI,2021.02.25_18:36:00_TAI,2021.02.26_14:36:00_TAI,2021.02.28_07:12:00_TAI"#"2014.05.04_14:46:00_TAI-2014.05.31_19:59:00_TAI" 
-    #period="2021.01.21_06:36:00_TAI-2021.01.22_16:36:00_TAI@2h,2021.02.03_12:36:00_TAI-2021.02.19_14:36:00_TAI@2h" 
-    # CENTRAL HMI WINDOW AT 12 MINUTE CADENCE
-    # NO BOUNDARY DATASETS IN PREPARATION FOR PERIODIC BOUNDARIES
-    #period = "2021.02.03_11:12:00_TAI-2021.02.15_18:12:00_TAI@12m"
-    #period = "2022.02.04_12:00:00_TAI-2022.02.08_04:00:00_TAI@12m" # CR2254
-    #period = "2022.03.23_23:12:00_TAI-2022.03.28_07:12:00_TAI@12m" # CR2255
-    #period = "2014.05.10_00:00:00_TAI-2014.05.16_00:00:00_TAI@2h" # CR2150    
-    #period = "2021.02.02_16:00:00_TAI-2021.02.18_14:48:00_TAI@12m" # CR2240 ideal
-
-    #period = "2021.02.03_12:36:00_TAI-2021.02.15_16:36:00_TAI@12m" # CR2240
-    period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI@12m" # CR2258
-
-    interval = ""#"@12m"
-    cr = 2258
-    
-    #v2hout = 'mps_loeschl.Ml_hiresmap_720s'
-    #rmmout = 'mps_loeschl.Ml_remap_720s_test'
-        
-    #v2hout = 'mps_loeschl.Ml_hiresmap_CR2255' #'mps_loeschl.Ml_hiresmap_CR2240_fast'
-    #rmmout = 'mps_loeschl.Ml_remap_CR2255' #'mps_loeschl.Ml_remap_CR2240_fast'
-    
-    #v2hout = 'mps_loeschl.Ml_hiresmap_CR2240_rev02' #'mps_loeschl.Ml_hiresmap_CR2240_fast'
-    #rmmout = 'mps_loeschl.Ml_remap_CR2240_rev02' #'mps_loeschl.Ml_remap_CR2240_fast    
-    
-    # TODO use Mr/Ml with place holder
-    if Mr:
-        v2hout = 'mps_loeschl.Mr_hiresmap_CR%s%s'%(cr, rev) #'mps_loeschl.Ml_hiresmap_CR2240_fast'
-        rmmout = 'mps_loeschl.Mr_remap_CR%s%s'%(cr, rev) #'mps_loeschl.Ml_remap_CR2240_fast
-        proj = 'Mr'
-    else:        
-        v2hout = 'mps_loeschl.Ml_hiresmap_CR%s%s'%(cr, rev) #'mps_loeschl.Ml_hiresmap_CR2240_fast'
-        rmmout = 'mps_loeschl.Ml_remap_CR%s%s'%(cr, rev) #'mps_loeschl.Ml_remap_CR2240_fast
-        proj = 'Ml'
-    
-    filter_duplicates = True
-    # CHANGE PARAMETERS HERE
-    
-    # CODE STARTS HERE
-    #jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" \
-    #         MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=1 MAPRMAX=0.998 \
-    #         MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s' #timestamp, v2hout, timestamp, logfile
-    
-    # Ml
-    #jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" \
-    #         MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=1 MAPRMAX=0.998 \
-    #         MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s' #timestamp, v2hout, timestamp, logfile
-    
-    # Mr
-    if Mr:
-        jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" \
-                MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=2 MAPRMAX=0.998 \
-                MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s' #timestamp, v2hout, timestamp, logfile
+    print(config.Mr)
+    if config.Mr:
+        proj = "Mr"
+        mcorlev = 2 # for jv2ts command line 
     else:
-        jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" \
-                 MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=1 MAPRMAX=0.998 \
-                 MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s' #timestamp, v2hout, timestamp, logfile
-    
+        proj = "Ml"
+        mcorlev = 1 # for jv2ts command line 
+
+    v2hout = '%s.%s_hiresmap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.rev) #'mps_loeschl.Ml_hiresmap_config.cr2240_fast'
+    rmmout = '%s.%s_remap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.rev) #'mps_loeschl.Ml_remap_CR2240_fast
+
+    jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" \
+            MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=0.998 \
+            MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s' 
+            #timestamp, v2hout, timestamp, mcorlev, logfile
+
     rsmapmag = 'resizemappingmag in=%s["%s"] out=%s nbin=3 >>%s' #in_ds, timestamp, out_ds, logfile
     
-
-    times = get_M_720s_times(data_series, period, interval)  # list with all queued time stamps
+    times = get_M_720s_times(config.dataseries_input, config.period, config.interval)  # list with all queued time stamps
     
-    
-    if filter_duplicates:
-        time_duplicates = get_M_720s_times(v2hout, period, interval)
+    if config.filter_duplicates:
+        time_duplicates = get_M_720s_times(v2hout, config.period, config.interval)
         
         for duplicate in time_duplicates:
             if duplicate in times:
@@ -148,28 +100,33 @@ def main(argv):
                 times.remove(duplicate)
 
         
-    wc = get_M_720s_count(data_series, period, interval)     # line count for time stamps
+    wc = get_M_720s_count(config.dataseries_input, config.period, config.interval)     # line count for time stamps
 
     # split files after n entries
-    split = 150
+    nsplit = 150
     
     j = 0
     for i, time in enumerate(times):
 
-        if i % split == 0:  # create a total of 10 batch scripts every SPLIT steps
+        if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
 
             if i > 0: 
                 batch_out.write('echo "done"')
+                # end of previous batch script
+                # add path change at the end of the script here?
                 batch_out.close()
                 j+=1 
-                
+
+       
             jv2ts_log = './log/jv2ts_%s_%s.log'% (proj, j)
             rmm_log = './log/rmm_%s_%s.log' % (proj, j)
 
-            batch_out = open(path + 'remap_rebin_%s_%s.sh' % (proj, j), 'w')
+            # beginning of new batch script     
+            batch_out = open(config.phi_datapath + 'remap_rebin_%s_%s.sh' % (proj, j), 'w')
             batch_out.write('#!/bin/bash\n')
+            # add path change at the end of the script here 
 
-        batch_out.write("%s \n" % (jv2ts %(data_series, time, v2hout, time, jv2ts_log)))
+        batch_out.write("%s \n" % (jv2ts %(config.dataseries_input, time, v2hout, time, mcorlev, jv2ts_log)))
         batch_out.write("%s \n\n" % (rsmapmag %(v2hout, time, rmmout, rmm_log)))
     
     batch_out.write('echo "batch %s done"'%j)
@@ -178,4 +135,5 @@ def main(argv):
     
     
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    #main(sys.argv[1:])
+    main()
