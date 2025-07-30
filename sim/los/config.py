@@ -1,7 +1,12 @@
+# Global parameters
+verbose = True
+
 # 1_m720s_drms_pipe.py
 
-#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/'
-phi_datapath = '../../output/test/' # test
+#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
+phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/pipeline_test/'
+
+#phi_datapath = '../../output/test/' # test
 script_path = '../../output/test/' #synop/output/CR_NUMBER_SESSION_ID/
 Mr = True # Ml/Mr selection -> False = Blos, True = Mr
 dataseries_input = "hmi.M_720s" # HMI source data series 
@@ -19,21 +24,43 @@ filter_duplicates = True
 # careful with the script splitting routine, probably needs to be added to each
 
 
+# Run this code at the bottom of the config file? v2hout an rmmout can be merged
+# with the 2_phi_drms_interface.py variables data series definitions
+
+if Mr:
+    proj = "Mr"
+    mcorlev = 2 # for jv2ts command line 
+else:
+    proj = "Ml"
+    mcorlev = 1 # for jv2ts command line 
+
+v2hout = '%s.%s_hiresmap_CR%s%s'%(dataseries_owner, proj, cr, rev) #'mps_loeschl.Ml_hiresmap_config.cr2240_fast'
+rmmout = '%s.%s_remap_CR%s%s'%(dataseries_owner, proj, cr, rev) #'mps_loeschl.Ml_remap_CR2240_fast
+
 
 
 # 2_phi_drms_interface.py
-
-# combine with previous definition
-#cr = 2258 
-#phi_datapath =  "../output/data/phi/FDT_test_release_june_2022_defringed/"
-
-old_header = False # obsolete feature for old header, required for CR2240
-dbpath = "/data/solo/phi/data/fmdb/l1/%s/%s" # obsolete feature for old header, required for CR2240
-
-
 # TEMPORARY OUTPUT FILE
-
+# TODO revisit after defining script path and temporary data output path
 temp_path = "" # add _DRMS output and bash scripts there
+# path_out also needs to be replaced
+
+maprmax = 0.9925 #0.998 # maximum radius for the synoptic map, 0.998 is the default for HMI synoptic maps
+
+data_series_m720s = "%s.phi_CR%s%s"         %(dataseries_owner, cr, rev)
+data_series_jv2ts = "%s.Mr_hiresmap_CR%s%s" %(dataseries_owner, cr, rev) #"mps_loeschl.Ml_hiresmap_720s_test"
+data_series_remap = "%s.Mr_remap_CR%s%s"    %(dataseries_owner, cr, rev) #"mps_loeschl.Ml_remap_720s_test"
+
+
+
+
+
+
+
+
+
+
+
 
 
 
