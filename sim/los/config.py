@@ -42,6 +42,8 @@ filter_duplicates = True
 # owner of temporary data series, used for output file names
 dataseries_owner = "mps_loeschl" 
 
+# split batch scripts after nsplit entries
+nsplit = 150
 
 # redefine where the bash scripts are stored!
 # automatically create synop/output/CR_NUMBER_SESSION_ID/
@@ -49,19 +51,6 @@ dataseries_owner = "mps_loeschl"
 # add "cd script_path" to the end of the bash scripts
 # careful with the script splitting routine, probably needs to be added to each
 
-
-# Run this code at the bottom of the config file? v2hout an rmmout can be merged
-# with the 2_phi_drms_interface.py variables data series definitions
-
-if Mr:
-    proj = "Mr"
-    mcorlev = 2 # for jv2ts command line 
-else:
-    proj = "Ml"
-    mcorlev = 1 # for jv2ts command line 
-
-v2hout = '%s.%s_hiresmap_CR%s%s'%(dataseries_owner, proj, cr, rev) #'mps_loeschl.Ml_hiresmap_config.cr2240_fast'
-rmmout = '%s.%s_remap_CR%s%s'%(dataseries_owner, proj, cr, rev) #'mps_loeschl.Ml_remap_CR2240_fast
 
 
 ###########################################################
@@ -75,12 +64,24 @@ temp_path = "" # add _DRMS output and bash scripts there
 
 maprmax = 0.9925 #0.998 # maximum radius for the synoptic map, 0.998 is the default for HMI synoptic maps
 
+
+###########################################################
+################# Data series definition ##################
+###########################################################
+
+# Run this code at the bottom of the config file? v2hout an rmmout can be merged
+# with the 2_phi_drms_interface.py variables data series definitions
+
+if Mr:
+    proj = "Mr"
+    mcorlev = 2 # for jv2ts command line 
+else:
+    proj = "Ml"
+    mcorlev = 1 # for jv2ts command line 
+
 data_series_m720s = "%s.phi_CR%s%s"         %(dataseries_owner, cr, rev)
-data_series_jv2ts = "%s.Mr_hiresmap_CR%s%s" %(dataseries_owner, cr, rev) #"mps_loeschl.Ml_hiresmap_720s_test"
-data_series_remap = "%s.Mr_remap_CR%s%s"    %(dataseries_owner, cr, rev) #"mps_loeschl.Ml_remap_720s_test"
-
-
-
+data_series_jv2ts = "%s.%s_hiresmap_CR%s%s" %(dataseries_owner, proj, cr, rev) #"mps_loeschl.Ml_hiresmap_720s_test"
+data_series_remap = "%s.%s_remap_CR%s%s"    %(dataseries_owner, proj, cr, rev) #"mps_loeschl.Ml_remap_720s_test"
 
 
 
@@ -92,64 +93,55 @@ data_series_remap = "%s.Mr_remap_CR%s%s"    %(dataseries_owner, cr, rev) #"mps_l
 ###########################################################
 
 
-timestring = ""
+synop_outname = "synop%s.fits" % proj
+synop_outpath = "" 
+
+# timestring2258_phi_hmi12m
+timestring = "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI@12m,2022.06.17_22:54:23_TAI,2022.06.18_10:56:25_TAI,2022.06.18_23:03:13_TAI,2022.06.19_11:15:52_TAI,2022.06.19_23:22:58_TAI,2022.06.20_11:36:08_TAI,2022.06.20_23:53:39_TAI,2022.06.21_04:17:58_TAI,2022.06.22_00:04:49_TAI,2022.06.22_12:18:51_TAI,2022.06.22_18:23:04_TAI,2022.06.23_00:26:52_TAI,2022.06.23_06:33:54_TAI,2022.06.23_12:41:16_TAI,2022.06.23_18:45:28_TAI,2022.06.24_00:49:36_TAI,2022.06.24_06:56:58_TAI,2022.05.28_08:15:44_TAI,2022.05.28_14:22:55_TAI,2022.05.28_20:26:46_TAI,2022.05.29_02:31:46_TAI,2022.05.29_08:40:07_TAI,2022.05.29_14:47:11_TAI,2022.05.29_20:51:05_TAI,2022.05.30_02:56:29_TAI,2022.05.30_09:05:03_TAI,2022.05.30_15:12:00_TAI,2022.05.30_21:15:56_TAI,2022.05.31_03:21:44_TAI,2022.05.31_09:30:30_TAI,2022.06.01_09:56:24_TAI,2022.06.01_16:03:02_TAI,2022.06.01_22:07:09_TAI,2022.06.02_04:13:44_TAI,2022.06.02_10:22:46_TAI,2022.06.02_16:29:13_TAI,2022.06.02_22:33:28_TAI,2022.06.03_04:40:26_TAI,2022.06.03_10:49:32_TAI,2022.06.03_16:55:48_TAI,2022.06.03_23:00:11_TAI,2022.06.04_05:07:33_TAI,2022.06.04_11:16:41_TAI,2022.06.04_17:22:45_TAI,2022.06.04_23:27:20_TAI,2022.06.05_05:35:04_TAI,2022.06.05_11:44:11_TAI,2022.06.05_17:50:04_TAI,2022.06.05_23:54:52_TAI,2022.06.06_06:02:58_TAI,2022.06.06_12:12:00_TAI,2022.06.06_18:17:43_TAI"
+
 awfs = [5]#, 15, 25, 35, 45, 55]
 cadences = ["12m"] #["2h", "4h", "6h", "8h", "12h", "24h"]
-path_synop = "" # synoptic map output path
+
+# Adjacent Meridian Contribution for Weight Function Shape
+awf_nimg = 5,
+awf_cmin = 5,  # minimum contribution %
+awf_cmax = 5, # maximum contribution %
+awf_dmin = 25, # latitude border until which minimum contribution is used
+awf_dmax = 60, # latitude border from which maximum contribution is used
+awf_lim  = False,
+awf_nlim = 25, # default: 25, TODO understand this parameter again
+
 
 # todo fix
 #path = "../output/data/paper/cr%s_Mr_FDT_test_release_june_2022_defringed/awf_0%spct-%spct_%simg/" % (config["cr"], config["awf_cmin"], config["awf_cmax"], config["awf_nimg"])
 
-# change get_arg_parameters() to read config from here
 
-#def get_arg_parameters():
-#    
-#    # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
-#    config = {
-#        
-#        
-#        "cr":2258,
-#        "input_ds": "mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
-#        "outname": "synopMr.fits",
-#        #"au": 0.28, # AU
-#        
-#        # Adjacent Meridian Contribution for Weight Function Shape
-#        "awf_nimg": 5,
-#        "awf_cmin": 5,  # minimum contribution %
-#        "awf_cmax": 55,  # maximum contribution %
-#        "awf_dmin": 25, # latitude border until which minimum contribution is used
-#        "awf_dmax": 60, # latitude border from which maximum contribution is used
-#        "awf_lim": False,
-#        
-#        # rebinning
-#        "bin": True,
-#        "nbin": [5],
-#        
-#        # classic hmisynoptic parameters
-#        "nsig": 3.0, 
-#        "mapmmax": 1800, #1800, 
-#        "sinbdivs": 720, #720,
-#        "lgmin": -90,
-#        "lgmax": +90,
-#        "checkqual": 0,
-#        "center": 0.0,
-#        #"halfWindow":15, # now dynamically calculated. obsolete
-#        "los": 0,
-#        "force": 0,   # unused / obsolete
-#        "dlog": 0,
-#        "nEquivPtsReq": 20, 
-#        "noiseS": 3.0, 
-#        "maxNoiseAdj": 3.0,
-#        "minOutPts": 4.0,
-#    }
-#    
-#    return config  
+
+# rebinning
+bin = True,
+xbin = 5, # HMI default 5
+ybin = 4, # HMI default 4
+
+# classic hmisynoptic parameters
+nsig = 3.0, 
+mapmmax = 1800, #1800, 
+sinbdivs = 720, #720,
+lgmin = -90,
+lgmax = +90,
+checkqual = 0,
+center = 0.0,
+los = 0,
+dlog = 0,
+nEquivPtsReq = 20, 
+noiseS = 3.0, 
+maxNoiseAdj = 3.0,
+minOutPts = 4.0,
+
 
 # Adaptive Weight Function
 # - code relies on images taken from the ecliptic
 # - lattitude specific weight function control needs to consider out of ecliptic observations
 # - understand awf_lim and describe it properly
-
 
 
 

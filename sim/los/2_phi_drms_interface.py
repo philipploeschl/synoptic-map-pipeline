@@ -377,21 +377,6 @@ def main():
 
     files = os.listdir(path_out)
     fitsfiles = [file for file in files if file.endswith(".fits")]
-    #mps_loeschl.Mr_hiresmap_CR2240_FDT_test_release_sup_conj_2021
-
-    if config.Mr:
-        proj = "Mr"
-        mcorlev = 2 # for jv2ts command line 
-    else:
-        proj = "Ml"
-        mcorlev = 1 # for jv2ts command line 
-
-
-    # TODO move data series definitions to config.py (also for 1_m720s_drms_pipe.py)
-    data_series_m720s = "%s.phi_CR%s%s"         %(config.dataseries_owner, config.cr, config.rev)
-    data_series_jv2ts = "%s.Mr_hiresmap_CR%s%s" %(config.dataseries_owner, config.cr, config.rev) #"mps_loeschl.Ml_hiresmap_720s_test"
-    data_series_remap = "%s.Mr_remap_CR%s%s"    %(config.dataseries_owner, config.cr, config.rev) #"mps_loeschl.Ml_remap_720s_test"
-
 
     setinfo_out = open(path_out+'0_set_info.sh', 'w')
     setinfo_out.write('#!/bin/bash\n')
@@ -399,12 +384,12 @@ def main():
     set_info = 'set_info -c ds="%s" T_REC="%s" magnetogram=%s >> set_info.log 2>&1\n'
 
     #TODO different combined remapping module
-    jv2ts_out = open(path_out+'1_jv2ts_%s.sh'%proj, 'w')
+    jv2ts_out = open(path_out+'1_jv2ts_%s.sh'%config.proj, 'w')
     jv2ts_out.write('#!/bin/bash\n')
 
     jv2ts = "jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> jv2ts.log 2>&1\n"
 
-    resizemappingmag_out = open(path_out+'3_resizemappingmag_%s.sh'%proj, 'w')
+    resizemappingmag_out = open(path_out+'3_resizemappingmag_%s.sh'%config.proj, 'w')
     resizemappingmag_out.write('#!/bin/bash\n')
     resizemappingmag = "resizemappingmag in=%s['%s'] out=%s nbin=3 >> resizemappingmag.log 2>&1\n"
 
@@ -422,16 +407,16 @@ def main():
         trec = fld[1].header['T_REC']
         fld.close()
         
-        setinfo_out.write('\necho %s' %set_info %(data_series_m720s, trec, fname))
-        setinfo_out.write(set_info %(data_series_m720s, trec, fname))
+        setinfo_out.write('\necho %s' %set_info %(config.data_series_m720s, trec, fname))
+        setinfo_out.write(set_info %(config.data_series_m720s, trec, fname))
         
         file = fits.open(path_out+fname)[1]
-        jv2ts_out.write('\n\necho %s' %jv2ts %(data_series_m720s, trec, data_series_jv2ts, trec, mcorlev, config.maprmax))
-        jv2ts_out.write(jv2ts %(data_series_m720s, trec, data_series_jv2ts, trec, mcorlev, config.maprmax))
-        jv2ts_out.write(set_keys %(data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
+        jv2ts_out.write('\n\necho %s' %jv2ts %(config.data_series_m720s, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
+        jv2ts_out.write(jv2ts %(config.data_series_m720s, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
+        jv2ts_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
         
-        resizemappingmag_out.write('\necho %s' %resizemappingmag %(data_series_jv2ts, trec, data_series_remap))
-        resizemappingmag_out.write(resizemappingmag %(data_series_jv2ts, trec, data_series_remap)) 
+        resizemappingmag_out.write('\necho %s' %resizemappingmag %(config.data_series_jv2ts, trec, config.data_series_remap))
+        resizemappingmag_out.write(resizemappingmag %(config.data_series_jv2ts, trec, config.data_series_remap)) 
         
         trec_out.write("%s\n"%trec)
         i += 1
