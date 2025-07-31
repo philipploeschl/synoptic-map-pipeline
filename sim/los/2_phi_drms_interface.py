@@ -37,7 +37,7 @@ def calc_trec(crln_obs, car_rot, verbose=False):
         t1 = carrington_rotation_time(car_rot)   # future / current
         t2 = carrington_rotation_time(car_rot+1) # future end point
 
-        trec_hmi = interp_phi2hmi(crln_obs, t1, t2, verbose)
+        trec_hmi = interp_phi2hmi(crln_obs, t1, t2, verbose, car_rot)
         hmi_prev = interp_phi2hmi(crln_obs, t0, t1)
         hmi_next = trec_hmi
         
@@ -77,7 +77,7 @@ def calc_trec_rev(crln_obs, car_rot, verbose=False):
     return trec_hmi, hmi_prev, hmi_next, car_rot
 """
 
-def interp_phi2hmi(crln_obs, t0, t1, verbose=False):
+def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
     # Interpolate T_REC of PHI CRLN_OBS onto HMI CRLN_OBS
     dt_hmi   = np.array([])
     trec_hmi = np.array([])
