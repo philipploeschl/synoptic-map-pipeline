@@ -14,11 +14,13 @@ from solephem import solephem
 import datetime as datetime
 from copy import copy, deepcopy
 import sunpy.map
+from astropy.io import fits
 import matplotlib.patches as patches
 from scipy.signal import gaussian
 from scipy.special import voigt_profile
 import os
 from datetime import date
+import config as global_config
 
 # DEFINES
 QUAL_CHECK = "0xfffefb00"
@@ -175,7 +177,7 @@ def drms_ismissing_float(val):
         return 0
 
 # Adaptive weight function calculation
-def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False): #exp=5):
+def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False, nlim=25): #exp=5):
     # default: exp=2.5
     # mrd_cont = meridian contribution
 
@@ -275,7 +277,8 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False)
         n2 = np.ceil((multi-1)*chwidth[i][1]).astype(int) # needs to be >1.0 to work without NaNs
 
         if lim:
-            nlim = 25 # this gives 2*25*0.1 = 5° wide overlap region
+            # nlim = 25 # this gives 2*25*0.1 = 5° wide overlap region
+            # now set in config.py
             if n1 > nlim: n1 = nlim
             if n2 > nlim: n2 = nlim
         
@@ -570,8 +573,9 @@ def magStats(val, npts, sum_, outThreshold):
 
 
 # Synoptic map main function
-def main(inRecs, config):#, hw_overwrite=None):
+def main(config):#, hw_overwrite=None):
     
+    inRecs = config["timestring"]
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
     
     #if hw_overwrite is not None:
@@ -594,7 +598,7 @@ def main(inRecs, config):#, hw_overwrite=None):
 
     drms_getkey, nRecs = get_drms_parameters(inRecs, config["input_ds"])
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
-    weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"])
+    weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
     
     imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
     imrec = [] # list to hold dictionary
@@ -679,8 +683,8 @@ def main(inRecs, config):#, hw_overwrite=None):
             else:
                 if (np.fabs(csCoeffKey - diffrotB) > 0.001):
 
-                    printf("  Attempt to use inconsistent carr stretch parameters.\n")
-                    printf("    Rejecting ds=%d.\n" %ds)
+                    print("  Attempt to use inconsistent carr stretch parameters.\n")
+                    print("    Rejecting ds=%d.\n" %ds)
                     continue
 
 
@@ -690,8 +694,8 @@ def main(inRecs, config):#, hw_overwrite=None):
 
             else:
                 if (np.fabs(csCoeffKey - diffrotC) > 0.001):
-                    printf("  Attempt to use inconsistent carr stretch parameters.\n")
-                    printf("    Rejecting ds=%d.\n" %ds)
+                    print("  Attempt to use inconsistent carr stretch parameters.\n")
+                    print("    Rejecting ds=%d.\n" %ds)
                     continue 
 
 
@@ -1148,13 +1152,15 @@ def fstats(npix, synop, small=False):
 
 
 # Synoptic map header
-def create_header(outRec, config, stats, imrec, nbin):
+def create_header(outRec, config, stats, imrec, small=False):
     
-    small = True if nbin > 1 else False
-    
-    xout = config["length"][0] // nbin
-    yout = config["length"][1] // nbin if nbin != 5 else config["length"][1] // (nbin-1)
-    
+    if small:
+        xout = config["length"][0] // config["xbin"]
+        yout = config["length"][1] // config["ybin"]
+    else:
+        xout = config["length"][0]
+        yout = config["length"][1]
+
     eph = np.zeros(30)
     tstart = CarringtonTime(config["cr"], 360.0);
     tstop  = CarringtonTime(config["cr"], 0.0);
@@ -1186,7 +1192,7 @@ def create_header(outRec, config, stats, imrec, nbin):
     # 3. The counting begins with 1 but *not* 0.
     # 4. The pixel of interest is (len[0]/2+1.0) if counting starts from right to left.
     # 5. Flipping to left to right, this pixel is len[0]-(len[0]/2+1.0)+1.0.
-    if small: tmp = xout - ((180.0 - ((nbin + 1) / 2.0 - 1.0) * (360.0 / xout)) / (360.0 / xout) + 1.0) + 1.0
+    if small: tmp = xout - ((180.0 - ((config["xbin"] + 1) / 2.0 - 1.0) * (360.0 / xout)) / (360.0 / xout) + 1.0) + 1.0
     else :    tmp = xout - (xout / 2 + 1.0) + 1.0
     outRec["CRPIX1"] = tmp
     # origin is at the center of the first pixel. The counting is 1.
@@ -1199,7 +1205,7 @@ def create_header(outRec, config, stats, imrec, nbin):
     outRec["CDELT1"] = -360.0 / xout
     
     outRec["CDELT2"] = 1.0 / config["sinbdivs"]
-    if small: outRec["CDELT2"] = nbin * 1.0 / config["sinbdivs"]
+    if small: outRec["CDELT2"] = config["ybin"] * 1.0 / config["sinbdivs"]
         
     outRec["CUNIT1"] = "degree"
     outRec["CUNIT2"] = "Sine Latitude"
@@ -1244,11 +1250,11 @@ def create_header(outRec, config, stats, imrec, nbin):
     outRec["B0_LAST"] = eph[9] / RADSINDEG
     #        outRec["EARTH_B0", bearth)
     
-    if small:  l = (config['cr']- 1) * 360.0 + ((nbin + 1) / 2.0 - 1.0) * (360.0 /xout)
+    if small:  l = (config['cr']- 1) * 360.0 + ((config["xbin"] + 1) / 2.0 - 1.0) * (360.0 /xout)
     else:      l = (config['cr']- 1) * 360.0
     outRec["LON_FRST"] = l
     
-    if small: l = config['cr'] * 360.0 - 360.0 / xout - ((nbin + 1) / 2.0 - 1.0) * (360.0 / xout)
+    if small: l = config['cr'] * 360.0 - 360.0 / xout - ((config["xbin"] + 1) / 2.0 - 1.0) * (360.0 / xout)
     else:     l = config['cr'] * 360.0 - 360.0 / xout
     outRec["LON_LAST"] = l
 
@@ -1293,41 +1299,44 @@ def get_arg_parameters():
     config = {
         
         
-        "cr":2258,
-        "input_ds": "mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
-        "outname": "synopMr.fits",
-        #"au": 0.28, # AU
-        
+        "cr":       global_config.cr,
+        "input_ds": global_config.data_series_remap, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        "timestring" : global_config.timestring, 
+        "synop_outname": global_config.synop_outname,
+        "synop_outpath": global_config.synop_outpath,
+
         # Adjacent Meridian Contribution for Weight Function Shape
-        "awf_nimg": 5, # ODD number of images considered for the weightfunction, ODD number: center + N on each side
-        "awf_cmin": 5,  # minimum contribution %
-        "awf_cmax": 55, # maximum contribution % set equal to awf_cmin for none lattitude speicfic weights
-        "awf_dmin": 25, # latitude border until which minimum contribution is used
-        "awf_dmax": 60, # latitude border from which maximum contribution is used
-        "awf_lim": False,
-        "awf_lim_size": 0, # TODO define size limit for awf slice (still unused)
+        "awf_nimg": global_config.awf_nimg , # ODD number of images considered for the weightfunction, ODD number: center + N on each side
+        "awf_cmin": global_config.awf_cmin , # minimum contribution %
+        "awf_cmax": global_config.awf_cmax , # maximum contribution % set equal to awf_cmin for none lattitude speicfic weights
+        "awf_dmin": global_config.awf_dmin , # latitude border until which minimum contribution is used
+        "awf_dmax": global_config.awf_dmax , # latitude border from which maximum contribution is used
+        "awf_lim":  global_config.awf_lim  ,
+        "awf_lim_size": global_config.awf_lim_size, # TODO define size limit for awf slice (still unused)
         
         # don't have to touch these
         # rebinning
-        "bin": True,
-        "nbin": [5],
+        "bin":  global_config.bin,
+        "xbin": global_config.xbin,
+        "ybin": global_config.ybin,
         
         # classic hmisynoptic parameters
-        "nsig": 3.0, 
-        "mapmmax": 1800, #1800, # half size 3600
-        "sinbdivs": 720, #720,  # half size 1440
-        "lgmin": -90,
-        "lgmax": +90,
-        "checkqual": 0,
-        "center": 0.0,
+        "nsig":         global_config.nsig,      #3.0, 
+        "mapmmax":      global_config.mapmmax,   #1800, half size 3600
+        "sinbdivs":     global_config.sinbdivs,  #720,  half size 1440
+        "lgmin":        global_config.lgmin,     # -90,
+        "lgmax":        global_config.lgmax,     # +90,
+        "checkqual":    global_config.checkqual, # 0,
+        "center":       global_config.center,    # 0.0,
+        "los":          global_config.los,       # 0,
+        "dlog":         global_config.dlog,      # 0,
+        "nEquivPtsReq": global_config.nEquivPtsReq, # 20, 
+        "noiseS":       global_config.noiseS,       # 3.0, 
+        "maxNoiseAdj":  global_config.maxNoiseAdj,  # 3.0,
+        "minOutPts":    global_config.minOutPts,    # 4.0,
+        
         #"halfWindow":15, # now dynamically calculated. obsolete
-        "los": 0,
-        "force": 0,   # unused / obsolete
-        "dlog": 0,
-        "nEquivPtsReq": 20, 
-        "noiseS": 3.0, 
-        "maxNoiseAdj": 3.0,
-        "minOutPts": 4.0,
+        #"force": 0,   # unused / obsolete
     }
     
     return config    
@@ -1336,108 +1345,44 @@ def get_arg_parameters():
 
 if __name__ == "__main__":
     
-    timestring2258_phi_hmi12m = '2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI@12m,2022.06.17_22:54:23_TAI,2022.06.18_10:56:25_TAI,2022.06.18_23:03:13_TAI,2022.06.19_11:15:52_TAI,2022.06.19_23:22:58_TAI,2022.06.20_11:36:08_TAI,2022.06.20_23:53:39_TAI,2022.06.21_04:17:58_TAI,2022.06.22_00:04:49_TAI,2022.06.22_12:18:51_TAI,2022.06.22_18:23:04_TAI,2022.06.23_00:26:52_TAI,2022.06.23_06:33:54_TAI,2022.06.23_12:41:16_TAI,2022.06.23_18:45:28_TAI,2022.06.24_00:49:36_TAI,2022.06.24_06:56:58_TAI,2022.05.28_08:15:44_TAI,2022.05.28_14:22:55_TAI,2022.05.28_20:26:46_TAI,2022.05.29_02:31:46_TAI,2022.05.29_08:40:07_TAI,2022.05.29_14:47:11_TAI,2022.05.29_20:51:05_TAI,2022.05.30_02:56:29_TAI,2022.05.30_09:05:03_TAI,2022.05.30_15:12:00_TAI,2022.05.30_21:15:56_TAI,2022.05.31_03:21:44_TAI,2022.05.31_09:30:30_TAI,2022.06.01_09:56:24_TAI,2022.06.01_16:03:02_TAI,2022.06.01_22:07:09_TAI,2022.06.02_04:13:44_TAI,2022.06.02_10:22:46_TAI,2022.06.02_16:29:13_TAI,2022.06.02_22:33:28_TAI,2022.06.03_04:40:26_TAI,2022.06.03_10:49:32_TAI,2022.06.03_16:55:48_TAI,2022.06.03_23:00:11_TAI,2022.06.04_05:07:33_TAI,2022.06.04_11:16:41_TAI,2022.06.04_17:22:45_TAI,2022.06.04_23:27:20_TAI,2022.06.05_05:35:04_TAI,2022.06.05_11:44:11_TAI,2022.06.05_17:50:04_TAI,2022.06.05_23:54:52_TAI,2022.06.06_06:02:58_TAI,2022.06.06_12:12:00_TAI,2022.06.06_18:17:43_TAI'
+    config = get_arg_parameters()    
+    path = config["synop_outpath"] 
+    synop, epts, length, imrec =  main(config)
     
-    awfs = [5]#, 15, 25, 35, 45, 55]
-    #cadences = ["2h", "4h", "6h", "8h", "12h", "24h"]
-    #cadences = ["2h"]
-    cadences = ["12m"]
-    #cadences = ["24h"]
+    if not os.path.isdir(path):
+        os.makedirs(path) # os.mkdir crashes with subfolders, use os.makedirs instead.
+
+    synop_img = np.zeros([length[1], length[0]])
+    #convert_image_array(synop, synop_img, length[0], length[1])    
+    synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
     
-    config = get_arg_parameters()
+    stats = fstats(length[1]*length[0], synop, small=False)
     
-    for awf in awfs:
-        print("Processing %s%s weight function..." %(awf, "%"))
+    hdu  = fits.PrimaryHDU(synop_img)
+    create_header(hdu.header, config, stats, imrec)
+    hdul = fits.HDUList([hdu])
+    hdul.writeto(path+config['synop_outname'], overwrite=True)
+
+    if config["bin"]:
+        # create small synoptic map
+        # length  = [x,y]
+        xbin = config["xbin"]
+        ybin = config["ybin"] 
+
+        smallSynop = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+
+        frebinbox(synop, smallSynop, length[0], length[1], xbin, ybin)
+        smallSynop_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+        smallSynop_img = np.reshape(smallSynop, (int(length[1]/ybin), int(length[0]/xbin)))
         
-        #config["awf_cmin"] = awf
-        #config["awf_cmax"] = awf
+        #smallEpts  = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        #frebinbox(epts,  smallEpts,  length[0], length[1], xbin, ybin)
+        #convert_image_array(smallSynop, smallSynop_img, int(length[0]/xbin), int(length[1]/ybin))
         
-        for cad in cadences:
-            print("Processing %s cadence..." %cad)
-            #config = get_arg_parameters()
+        stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynop)
+        hdu_small = fits.PrimaryHDU(smallSynop_img)
+        create_header(hdu_small.header, config, stats_small, imrec, True)
+        hdul_small = fits.HDUList([hdu_small])
+        hdul_small.writeto(path+config['synop_outname'], overwrite=True)
 
-            path = "../output/data/paper/cr%s_Mr_FDT_test_release_june_2022_defringed/awf_0%spct-%spct_%simg/" % (config["cr"], config["awf_cmin"], config["awf_cmax"], config["awf_nimg"])
-            
-            """
-            if awf < 10:
-                path = "../output/data/paper/cr%s_Mr_FDT_test_release_june_2022_defringed/awf_0%spct_%simg/" % (config["cr"], config["awf_cmin"], config["awf_nimg"])
-            else:
-                path = "../output/data/paper/cr%s_Mr_FDT_test_release_june_2022_defringed/awf_%spct_%simg/"  % (config["cr"], config["awf_cmin"], config["awf_nimg"])
-            """
-            
-            """
-            if awf < 10:
-                path = "../output/data/paper/cr%s_update/%s/awf_0%spct_%simg/" % (config["cr"], cad, config["awf_cmin"], config["awf_nimg"])
-            else:
-                path = "../output/data/paper/cr%s_update/%s/awf_%spct_%simg/"  % (config["cr"], cad, config["awf_cmin"], config["awf_nimg"])
-            """  
-                
-            #path = "../output/data/paper/cr%s/%s/awf_0%spct_%simg_1440p_1xbin_070au/" % (config["cr"], cad, config["awf_cmin"], config["awf_nimg"])
-
-            #path = "../output/data/paper/cr%s/%s/awf_0%spct_%simg_lim_070au/" % (config["cr"], cad, config["awf_cmin"], config["awf_nimg"])
-            #path = "../output/data/paper/cr%s/%s/"% (config["cr"], cad)
-            #path = "../output/data/paper/cr%s/%s/awf_25px_limited/" % (config["cr"], cad)#, config["awf_cmin"], config["awf_nimg"])
-            #path = "../output/data/paper/cr%s/%s/awf_%s-%spct_%s-%sdeg_%simg/" % (config["cr"], cad, config["awf_cmin"], config["awf_cmax"], config["awf_dmin"], config["awf_dmax"], config["awf_nimg"])
-            #synop, epts, length, imrec = main(inRecs24h, car_rot, "mps_loeschl.Ml_remap_720s", mrd_cont=float(mrd_cont), nimg=nimg)
-            #main(inRecsCR2255, car_rot, "mps_loeschl.Ml_remap_CR2255", mrd_cont=float(mrd_cont), nimg=nimg)
-
-            #synop, epts, length, imrec =  main(inRecs[cad], config)
-            #synop, epts, length, imrec =  main(inRecs_CR2240_rev02_full[cad], config)
-            #synop, epts, length, imrec =  main(timestring2240_phi_hmi2h, config)
-            #synop, epts, length, imrec =  main(timestring2240_phi_hmi12m, config)
-            synop, epts, length, imrec =  main(timestring2258_phi_hmi12m, config)
-            
-            #synop, epts, length, imrec =  main(timestring2240_ideal, config)
-            #synop, epts, length, imrec =  main(inRecs_CR2240_rev02_phi24h_right[cad], config)
-
-            if not os.path.isdir(path):
-                os.makedirs(path) # os.mkdir crashes with subfolders, use os.makedirs instead.
-
-            synop_img = np.zeros([length[1], length[0]])
-            
-            
-            #convert_image_array(synop, synop_img, length[0], length[1])    
-            synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
-            
-            stats = fstats(length[1]*length[0], synop, small=False)
-            
-            hdu  = fits.PrimaryHDU(synop_img)
-            create_header(hdu.header, config, stats, imrec, 1)
-            hdul = fits.HDUList([hdu])
-            hdul.writeto(path+config['outname'], overwrite=True)
- 
-
-            if config["bin"]:
-                for nbin in config["nbin"]:  
-                    print("Processing %sx binning..." %nbin)
-
-                    # length  = [x,y]
-                    xbin = nbin
-                    ybin = xbin
-
-                    if nbin == 5: ybin = nbin - 1 # hmi small synoptic uses nbin = 5, [x,y] = [nbin, nbin-1]   
-
-                    smallSynop = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
-
-                    frebinbox(synop, smallSynop, length[0], length[1], xbin, ybin)
-                    smallSynop_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
-                    smallSynop_img = np.reshape(smallSynop, (int(length[1]/ybin), int(length[0]/xbin)))
-                    
-                    #smallEpts  = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
-                    #frebinbox(epts,  smallEpts,  length[0], length[1], xbin, ybin)
-                    #convert_image_array(smallSynop, smallSynop_img, int(length[0]/xbin), int(length[1]/ybin))
-                    
-                    pathbin = path + '/%sbin/' %nbin
-                    if not os.path.isdir(pathbin):
-                        os.mkdir(pathbin)
-                    
-                    stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynop)
-                    hdu_small = fits.PrimaryHDU(smallSynop_img)
-                    create_header(hdu_small.header, config, stats_small, imrec, nbin)
-                    hdul_small = fits.HDUList([hdu_small])
-                    hdul_small.writeto(pathbin+config['outname'], overwrite=True)
-
-            print("%s cadence complete.\n"%cad)
-        print("%s%s AWF complete.\n"%(awf,"%"))
-        print("------------------------------")
-    print('%s done' %path)
+    print('%s complete' %path)
