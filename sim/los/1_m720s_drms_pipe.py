@@ -55,8 +55,8 @@ def cmd_args(argv):
 def main():
 
     # moved to config.py
-    #config.script_path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
-    #config.rev = "" #"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
+    #config.output_path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
+    #config.id = "" #"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
     #config.Mr = True  # Mr = False = Blos # GHERARDO
     #config.dataseries_input = "hmi.M_720s" # "mps_loeschl.hmi_m720s_nrt"
     #config.period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI@12m" # CR2258
@@ -68,8 +68,8 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
 
     # create output directory if it does not exist
-    if not os.path.isdir(config.script_path):
-        os.mkdir(config.script_path)
+    if not os.path.isdir(config.output_path):
+        os.mkdir(config.output_path)
 
     # moved to config.py    
     #if config.Mr:
@@ -79,8 +79,8 @@ def main():
     #    proj = "Ml"
     #    mcorlev = 1 # for jv2ts command line 
 
-    #v2hout = '%s.%s_hiresmap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.rev) #'mps_loeschl.Ml_hiresmap_config.cr2240_fast'
-    #rmmout = '%s.%s_remap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.rev) #'mps_loeschl.Ml_remap_CR2240_fast
+    #v2hout = '%s.%s_hiresmap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.id) #'mps_loeschl.Ml_hiresmap_config.cr2240_fast'
+    #rmmout = '%s.%s_remap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.id) #'mps_loeschl.Ml_remap_CR2240_fast
     #v2hout = config.data_series_jv2ts
     #rmmout = config.data_series_remap
 
@@ -124,7 +124,7 @@ def main():
             rmm_log = './log/rmm_%s_%s.log' % (config.proj, j)
 
             # beginning of new batch script     
-            batch_out = open(config.script_path + 'remap_rebin_%s_%s.sh' % (config.proj, j), 'w')
+            batch_out = open(config.output_path + 'remap_rebin_%s_%s.sh' % (config.proj, j), 'w')
             batch_out.write('#!/bin/bash\n')
             # add path change at the end of the script here 
 
