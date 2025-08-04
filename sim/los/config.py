@@ -14,16 +14,29 @@ phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/p
 
 
 # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
-output_path = 'output/%s/' %id 
+output_path = 'output/'
 
-# path to JSD templates, relative to synop/
-template_path = "drms_prep/" 
+script_path = 'scripts/' # path to bash scripts, relative to synop/output/CR_NUMBER_SESSION_ID/
+log_path    = 'logs/'    # path to log files, relative to synop/output/CR_NUMBER_SESSION_ID/
+data_path   = 'data/'    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
+jsd_path    = 'jsd/'     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
+
+# File structure created in misc.py: create_session_folder
+# - OUTPUT_PATH/
+#   - CR_NUMBER_YYYYMMDD_HHMMSS
+#       - DATA
+#       - SCRIPTS   
+#       - LOGS
 
 # redefine where the bash scripts are stored!
 # automatically create synop/output/CR_NUMBER_SESSION_ID/
 # add "cd phi_datapath" to the beginning of the bash scripts
 # add "cd script_path" to the end of the bash scripts
 # careful with the script splitting routine, probably needs to be added to each
+
+# path to JSD templates, relative to synop/
+template_path = "drms_prep/" 
+
 
 ###########################################################
 ################# Data series definition ##################
@@ -52,7 +65,7 @@ synoptic_template = "synoptic_template.jsd"           # template for synoptic da
 polfil_template   = "synoptic_mr_polfil_template.jsd" # template for polfil data series
 
 # Toggle data series creation in DRMS
-create_series = True
+create_series = False
 
 ###########################################################
 ############## DON'T CHANGE THESE PARAMETERS ##############
@@ -67,9 +80,9 @@ else:
     Btype = "line-of-sight"
     mcorlev = 1 # for jv2ts command line 
 
-data_series_m720s = "%s.phi_CR%s%s"         %(dataseries_owner, cr, id)
-data_series_jv2ts = "%s.%s_hiresmap_CR%s%s" %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
-data_series_remap = "%s.%s_remap_CR%s%s"    %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_remap_720s_test"
+data_series_phi = "%s.phi_CR%s_%s"         %(dataseries_owner, cr, id)
+data_series_jv2ts = "%s.%s_hiresmap_CR%s_%s" %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
+data_series_remap = "%s.%s_remap_CR%s_%s"    %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_remap_720s_test"
 
 
 
@@ -94,6 +107,11 @@ filter_duplicates = True
 # split batch scripts after nsplit entries
 nsplit = 150
 
+# Directly run the bash after creating them . If False, only create bash scripts, but do not execute them
+run_hmi_scripts = False 
+
+
+
 
 
 
@@ -102,12 +120,11 @@ nsplit = 150
 ################# 2_phi_drms_interface.py #################
 ###########################################################
 
-# TEMPORARY OUTPUT FILE
-# TODO revisit after defining script path and temporary data output path
-temp_path = "" # add _DRMS output and bash scripts there
-# path_out also needs to be replaced
+# Directly run the bash after creating them . If False, only create bash scripts, but do not execute them
+run_phi_scripts = False 
 
 maprmax = 0.9925 #0.998 # maximum radius for the synoptic map, 0.998 is the default for HMI synoptic maps
+
 
 
 
