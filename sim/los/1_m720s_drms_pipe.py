@@ -1,6 +1,7 @@
 import subprocess
 import sys, os#, getopt
 import config
+from misc import run_script_with_nohup, get_current_session_folder
 
 
 def get_M_720s_count(data_series, period, interval):
@@ -65,11 +66,16 @@ def main():
     #config.filter_duplicates = True
 
     #set cwd to file directory
-    os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
+    #os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    session_folder = get_current_session_folder()
+    output_scripts = os.path.join(session_folder, config.script_path)
+    output_logs    = os.path.join(session_folder, config.log_path)
+
+    logs_rel = os.path.relpath(output_logs, output_scripts)
 
     # create output directory if it does not exist
-    if not os.path.isdir(config.output_path):
-        os.mkdir(config.output_path)
+    #if not os.path.isdir(config.output_path):
+    #    os.mkdir(config.output_path)
 
     # moved to config.py    
     #if config.Mr:
@@ -101,12 +107,10 @@ def main():
                 print("Skipping %s (duplicate)" %duplicate)
                 times.remove(duplicate)
 
-        
-    wc = get_M_720s_count(config.dataseries_input, config.period, config.interval)     # line count for time stamps
+    # looks like this is unsed and obsolete   
+    #wc = get_M_720s_count(config.dataseries_input, config.period, config.interval)     # line count for time stamps
 
-    # split files after n entries
-    config.nsplit = 150
-    
+    # split files after nsplit entries    
     j = 0
     for i, time in enumerate(times):
 
@@ -114,17 +118,22 @@ def main():
 
             if i > 0: 
                 batch_out.write('echo "done"')
-                # end of previous batch script
-                # add path change at the end of the script here?
                 batch_out.close()
+
+                # make the script is executable
+                subprocess.call(['chmod', '755', os.path.join(output_scripts, remap_str)])
+
+                if config.run_hmi_scripts:
+                    # Run all scripts in parallel
+                    run_script_with_nohup(os.path.join(output_scripts, remap_str))
                 j+=1 
-
        
-            jv2ts_log = './log/jv2ts_%s_%s.log'% (config.proj, j)
-            rmm_log = './log/rmm_%s_%s.log' % (config.proj, j)
-
-            # beginning of new batch script     
-            batch_out = open(config.output_path + 'remap_rebin_%s_%s.sh' % (config.proj, j), 'w')
+            jv2ts_log = os.path.join(logs_rel, 'jv2ts_%s_%s.log'% (config.proj, j))
+            rmm_log   = os.path.join(logs_rel, 'rmm_%s_%s.log'  % (config.proj, j))
+            
+            # beginning of new batch script    
+            remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
+            batch_out = open(os.path.join(output_scripts, remap_str), 'w')
             batch_out.write('#!/bin/bash\n')
             # add path change at the end of the script here 
 
