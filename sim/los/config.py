@@ -84,8 +84,8 @@ data_series_phi = "%s.phi_CR%s_%s"         %(dataseries_owner, cr, id)
 data_series_jv2ts = "%s.%s_hiresmap_CR%s_%s" %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
 data_series_remap = "%s.%s_remap_CR%s_%s"    %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_remap_720s_test"
 
-
-
+data_series_synop = "%s.synoptic_%s_%s" %(dataseries_owner, proj, id) # synoptic data series name
+data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synoptic Mr polfil data series name
 
 ###########################################################
 ################### 1_m720s_drms_pipe.py ##################
