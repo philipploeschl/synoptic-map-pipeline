@@ -48,7 +48,8 @@ def main():
             if "Keywords" in line:
                 break
 
-        outname = "%s.phi_CR%s_%s.jsd" % (config.dataseries_owner, config.cr, config.id)
+        #outname = "%s.phi_CR%s_%s.jsd" % (config.dataseries_owner, config.cr, config.id)
+        outname = config.data_series_phi + ".jsd"
 
         with open (path_output + '/' + outname, 'w') as f:
             f.writelines(phi_template)
@@ -71,7 +72,8 @@ def main():
             if "Keywords" in line:
                 break
 
-        outname = "%s.%s_hiresmap_CR%s_%s.jsd" % (config.dataseries_owner, config.proj, config.cr, config.id)
+        #outname = "%s.%s_hiresmap_CR%s_%s.jsd" % (config.dataseries_owner, config.proj, config.cr, config.id)
+        outname = config.data_series_jv2ts + ".jsd"
 
         with open (path_output + '/' + outname, 'w') as f:
             f.writelines(hiresmap_template)
@@ -94,7 +96,8 @@ def main():
             if "Keywords" in line:
                 break
 
-        outname = "%s.%s_remap_CR%s_%s.jsd" % (config.dataseries_owner, config.proj, config.cr, config.id)
+        #outname = "%s.%s_remap_CR%s_%s.jsd" % (config.dataseries_owner, config.proj, config.cr, config.id)
+        outname = config.data_series_remap + ".jsd"
 
         with open (path_output + '/' + outname, 'w') as f:
             f.writelines(remap_template)
@@ -120,7 +123,9 @@ def main():
                 synoptic_template[i] = synoptic_template[i] %config.proj 
                 break
 
-        outname = "%s.synoptic_%s_%s.jsd" %(config.dataseries_owner, config.proj, config.id)
+        #outname = "%s.synoptic_%s_%s.jsd" %(config.dataseries_owner, config.proj, config.id)
+        outname = config.data_series_synop + ".jsd"
+
         with open (path_output + '/' + outname, 'w') as f:
             f.writelines(synoptic_template)
 
@@ -142,7 +147,9 @@ def main():
             if "Owner"       in line: synoptic_mr_polfil_template[i] = synoptic_mr_polfil_template[i] %config.dataseries_owner
             if "Keywords" in line: break
 
-        outname = "%s.synoptic_Mr_polfil_%s.jsd" %(config.dataseries_owner, config.id)
+        #outname = "%s.synoptic_Mr_polfil_%s.jsd" %(config.dataseries_owner, config.id)
+        outname = config.data_series_polfil + ".jsd"
+
         with open (path_output + '/' + outname, 'w') as f:
             f.writelines(synoptic_mr_polfil_template)
 
