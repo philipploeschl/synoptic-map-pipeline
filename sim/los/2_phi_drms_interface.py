@@ -15,6 +15,7 @@ def calc_trec(crln_obs, car_rot, verbose=False):
 
     # remap and >180 means that HMI_PAST is the previous CAR_ROT and HMI_FUTR is the current CAR_ROT
     # remap and <180 means that HMI_FUTR is the current CAR_ROT and HMI_PAST is the previous CAR_ROT
+    # TODO WHY IS THIS HARD CODED HERE?
     car_rot = 2258
     
     # THIS IS LOGIC DOESN'T MAKE SENSE FOR THE BOTTOM LEFT QUARTER OF OBSERVATIONS (ORBIT_PLOTS)
@@ -77,6 +78,7 @@ def calc_trec_rev(crln_obs, car_rot, verbose=False):
     return trec_hmi, hmi_prev, hmi_next, car_rot
 """
 
+
 def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
     # Interpolate T_REC of PHI CRLN_OBS onto HMI CRLN_OBS
     dt_hmi   = np.array([])
@@ -126,6 +128,7 @@ def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
     
     return trec_hmi
     
+
 def get_drms_keywords(inRecs, input_ds):
 
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
@@ -165,11 +168,17 @@ def get_drms_keywords(inRecs, input_ds):
 
 def main():
 
+    #TODO 
+    # - adapt script paths to new file structure
+    # - add compatibility with run_phi_scripts
+    # - clean up old code
+    # - why is car_rot hard coded in calc_trec()?
+
     # moved to config.py
     #config.phi_datapath =  "../output/data/phi/FDT_test_release_june_2022_defringed/"
 
     #set cwd to file directory
-    os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # TODO revisit after defining script path and temporary data output path config.temp_path
     if not os.path.isdir(config.phi_datapath+'drms/'):
