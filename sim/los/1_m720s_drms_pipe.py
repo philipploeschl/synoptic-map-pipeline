@@ -68,10 +68,10 @@ def main():
     #set cwd to file directory
     #os.chdir(os.path.dirname(os.path.abspath(__file__)))
     session_folder = get_current_session_folder()
-    output_scripts = os.path.join(session_folder, config.script_path)
-    output_logs    = os.path.join(session_folder, config.log_path)
+    outpath_scripts = os.path.join(session_folder, config.script_path)
+    outpath_logs    = os.path.join(session_folder, config.log_path)
 
-    logs_rel = os.path.relpath(output_logs, output_scripts)
+    logpath_rel = os.path.relpath(outpath_logs, outpath_scripts)
 
     # create output directory if it does not exist
     #if not os.path.isdir(config.output_path):
@@ -121,30 +121,36 @@ def main():
                 batch_out.close()
 
                 # make the script is executable
-                subprocess.call(['chmod', '755', os.path.join(output_scripts, remap_str)])
+                subprocess.call(['chmod', '755', os.path.join(outpath_scripts, remap_str)])
 
                 if config.run_hmi_scripts:
                     # Run all scripts in parallel
-                    run_script_with_nohup(os.path.join(output_scripts, remap_str))
+                    run_script_with_nohup(session_folder, remap_str)
                 j+=1 
        
-            jv2ts_log = os.path.join(logs_rel, 'jv2ts_%s_%s.log'% (config.proj, j))
-            rmm_log   = os.path.join(logs_rel, 'rmm_%s_%s.log'  % (config.proj, j))
-            
+            #jv2ts_log = os.path.join(logpath_rel, 'hmi_jv2ts_%s_%s.log'% (config.proj, j))
+            #rmm_log   = os.path.join(logpath_rel, 'hmi_rmm_%s_%s.log'  % (config.proj, j))
+            remap_log = os.path.join(outpath_logs, 'hmi_remap_rebin_%s_%s.log' % (config.proj, j))
+
             # beginning of new batch script    
             remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
-            batch_out = open(os.path.join(output_scripts, remap_str), 'w')
+            batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
             batch_out.write('#!/bin/bash\n')
             # add path change at the end of the script here 
 
-        batch_out.write("%s \n" % (jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, jv2ts_log)))
-        batch_out.write("%s \n\n" % (rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, rmm_log)))
+        batch_out.write("%s \n" % (jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log)))
+        batch_out.write("%s \n\n" % (rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log)))
     
-    batch_out.write('echo "batch %s done"'%j)
+    batch_out.write('echo "HMI data batch %s done"'%j)
     batch_out.close()
     
+    if config.run_hmi_scripts:
+        if config.verbose: print('Running %s ...' %remap_str)
+        run_script_with_nohup(session_folder, remap_str)
     
-    
+    if config.verbose: 
+        print('\HMI processing script creation complete.\n')
+
 if __name__ == "__main__":
     #main(sys.argv[1:])
     main()

@@ -57,10 +57,10 @@ def get_current_session_folder():
 
 
     
-def run_script_with_nohup(script_name):
-    script_path = config.output_path + script_name
-    log_path    = config.output_path + script_name.replace('.sh', '.log')
-    pid_path    = config.output_path + script_name.replace('.sh', '.pid')
+def run_script_with_nohup(output_path, script_name):
+    script_path = os.path.join(output_path, config.script_path, script_name)
+    log_path    = os.path.join(output_path, config.log_path, script_name.replace('.sh', '.log'))
+    pid_path    = os.path.join(output_path, config.log_path, script_name.replace('.sh', '.pid'))
 
     # Ensure the script is executable
     subprocess.call(['chmod', '755', script_path])
