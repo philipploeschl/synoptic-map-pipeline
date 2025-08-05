@@ -55,47 +55,15 @@ def cmd_args(argv):
 
 def main():
 
-    # moved to config.py
-    #config.output_path = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/drms/' # GHERARDO
-    #config.id = "" #"_FDT_test_release_june_2022_defri"#"_rev00_r095" # GHERARDO
-    #config.Mr = True  # Mr = False = Blos # GHERARDO
-    #config.dataseries_input = "hmi.M_720s" # "mps_loeschl.hmi_m720s_nrt"
-    #config.period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI@12m" # CR2258
-    #config.interval = ""#"@12m"
-    #config.cr = 2258
-    #config.filter_duplicates = True
-
-    #set cwd to file directory
-    #os.chdir(os.path.dirname(os.path.abspath(__file__)))
     session_folder = get_current_session_folder()
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
 
-    logpath_rel = os.path.relpath(outpath_logs, outpath_scripts)
 
-    # create output directory if it does not exist
-    #if not os.path.isdir(config.output_path):
-    #    os.mkdir(config.output_path)
-
-    # moved to config.py    
-    #if config.Mr:
-    #    proj = "Mr"
-    #    mcorlev = 2 # for jv2ts command line 
-    #else:
-    #    proj = "Ml"
-    #    mcorlev = 1 # for jv2ts command line 
-
-    #v2hout = '%s.%s_hiresmap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.id) #'mps_loeschl.Ml_hiresmap_config.cr2240_fast'
-    #rmmout = '%s.%s_remap_CR%s%s'%(config.dataseries_owner, proj, config.cr, config.id) #'mps_loeschl.Ml_remap_CR2240_fast
-    #v2hout = config.data_series_jv2ts
-    #rmmout = config.data_series_remap
-
-    jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" \
-            MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 config.mcorlev=%s MAPRMAX=0.998 \
-            MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s' 
+    jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 config.mcorlev=%s MAPRMAX=0.998 MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s\n' 
             #timestamp, v2hout, timestamp, config.mcorlev, logfile
 
-    rsmapmag = 'resizemappingmag in=%s["%s"] out=%s nbin=3 >>%s' #in_ds, timestamp, out_ds, logfile
+    rsmapmag = 'resizemappingmag in=%s["%s"] out=%s nbin=3 >>%s\n' #in_ds, timestamp, out_ds, logfile
     
     times = get_M_720s_times(config.dataseries_input, config.period, config.interval)  # list with all queued time stamps
     
@@ -128,22 +96,22 @@ def main():
                     run_script_with_nohup(session_folder, remap_str)
                 j+=1 
        
-            #jv2ts_log = os.path.join(logpath_rel, 'hmi_jv2ts_%s_%s.log'% (config.proj, j))
-            #rmm_log   = os.path.join(logpath_rel, 'hmi_rmm_%s_%s.log'  % (config.proj, j))
+            # define the log file for the next batch script
             remap_log = os.path.join(outpath_logs, 'hmi_remap_rebin_%s_%s.log' % (config.proj, j))
 
             # beginning of new batch script    
             remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
             batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
             batch_out.write('#!/bin/bash\n')
-            # add path change at the end of the script here 
 
+        # write the commands to the batch script
         batch_out.write('\necho %s' %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
-        batch_out.write("%s \n" %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
+        batch_out.write(jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
 
-        batch_out.write('\n\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
-        batch_out.write("%s\n" %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
-    
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
+        batch_out.write('\n')
+
     batch_out.write('echo "HMI data batch %s done"'%j)
     batch_out.close()
     
