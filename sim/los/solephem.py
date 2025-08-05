@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 
 """#/*
  * ecanom calculates the eccentric anomaly from the mean anomaly
@@ -322,8 +323,8 @@ def solephem(time, ephem):
 def calc_sun_ephemeris(time, ephem, obs_lon, obs_lat):
     
     solephem(time - EPHEM_OFFSET, ephem)
-    ephem[EPHEM_OBS_LON] = obs_lon * M_PI / 180.0
-    ephem[EPHEM_OBS_LAT] = obs_lat * M_PI / 180.0
+    ephem[EPHEM_OBS_LON] = obs_lon * np.pi / 180.0
+    ephem[EPHEM_OBS_LAT] = obs_lat * np.pi / 180.0
     
     return ephem
 
