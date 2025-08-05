@@ -38,6 +38,9 @@ jsd_path    = 'jsd/'     # path to JSD files, relative to synop/output/CR_NUMBER
 template_path = "drms_prep/" 
 
 
+
+
+
 ###########################################################
 ################# Data series definition ##################
 ###########################################################
@@ -67,6 +70,8 @@ polfil_template   = "synoptic_mr_polfil_template.jsd" # template for polfil data
 # Toggle data series creation in DRMS
 create_series = False
 
+
+
 ###########################################################
 ############## DON'T CHANGE THESE PARAMETERS ##############
 ###########################################################
@@ -86,6 +91,17 @@ data_series_remap = "%s.%s_remap_CR%s_%s"    %(dataseries_owner, proj, cr, id) #
 
 data_series_synop = "%s.synoptic_%s_%s" %(dataseries_owner, proj, id) # synoptic data series name
 data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synoptic Mr polfil data series name
+
+
+###########################################################
+################# Pipeline Configuraiton ##################
+###########################################################
+
+run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_m720s_drms_pipe    = False # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
+run_hmiphisynoptic     = False # run 4_hmisynoptic.py to create the synoptic maps
+
 
 ###########################################################
 ################### 1_m720s_drms_pipe.py ##################
@@ -115,15 +131,14 @@ run_hmi_scripts = False
 
 
 
-
 ###########################################################
 ################# 2_phi_drms_interface.py #################
 ###########################################################
 
 # Directly run the bash after creating them . If False, only create bash scripts, but do not execute them
-run_phi_scripts = False 
+run_phi_scripts = True 
 
-maprmax = 0.9925 #0.998 # maximum radius for the synoptic map, 0.998 is the default for HMI synoptic maps
+maprmax = 0.998 # maximum radius for the synoptic map, 0.998 is the default for HMI synoptic maps
 
 
 
