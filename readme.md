@@ -3,8 +3,7 @@ This is currently abused as a todo list
 # TODO
 
 ## synop_pipeline.py
-- track nohup script PID status to chain individual steps into pipeline
-- PIDs are currently posted in individual files, not sure if that will work like that
+- confirm that 1_m720s_drms_pipe.py command and process output lands in the same log file
 
 ## 1_m720s_drms_pipe.py
 
