@@ -6,7 +6,7 @@ from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
 from sunpy.coordinates.sun import carrington_rotation_time
-
+from misc import run_script_with_nohup, get_current_session_folder
 
 # Create DRMS compatible FITS header
 
@@ -15,8 +15,9 @@ def calc_trec(crln_obs, car_rot, verbose=False):
 
     # remap and >180 means that HMI_PAST is the previous CAR_ROT and HMI_FUTR is the current CAR_ROT
     # remap and <180 means that HMI_FUTR is the current CAR_ROT and HMI_PAST is the previous CAR_ROT
+    
     # TODO WHY IS THIS HARD CODED HERE?
-    car_rot = 2258
+    #car_rot = 2258
     
     # THIS IS LOGIC DOESN'T MAKE SENSE FOR THE BOTTOM LEFT QUARTER OF OBSERVATIONS (ORBIT_PLOTS)
     if False:# crln_obs > 180:
@@ -42,8 +43,7 @@ def calc_trec(crln_obs, car_rot, verbose=False):
         hmi_prev = interp_phi2hmi(crln_obs, t0, t1)
         hmi_next = trec_hmi
         
-
-    print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
+    #print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
     return trec_hmi, hmi_prev, hmi_next, car_rot
 
 """
@@ -87,8 +87,9 @@ def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
 
     hmi_times = "%s-%s" %(t0.datetime.strftime("%Y.%m.%d_%H:%M:%S_TAI"), t1.datetime.strftime("%Y.%m.%d_%H:%M:%S_TAI"))
     hmi_data, n = get_drms_keywords(hmi_times, "hmi.m_720s") #"mps_loeschl.Ml_remap_720s")
-    if verbose: print('Mapping PHI to CR %s in HMI period %s...' %(car_rot, hmi_times))
-          
+    
+    #print('Mapping PHI to CR %s in HMI period %s...\n' %(car_rot, hmi_times))
+
     for line in hmi_data:
         # CRLN_OBS will be NaN if no observation is available for a timeslot -> nan filter required
         if np.isnan(float(line['CRLN_OBS'])): continue 
@@ -125,6 +126,8 @@ def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
     t_interp = timedelta(days=np.interp(crln_obs, crln_hmi, dt_hmi, period=360))
     trec_phi = t0.datetime+t_interp
     trec_hmi = trec_phi.strftime("%Y.%m.%d_%H:%M:%S_TAI")
+    
+    if verbose: print('Mapping PHI observation of CRLN %.2f to HMI T_REC %s during CR%s...\n' %(crln_obs, trec_hmi, car_rot))
     
     return trec_hmi
     
@@ -169,20 +172,19 @@ def get_drms_keywords(inRecs, input_ds):
 def main():
 
     #TODO 
-    # - adapt script paths to new file structure
-    # - add compatibility with run_phi_scripts
     # - clean up old code
     # - why is car_rot hard coded in calc_trec()?
-
-    # moved to config.py
-    #config.phi_datapath =  "../output/data/phi/FDT_test_release_june_2022_defringed/"
 
     #set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # TODO revisit after defining script path and temporary data output path config.temp_path
-    if not os.path.isdir(config.phi_datapath+'drms/'):
-        os.mkdir(config.phi_datapath+'drms/')
+    session_folder = get_current_session_folder()
+    outpath_scripts = os.path.join(session_folder, config.script_path)
+    outpath_data    = os.path.join(session_folder, config.data_path)
+    outpath_logs    = os.path.join(session_folder, config.log_path)
+
+    #logpath_rel = os.path.relpath(outpath_logs, outpath_scripts)
+    #datapath_rel = os.path.relpath(outpath_data, outpath_scripts)
 
     files = os.listdir(config.phi_datapath)
     fitsfiles = [file for file in files if file.endswith(".fits") or file.endswith(".fits.gz")]
@@ -198,7 +200,7 @@ def main():
     for file in fitsfiles:
         l2 = fits.open(config.phi_datapath+file)
     
-        print("Processing %s ..." %file)
+        if config.verbose: print("Processing %s ..." %file)
         
         prim = fits.PrimaryHDU()
         l2drms = fits.CompImageHDU(data=l2[0].data.astype(np.int32))
@@ -226,9 +228,10 @@ def main():
         #trec = trec + utc2tai                      # use for utc2tai conversion
         #trec = trec.strftime("%Y.%m.%d_%H:%M:%S_TAI")
         tobs = tobs.strftime("%Y.%m.%d_%H:%M:%S_TAI")
-        
-        # T_REC Interpolation       
-        trec, hmi_prev, hmi_next, car_rot = calc_trec(float(l2[0].header['CRLN_OBS']), int(l2[0].header['CAR_ROT']), verbose=False)
+
+        # T_REC Interpolation     
+        if config.verbose: print("True observation time during Carrington rotation %s: %s" %(l2[0].header['CAR_ROT'], tobs))  
+        trec, hmi_prev, hmi_next, car_rot = calc_trec(float(l2[0].header['CRLN_OBS']), int(l2[0].header['CAR_ROT']), verbose=config.verbose)
 
         if config.verbose: print(trec, car_rot, l2[0].header['CRLN_OBS'])
         
@@ -368,79 +371,86 @@ def main():
         # DATAMAX
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
         
-        if not os.path.isdir(config.phi_datapath+'drms/'):
-            os.mkdir(config.phi_datapath+'drms/')
-        
         hdul = fits.HDUList([prim, l2drms])
-        hdul.writeto(config.phi_datapath+'drms/%s_drms.fits' %file[:-n_end], overwrite=True)
-        #l1.close()
-        
-    print('DRMS compatible FITS header creation - Done')
+        hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[:-n_end]), overwrite=True)
 
+    if config.verbose: print('\nDRMS compatible FITS header creation complete.\n\n')
 
 
     # Create DRMS ingestions scripts
-
-    # TODO
-    path_out = config.phi_datapath+'drms/'
-
-    files = os.listdir(path_out)
+    files = os.listdir(outpath_data)
     fitsfiles = [file for file in files if file.endswith(".fits")]
 
-    setinfo_out = open(path_out+'0_set_info.sh', 'w')
-    setinfo_out.write('#!/bin/bash\n')
-    #TODO segment names
-    set_info = 'set_info -c ds="%s" T_REC="%s" magnetogram=%s >> set_info.log 2>&1\n'
+    set_info = 'set_info -c ds="%s" T_REC="%s" magnetogram=%s >> %s 2>&1\n'
+    jv2ts = "jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s 2>&1\n"
+    set_keys = "set_keys ds=%s[%s] %s=%s\n"
+    rsmapmag = "resizemappingmag in=%s['%s'] out=%s nbin=3 >> %s 2>&1\n"
 
-    #TODO different combined remapping module
-    jv2ts_out = open(path_out+'1_jv2ts_%s.sh'%config.proj, 'w')
-    jv2ts_out.write('#!/bin/bash\n')
+    trec_out = open(outpath_scripts+'trecs.txt', 'w')
 
-    jv2ts = "jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> jv2ts.log 2>&1\n"
-
-    resizemappingmag_out = open(path_out+'3_resizemappingmag_%s.sh'%config.proj, 'w')
-    resizemappingmag_out.write('#!/bin/bash\n')
-    resizemappingmag = "resizemappingmag in=%s['%s'] out=%s nbin=3 >> resizemappingmag.log 2>&1\n"
-
-    trec_out = open(path_out+'trecs.txt', 'w')#
-
-    set_keys = "set_keys ds=%s[%s] %s=%s"
-
-    i = 0
-    for fname in fitsfiles:
+    j = 0 # nsplit counter
+    for i, fname in enumerate(fitsfiles):
         
-        print('Processing %s...' %fname)
+        if config.verbose: print('Processing %s...' %fname)
         
         # load with scaling to recognize blank cells -> necessary to prevent artifacts after resize
-        fld = fits.open(path_out+fname)#, do_not_scale_image_data=True) 
+        fld = fits.open(outpath_data+fname)#, do_not_scale_image_data=True) 
         trec = fld[1].header['T_REC']
         fld.close()
-        
-        setinfo_out.write('\necho %s' %set_info %(config.data_series_m720s, trec, fname))
-        setinfo_out.write(set_info %(config.data_series_m720s, trec, fname))
-        
-        file = fits.open(path_out+fname)[1]
-        jv2ts_out.write('\n\necho %s' %jv2ts %(config.data_series_m720s, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
-        jv2ts_out.write(jv2ts %(config.data_series_m720s, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
-        jv2ts_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
-        
-        resizemappingmag_out.write('\necho %s' %resizemappingmag %(config.data_series_jv2ts, trec, config.data_series_remap))
-        resizemappingmag_out.write(resizemappingmag %(config.data_series_jv2ts, trec, config.data_series_remap)) 
-        
-        trec_out.write("%s\n"%trec)
-        i += 1
 
-    setinfo_out.write('\necho "done"')
-    jv2ts_out.write('\necho "done"')
-    resizemappingmag_out.write('\necho "done"')
+        if i % config.nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
+
+            if i > 0: 
+                batch_out.write('echo "done"')
+                batch_out.close()
+
+                # make the script is executable
+                subprocess.call(['chmod', '755', os.path.join(outpath_scripts, remap_str)])
+
+                if config.run_phi_scripts:
+                    # Run all scripts in parallel
+                    if config.verbose: print('Running %s ...' %remap_str)
+                    run_script_with_nohup(session_folder, remap_str)
+
+                j+=1 
+    
+            #jv2ts_log = os.path.join(logpath_rel, 'phi_jv2ts_%s_%s.log'% (config.proj, j))
+            #rmm_log   = os.path.join(logpath_rel, 'phi_rmm_%s_%s.log'  % (config.proj, j))
+            remap_log = os.path.join(outpath_logs, 'phi_remap_rebin_%s_%s.log' % (config.proj, j))
+
+            # beginning of new batch script    
+            remap_str = 'phi_remap_rebin_%s_%s.sh' % (config.proj, j)
+            batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
+            batch_out.write('#!/bin/bash\n')
+
+
+        batch_out.write('\n#%s' %fname)
+        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname), remap_log))
+        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname), remap_log))
+    
+        file = fits.open(outpath_data+fname)[1]
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax, remap_log))
+        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax, remap_log))
+        batch_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
         
-    setinfo_out.close()
-    jv2ts_out.close()
-    resizemappingmag_out.close()
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap, remap_log))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap, remap_log)) 
+        batch_out.write('\n')
+
+        trec_out.write("%s\n"%trec)
+
+    batch_out.write('echo "PHI data batch %s done"'%j)
+    batch_out.close()
     trec_out.close()
 
-    print('DRMS ingestion script - Done')
+    if config.verbose: 
+        print('\nDRMS ingestion script creation complete.\n')
+
+    if config.run_phi_scripts:
+        if config.verbose: print('Running %s ...' %remap_str)
+        run_script_with_nohup(session_folder, remap_str)
 
 if __name__ == "__main__":
     #main(sys.argv[1:])
     main()
+
