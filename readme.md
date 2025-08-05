@@ -1,21 +1,31 @@
+This is currently abused as a todo list
 
 # TODO
 
-## misc.py
-- update nohup script to communicate when all PIDs are done
+## synop_pipeline.py
+- track nohup script PID status to chain individual steps into pipeline
+- PIDs are currently posted in individual files, not sure if that will work like that
 
 ## 1_m720s_drms_pipe.py
 
 
 
 ## 2_phi_drms_interface.py
-- adapt script paths to new file structure
-- add compatibility with config.run_phi_scripts
 - clean up old code
 - why is car_rot hard coded in calc_trec()?
 
+
 ## Data selection
 - TBD
+
+## Discussion points on DRMS series handling with Zhi-caho
+- what happens when we delete data series?
+  - will the data be deleted along with it?
+  - will it stay until the retention period?
+  - will it only get deleted in a data purge if the retetion period is expired?
+  - will the purge still work if the data series was deleted?  
+
+- can we download hmi.m_720s daily instead of weekly?
 
 
 # File structure
