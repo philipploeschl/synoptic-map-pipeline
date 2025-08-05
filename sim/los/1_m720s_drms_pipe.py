@@ -138,8 +138,11 @@ def main():
             batch_out.write('#!/bin/bash\n')
             # add path change at the end of the script here 
 
-        batch_out.write("%s \n" % (jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log)))
-        batch_out.write("%s \n\n" % (rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log)))
+        batch_out.write('\necho %s' %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
+        batch_out.write("%s \n" %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
+
+        batch_out.write('\n\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
+        batch_out.write("%s\n" %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
     
     batch_out.write('echo "HMI data batch %s done"'%j)
     batch_out.close()
@@ -149,7 +152,7 @@ def main():
         run_script_with_nohup(session_folder, remap_str)
     
     if config.verbose: 
-        print('\HMI processing script creation complete.\n')
+        print('\nHMI processing script creation complete.\n')
 
 if __name__ == "__main__":
     #main(sys.argv[1:])
