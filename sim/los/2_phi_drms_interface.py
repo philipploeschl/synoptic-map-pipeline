@@ -401,7 +401,7 @@ def main():
         if i % config.nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
 
             if i > 0: 
-                batch_out.write('echo "done"')
+                batch_out.write('echo "PHI data batch %s done"'%j)
                 batch_out.close()
 
                 # make the script is executable
