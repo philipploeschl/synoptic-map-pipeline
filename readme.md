@@ -1,9 +1,13 @@
 This is currently abused as a todo list
 
 # TODO
+## General
+- bulk data processing with jv2ts and resizemappingmag could work again after the maximum processing time on DRMS was increased to 24h 
+- Do we care? Should we adapt .sh script creation accordingly or keep it for easy0 parallelization?
+- 
 
 ## synop_pipeline.py
-- confirm that 1_m720s_drms_pipe.py command and process output lands in the same log file
+- INTERRUPTING a script during DRMS data INGESTION with set_info will CRASH DRMS SERVERWIDE
 
 ## 1_m720s_drms_pipe.py
 
@@ -12,19 +16,30 @@ This is currently abused as a todo list
 ## 2_phi_drms_interface.py
 - clean up old code
 - why is car_rot hard coded in calc_trec()?
+- reorder phi_remap.sh to cluster set_info commands in the beginning to minimize chances of crashing DRMS on interrupt
 
+## 4_hmiphisynoptic.py
+- consider changing the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
+- isolate adaptive weight function code to properly understand and document it again
+- 
 
 ## Data selection
 - TBD
 
-## Discussion points on DRMS series handling with Zhi-caho
-- what happens when we delete data series?
-  - will the data be deleted along with it?
-  - will it stay until the retention period?
-  - will it only get deleted in a data purge if the retetion period is expired?
-  - will the purge still work if the data series was deleted?  
+## Discussion points on DRMS series handling with Zhi-Chao
+- deleting a data series sets the retention of the stored data to 0, which will be purged during the next cleanup
+- deleting a data series immediately deletes meta data
+
+- cancelling DRMS modules with interrupt will CRASH the ENTIRE SYSTEM if it happens during file ingestion 
 
 - can we download hmi.m_720s daily instead of weekly?
+- does drms crash independently on swan25 or this yesterday's outage affect everyone?
+
+- HMI.M_720s is updated daily at 7am. Data release lags behind a few days.
+- HMI.M_720s_NRT available locally as mps_production.hmi_m_720s_nrt and updated hourly at hh:45
+- see https://www2.mps.mpg.de/projects/seismo/GDC-SDO/sums-activity.htm
+
+- DRMS metadata might be available but actual data will be corrupted if it was downloaded from Stanford during periods with GPFS filesystem problems at MPS
 
 
 # File structure

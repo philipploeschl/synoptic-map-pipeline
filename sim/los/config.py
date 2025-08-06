@@ -9,8 +9,8 @@ verbose = True
 id = "pipeline_test" 
 
 # Data path to PHI data for DRMS ingestion
-phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/pipeline_test/'
-#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
+#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/pipeline_test/'
+phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
 
 
 # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
@@ -98,8 +98,8 @@ data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synopt
 ###########################################################
 
 run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe    = False # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
+run_m720s_drms_pipe    = True # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface = True # run 2_phi_drms_interface.py to create the phi data series
 run_hmiphisynoptic     = False # run 4_hmisynoptic.py to create the synoptic maps
 
 
@@ -112,10 +112,10 @@ run_hmiphisynoptic     = False # run 4_hmisynoptic.py to create the synoptic map
 dataseries_input = "hmi.M_720s" 
 
 # HMI cadence for the M_720s data series - default/nothing = @12min, change HMI cadence for fast prototyping
-interval = ""
+interval = "@12m"
 
 # HMI data period
-period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI@12m" # CR2258
+period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI" # CR2258
 
 # Exclude already processed HMI datasets
 filter_duplicates = True
