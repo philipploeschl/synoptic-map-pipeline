@@ -85,7 +85,7 @@ def add_script_header(batch_out, script_name="script.sh"):
     batch_out.write('}\n\n')
 
 def add_check_continue(batch_out):
-    batch_out.write('check_continue()\n')
+    batch_out.write('check_continue\n')
 
                     
 
