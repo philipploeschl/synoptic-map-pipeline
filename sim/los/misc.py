@@ -70,7 +70,7 @@ def run_script_with_nohup(session_path, script_name):
     subprocess.call(cmd, shell=True)
 
 
-def add_script_header(batch_out):
+def add_script_header(batch_out, script_name="script.sh"):
     """
     Adds a check_continue function to the batch script to handle Ctrl+C gracefully.
     """
@@ -79,7 +79,7 @@ def add_script_header(batch_out):
 
     batch_out.write('check_continue() {\n')
     batch_out.write('  if [ -f "stop_signal" ]; then\n')
-    batch_out.write('    echo "[script.sh $$] Detected stop signal. Exiting before next command."\n')
+    batch_out.write('    echo "[%s $$] Detected stop signal. Exiting before next command."\n'% script_name)
     batch_out.write('    exit 0\n')
     batch_out.write('  fi\n')
     batch_out.write('}\n\n')
@@ -111,6 +111,10 @@ def run_all_scripts(verbose=False, prefix=''):
     session_folder = get_current_session_folder()
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
+    
+    # Change to the script directory to detect the stop signal, change back to cwd at the end
+    cwd = os.getcwd()
+    os.chdir(outpath_scripts)
 
     # --- Find all .sh scripts in the directory ---
     scripts = find_sh_scripts(outpath_scripts, prefix)
@@ -125,7 +129,7 @@ def run_all_scripts(verbose=False, prefix=''):
         for script_path in scripts:
             script_name = os.path.basename(script_path)
             log_path = os.path.join(outpath_logs, script_name.replace('.sh', '.log'))
-            pid_path = os.path.join(outpath_logs, script_name.replace('.sh', '.pid'))
+            #pid_path = os.path.join(outpath_logs, script_name.replace('.sh', '.pid'))
 
             # Make script executable
             subprocess.call(['chmod', '755', script_path])
@@ -139,8 +143,8 @@ def run_all_scripts(verbose=False, prefix=''):
             processes.append(p)
 
             # Save PID
-            with open(pid_path, 'w') as f:
-                f.write(str(p.pid))
+            #with open(pid_path, 'w') as f:
+            #    f.write(str(p.pid))
 
         # Optional: wait for all to complete
         for p in processes:
@@ -152,6 +156,7 @@ def run_all_scripts(verbose=False, prefix=''):
         # Cleanup
         if os.path.exists(os.path.join(outpath_scripts, "stop_signal")):
             os.remove(os.path.join(outpath_scripts, "stop_signal"))
+        os.chdir(cwd)
         print("[Python] Done.")
 
     """
