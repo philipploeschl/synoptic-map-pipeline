@@ -22,24 +22,23 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     if config.run_drms_prep:
-        # Run the first Python script
         subprocess.call(['python', '0_drms_prep.py'])
 
     if config.run_m720s_drms_pipe:
-        # Run the next Python script
         subprocess.call(['python', '1_m720s_drms_pipe.py'])
 
     if config.run_phi_drms_interface:
-        # Run the next Python script
         subprocess.call(['python', '2_phi_drms_interface.py'])  
 
-    # This will run all scripts in the outpath_scripts directory 
-    run_all_scripts(verbose=config.verbose)
-    #run_all_scripts(verbose=config.verbose, prefix='phi')
-    #run_all_scripts(verbose=config.verbose, prefix='hmi')
+    # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
+    if config.run_hmi_scripts and config.run_phi_scripts:
+        run_all_scripts(verbose=config.verbose)
+    elif config.run_phi_scripts:
+        run_all_scripts(verbose=config.verbose, prefix='phi')
+    elif config.run_hmi_scripts:
+        run_all_scripts(verbose=config.verbose, prefix='hmi')
 
     if config.run_hmiphisynoptic:
-        # Run the next Python script
         subprocess.call(['python', '4_hmisynoptic.py'])
 
 
