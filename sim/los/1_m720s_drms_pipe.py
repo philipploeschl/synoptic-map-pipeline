@@ -1,7 +1,7 @@
 import subprocess
 import sys, os#, getopt
 import config
-from misc import run_script_with_nohup, get_current_session_folder
+from misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
 
 
 def get_M_720s_count(data_series, period, interval):
@@ -91,7 +91,7 @@ def main():
                 # make the script is executable
                 subprocess.call(['chmod', '755', os.path.join(outpath_scripts, remap_str)])
 
-                if config.run_hmi_scripts:
+                if False: #config.run_hmi_scripts:
                     # Run all scripts in parallel
                     run_script_with_nohup(session_folder, remap_str)
                 j+=1 
@@ -102,20 +102,23 @@ def main():
             # beginning of new batch script    
             remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
             batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
-            batch_out.write('#!/bin/bash\n')
+            add_script_header(batch_out)
+            #batch_out.write('#!/bin/bash\n')
+            #batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n")
 
         # write the commands to the batch script
         batch_out.write('\necho %s' %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
         batch_out.write(jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
-
+        
         batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
         batch_out.write(rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
+        add_check_continue(batch_out)
         batch_out.write('\n')
 
     batch_out.write('echo "HMI data batch %s done"'%j)
     batch_out.close()
     
-    if config.run_hmi_scripts:
+    if False: #config.run_hmi_scripts:
         if config.verbose: print('Running %s ...' %remap_str)
         run_script_with_nohup(session_folder, remap_str)
     
