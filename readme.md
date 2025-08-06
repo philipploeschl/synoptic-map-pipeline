@@ -4,19 +4,21 @@ This is currently abused as a todo list
 ## General
 - bulk data processing with jv2ts and resizemappingmag could work again after the maximum processing time on DRMS was increased to 24h 
 - Do we care? Should we adapt .sh script creation accordingly or keep it for easy0 parallelization?
-- 
+
 
 ## synop_pipeline.py
 - INTERRUPTING a script during DRMS data INGESTION with set_info will CRASH DRMS SERVERWIDE
 
 ## 1_m720s_drms_pipe.py
-
+- python script verbose output logging?
 
 
 ## 2_phi_drms_interface.py
+- option for .sh scripts only
 - clean up old code
 - why is car_rot hard coded in calc_trec()?
 - reorder phi_remap.sh to cluster set_info commands in the beginning to minimize chances of crashing DRMS on interrupt
+- python script verbose output logging?
 
 ## 4_hmiphisynoptic.py
 - consider changing the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
