@@ -181,7 +181,7 @@ def main():
     session_folder = get_current_session_folder()
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_data    = os.path.join(session_folder, config.data_path)
-    outpath_logs    = os.path.join(session_folder, config.log_path)
+    #outpath_logs    = os.path.join(session_folder, config.log_path)
 
     #logpath_rel = os.path.relpath(outpath_logs, outpath_scripts)
     #datapath_rel = os.path.relpath(outpath_data, outpath_scripts)
@@ -381,10 +381,12 @@ def main():
     files = os.listdir(outpath_data)
     fitsfiles = [file for file in files if file.endswith(".fits")]
 
-    set_info = 'set_info -c ds="%s" T_REC="%s" magnetogram=%s >> %s 2>&1\n'
-    jv2ts = "jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s 2>&1\n"
-    set_keys = "set_keys ds=%s[%s] %s=%s\n"
-    rsmapmag = "resizemappingmag in=%s['%s'] out=%s nbin=3 >> %s 2>&1\n"
+    #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
+    #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
+    set_info = 'setsid set_info -c ds="%s" T_REC="%s" magnetogram=%s\n'
+    jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
+    set_keys = "setsid set_keys ds=%s[%s] %s=%s\n"
+    rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
 
     trec_out = open(outpath_scripts+'trecs.txt', 'w')
 
@@ -416,27 +418,27 @@ def main():
     
             #jv2ts_log = os.path.join(logpath_rel, 'phi_jv2ts_%s_%s.log'% (config.proj, j))
             #rmm_log   = os.path.join(logpath_rel, 'phi_rmm_%s_%s.log'  % (config.proj, j))
-            remap_log = os.path.join(outpath_logs, 'phi_remap_rebin_%s_%s.log' % (config.proj, j))
+            #remap_log = os.path.join(outpath_logs, 'phi_remap_rebin_%s_%s.log' % (config.proj, j))
 
             # beginning of new batch script    
             remap_str = 'phi_remap_rebin_%s_%s.sh' % (config.proj, j)
             batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
-            add_script_header(batch_out)
-            #batch_out.write('#!/bin/bash\n')
-            #batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n")
+            add_script_header(batch_out, remap_str)
 
 
         batch_out.write('\n#%s' %fname)
-        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname), remap_log))
-        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname), remap_log))
+        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
+        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
     
         file = fits.open(outpath_data+fname)[1]
-        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax, remap_log))
-        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax, remap_log))
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
+        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
+        batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
         batch_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
+
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap, remap_log))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap, remap_log)) 
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap)) 
         add_check_continue(batch_out)
         batch_out.write('\n')
 

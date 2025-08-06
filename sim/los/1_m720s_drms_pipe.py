@@ -59,11 +59,12 @@ def main():
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
 
-
-    jv2ts = 'jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 config.mcorlev=%s MAPRMAX=0.998 MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1 >> %s\n' 
+    #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
+    #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
+    jv2ts = 'setsid jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 config.mcorlev=%s MAPRMAX=0.998 MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n' 
             #timestamp, v2hout, timestamp, config.mcorlev, logfile
 
-    rsmapmag = 'resizemappingmag in=%s["%s"] out=%s nbin=3 >>%s\n' #in_ds, timestamp, out_ds, logfile
+    rsmapmag = 'setsid resizemappingmag in=%s["%s"] out=%s nbin=3\n' #in_ds, timestamp, out_ds, logfile
     
     times = get_M_720s_times(config.dataseries_input, config.period, config.interval)  # list with all queued time stamps
     
@@ -97,21 +98,20 @@ def main():
                 j+=1 
        
             # define the log file for the next batch script
-            remap_log = os.path.join(outpath_logs, 'hmi_remap_rebin_%s_%s.log' % (config.proj, j))
+            #remap_log = os.path.join(outpath_logs, 'hmi_remap_rebin_%s_%s.log' % (config.proj, j))
 
             # beginning of new batch script    
             remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
             batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
-            add_script_header(batch_out)
-            #batch_out.write('#!/bin/bash\n')
-            #batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n")
+            add_script_header(batch_out, remap_str)
+
 
         # write the commands to the batch script
-        batch_out.write('\necho %s' %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
-        batch_out.write(jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, remap_log))
+        batch_out.write('\necho %s' %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev))
+        batch_out.write(jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev))
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap, remap_log))
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap))
         add_check_continue(batch_out)
         batch_out.write('\n')
 
