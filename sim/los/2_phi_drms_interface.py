@@ -6,7 +6,7 @@ from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
 from sunpy.coordinates.sun import carrington_rotation_time
-from misc import run_script_with_nohup, get_current_session_folder
+from misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
 
 # Create DRMS compatible FITS header
 
@@ -407,7 +407,7 @@ def main():
                 # make the script is executable
                 subprocess.call(['chmod', '755', os.path.join(outpath_scripts, remap_str)])
 
-                if config.run_phi_scripts:
+                if False:# config.run_phi_scripts:
                     # Run all scripts in parallel
                     if config.verbose: print('Running %s ...' %remap_str)
                     run_script_with_nohup(session_folder, remap_str)
@@ -421,7 +421,9 @@ def main():
             # beginning of new batch script    
             remap_str = 'phi_remap_rebin_%s_%s.sh' % (config.proj, j)
             batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
-            batch_out.write('#!/bin/bash\n')
+            add_script_header(batch_out)
+            #batch_out.write('#!/bin/bash\n')
+            #batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n")
 
 
         batch_out.write('\n#%s' %fname)
@@ -435,6 +437,7 @@ def main():
         
         batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap, remap_log))
         batch_out.write(rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap, remap_log)) 
+        add_check_continue(batch_out)
         batch_out.write('\n')
 
         trec_out.write("%s\n"%trec)
@@ -446,7 +449,7 @@ def main():
     if config.verbose: 
         print('\nDRMS ingestion script creation complete.\n')
 
-    if config.run_phi_scripts:
+    if False: #config.run_phi_scripts:
         if config.verbose: print('Running %s ...' %remap_str)
         run_script_with_nohup(session_folder, remap_str)
 
