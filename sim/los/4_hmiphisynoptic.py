@@ -12,12 +12,8 @@ import scipy as sp
 import subprocess
 from solephem import solephem
 import datetime as datetime
-from copy import copy, deepcopy
-import sunpy.map
+from copy import copy
 from astropy.io import fits
-import matplotlib.patches as patches
-from scipy.signal import gaussian
-from scipy.special import voigt_profile
 import os
 from datetime import date
 import config as global_config
