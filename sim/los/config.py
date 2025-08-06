@@ -98,9 +98,11 @@ data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synopt
 ###########################################################
 
 run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe    = True # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface = True # run 2_phi_drms_interface.py to create the phi data series
-run_hmiphisynoptic     = False # run 4_hmisynoptic.py to create the synoptic maps
+run_m720s_drms_pipe    = False # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
+run_hmi_scripts        = True # run all HMI scripts in the outpath_scripts directory 
+run_phi_scripts        = True # run all PHI scripts in the outpath_scripts directory 
+run_hmiphisynoptic     = True # run 4_hmisynoptic.py to create the synoptic maps
 
 
 ###########################################################
@@ -123,20 +125,12 @@ filter_duplicates = True
 # split batch scripts after nsplit entries
 nsplit = 150
 
-# Directly run the bash after creating them . If False, only create bash scripts, but do not execute them
-run_hmi_scripts = False 
-
-
-
 
 
 
 ###########################################################
 ################# 2_phi_drms_interface.py #################
 ###########################################################
-
-# Directly run the bash after creating them . If False, only create bash scripts, but do not execute them
-run_phi_scripts = True 
 
 maprmax = 0.998 # maximum radius for the synoptic map, 0.998 is the default for HMI synoptic maps
 
