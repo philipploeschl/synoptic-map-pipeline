@@ -17,6 +17,7 @@ from astropy.io import fits
 import os
 from datetime import date
 import config as global_config
+from misc import get_current_session_folder
 
 # DEFINES
 QUAL_CHECK = "0xfffefb00"
@@ -1081,7 +1082,7 @@ def CalcSynCols(start, #int start,
 
             #/* Calcuate the average value for each x,y in the stack */
             if (nptsfinal):
-
+                #TODO: check if this is correct: RuntimeWarning: invalid value encountered in scalar divide
                 synVal = sumfinal / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
 
                 minVal = (SHRT_MIN + 1) #// * kOutScale;        #float minVal = (SHRT_MIN + 1); // * kOutScale;
@@ -1295,9 +1296,9 @@ def get_arg_parameters():
     config = {
         
         
-        "cr":       global_config.cr,
-        "input_ds": global_config.data_series_remap, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
-        "timestring" : global_config.timestring, 
+        "cr":            global_config.cr,
+        "input_ds":      global_config.data_series_remap, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        "timestring" :   global_config.timestring, 
         "synop_outname": global_config.synop_outname,
         "synop_outpath": global_config.synop_outpath,
 
@@ -1308,7 +1309,7 @@ def get_arg_parameters():
         "awf_dmin": global_config.awf_dmin , # latitude border until which minimum contribution is used
         "awf_dmax": global_config.awf_dmax , # latitude border from which maximum contribution is used
         "awf_lim":  global_config.awf_lim  ,
-        "awf_lim_size": global_config.awf_lim_size, # TODO define size limit for awf slice (still unused)
+        "awf_nlim": global_config.awf_nlim, # TODO define size limit for awf slice (still unused)
         
         # don't have to touch these
         # rebinning
@@ -1329,7 +1330,7 @@ def get_arg_parameters():
         "nEquivPtsReq": global_config.nEquivPtsReq, # 20, 
         "noiseS":       global_config.noiseS,       # 3.0, 
         "maxNoiseAdj":  global_config.maxNoiseAdj,  # 3.0,
-        "minOutPts":    global_config.minOutPts,    # 4.0,
+        "minOutPts":    global_config.minOutPts    # 4.0,
         
         #"halfWindow":15, # now dynamically calculated. obsolete
         #"force": 0,   # unused / obsolete
@@ -1342,12 +1343,10 @@ def get_arg_parameters():
 if __name__ == "__main__":
     
     config = get_arg_parameters()    
-    path = config["synop_outpath"] 
-    synop, epts, length, imrec =  main(config)
-    
-    if not os.path.isdir(path):
-        os.makedirs(path) # os.mkdir crashes with subfolders, use os.makedirs instead.
+    session_folder = get_current_session_folder()
+    synop_outpath = session_folder + config["synop_outpath"]
 
+    synop, epts, length, imrec =  main(config)
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
     synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
@@ -1357,7 +1356,7 @@ if __name__ == "__main__":
     hdu  = fits.PrimaryHDU(synop_img)
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu])
-    hdul.writeto(path+config['synop_outname'], overwrite=True)
+    hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
 
     if config["bin"]:
         # create small synoptic map
@@ -1379,6 +1378,6 @@ if __name__ == "__main__":
         hdu_small = fits.PrimaryHDU(smallSynop_img)
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
-        hdul_small.writeto(path+config['synop_outname'], overwrite=True)
+        hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
 
-    print('%s complete' %path)
+    print('%s complete' %__file__)
