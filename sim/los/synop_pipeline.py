@@ -39,6 +39,6 @@ if __name__ == "__main__":
         run_all_scripts(verbose=config.verbose, prefix='hmi')
 
     if config.run_hmiphisynoptic:
-        subprocess.call(['python', '4_hmisynoptic.py'])
+        subprocess.call(['python', '4_hmiphisynoptic.py'])
 
 
