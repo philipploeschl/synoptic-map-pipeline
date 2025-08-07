@@ -23,10 +23,11 @@ This is currently abused as a todo list
 ## 4_hmiphisynoptic.py
 - consider changing the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
 - isolate adaptive weight function code to properly understand and document it again
-- 
+- figure out why data in synoptic output is missing
 
 ## Data selection
-- TBD
+- switch to official github kernel
+- 
 
 ## Discussion points on DRMS series handling with Zhi-Chao
 - deleting a data series sets the retention of the stored data to 0, which will be purged during the next cleanup
