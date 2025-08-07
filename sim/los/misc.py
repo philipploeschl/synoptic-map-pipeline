@@ -27,11 +27,13 @@ def create_session_folder():
     log_folder    = os.path.join(session_folder, config.log_path)
     data_folder   = os.path.join(session_folder, config.data_path)
     jsd_folder    = os.path.join(session_folder, config.jsd_path)
+    synop_folder  = os.path.join(session_folder, config.synop_path)
 
     os.makedirs(script_folder, exist_ok=True)       
     os.makedirs(log_folder,    exist_ok=True)
     os.makedirs(data_folder,   exist_ok=True)
     os.makedirs(jsd_folder,    exist_ok=True)
+    os.makedirs(synop_folder,  exist_ok=True)
     
     # Save path to session_path.txt
     with open(session_path_file, "w") as f:
