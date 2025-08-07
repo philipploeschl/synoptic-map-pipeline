@@ -20,6 +20,7 @@ script_path = 'scripts/' # path to bash scripts, relative to synop/output/CR_NUM
 log_path    = 'logs/'    # path to log files, relative to synop/output/CR_NUMBER_SESSION_ID/
 data_path   = 'data/'    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
 jsd_path    = 'jsd/'     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
+synop_path  = 'synop/'  # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
 
 # File structure created in misc.py: create_session_folder
 # - OUTPUT_PATH/
@@ -100,8 +101,8 @@ data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synopt
 run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
 run_m720s_drms_pipe    = False # run 1_m720s_drms_pipe.py to create the hiresmap and remap
 run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
-run_hmi_scripts        = True # run all HMI scripts in the outpath_scripts directory 
-run_phi_scripts        = True # run all PHI scripts in the outpath_scripts directory 
+run_hmi_scripts        = False # run all HMI scripts in the outpath_scripts directory 
+run_phi_scripts        = False # run all PHI scripts in the outpath_scripts directory 
 run_hmiphisynoptic     = True # run 4_hmisynoptic.py to create the synoptic maps
 
 
@@ -143,21 +144,21 @@ maprmax = 0.998 # maximum radius for the synoptic map, 0.998 is the default for 
 
 
 # Synoptic map output file name - JSD FILES NEED TO BE ALTERED IF THIS PARAMETERS IS CHANGED
-synop_outname = "synop%s.fits" % proj
-synop_outpath = output_path
+synop_name = "synop%s.fits" % proj
+synop_small_name = "synop%s_small.fits" % proj
 
 # timestring2258_phi_hmi12m
 timestring = "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI@12m,2022.06.17_22:54:23_TAI,2022.06.18_10:56:25_TAI,2022.06.18_23:03:13_TAI,2022.06.19_11:15:52_TAI,2022.06.19_23:22:58_TAI,2022.06.20_11:36:08_TAI,2022.06.20_23:53:39_TAI,2022.06.21_04:17:58_TAI,2022.06.22_00:04:49_TAI,2022.06.22_12:18:51_TAI,2022.06.22_18:23:04_TAI,2022.06.23_00:26:52_TAI,2022.06.23_06:33:54_TAI,2022.06.23_12:41:16_TAI,2022.06.23_18:45:28_TAI,2022.06.24_00:49:36_TAI,2022.06.24_06:56:58_TAI,2022.05.28_08:15:44_TAI,2022.05.28_14:22:55_TAI,2022.05.28_20:26:46_TAI,2022.05.29_02:31:46_TAI,2022.05.29_08:40:07_TAI,2022.05.29_14:47:11_TAI,2022.05.29_20:51:05_TAI,2022.05.30_02:56:29_TAI,2022.05.30_09:05:03_TAI,2022.05.30_15:12:00_TAI,2022.05.30_21:15:56_TAI,2022.05.31_03:21:44_TAI,2022.05.31_09:30:30_TAI,2022.06.01_09:56:24_TAI,2022.06.01_16:03:02_TAI,2022.06.01_22:07:09_TAI,2022.06.02_04:13:44_TAI,2022.06.02_10:22:46_TAI,2022.06.02_16:29:13_TAI,2022.06.02_22:33:28_TAI,2022.06.03_04:40:26_TAI,2022.06.03_10:49:32_TAI,2022.06.03_16:55:48_TAI,2022.06.03_23:00:11_TAI,2022.06.04_05:07:33_TAI,2022.06.04_11:16:41_TAI,2022.06.04_17:22:45_TAI,2022.06.04_23:27:20_TAI,2022.06.05_05:35:04_TAI,2022.06.05_11:44:11_TAI,2022.06.05_17:50:04_TAI,2022.06.05_23:54:52_TAI,2022.06.06_06:02:58_TAI,2022.06.06_12:12:00_TAI,2022.06.06_18:17:43_TAI"
 
 
 # Adjacent Meridian Contribution for Weight Function Shape
-awf_nimg = 5,
-awf_cmin = 5,  # minimum contribution %
-awf_cmax = 5, # maximum contribution %
-awf_dmin = 25, # latitude border until which minimum contribution is used
-awf_dmax = 60, # latitude border from which maximum contribution is used
-awf_lim  = False,
-awf_nlim = 25, # default: 25, TODO understand this parameter again
+awf_nimg = 5
+awf_cmin = 5  # minimum contribution %
+awf_cmax = 5 # maximum contribution %
+awf_dmin = 25 # latitude border until which minimum contribution is used
+awf_dmax = 60 # latitude border from which maximum contribution is used
+awf_lim  = False
+awf_nlim = 25 # default: 25, TODO understand this parameter again
 
 
 # todo fix
@@ -166,24 +167,24 @@ awf_nlim = 25, # default: 25, TODO understand this parameter again
 
 
 # rebinning
-bin = True,
-xbin = 5, # HMI default 5
-ybin = 4, # HMI default 4
+bin = True
+xbin = 5 # HMI default 5
+ybin = 4 # HMI default 4
 
 # classic hmisynoptic parameters
-nsig = 3.0, 
-mapmmax = 1800, #1800, 
-sinbdivs = 720, #720,
-lgmin = -90,
-lgmax = +90,
-checkqual = 0,
-center = 0.0,
-los = 0,
-dlog = 0,
-nEquivPtsReq = 20, 
-noiseS = 3.0, 
-maxNoiseAdj = 3.0,
-minOutPts = 4.0,
+nsig         = 3.0
+mapmmax      = 1800 #1800, 
+sinbdivs     = 720 #720,
+lgmin        = -90
+lgmax        = +90
+checkqual    = 0
+center       = 0.0
+los          = 0
+dlog         = 0
+nEquivPtsReq = 20 
+noiseS       = 3.0
+maxNoiseAdj  = 3.0
+minOutPts    = 4.0
 
 
 # Adaptive Weight Function
