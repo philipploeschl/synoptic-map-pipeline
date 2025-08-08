@@ -41,4 +41,9 @@ if __name__ == "__main__":
     if config.run_hmiphisynoptic:
         subprocess.call(['python', '4_hmiphisynoptic.py'])
 
+    # Todo
+    #if config.run_polefilling:
+        #subprocess.call(['5_polfil.sh'])
+    
+
 
