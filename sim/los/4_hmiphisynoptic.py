@@ -17,7 +17,7 @@ from astropy.io import fits
 import os
 from datetime import date
 import config as global_config
-from misc import get_current_session_folder
+from misc import get_current_session_folder, plot_synoptic
 
 # DEFINES
 QUAL_CHECK = "0xfffefb00"
@@ -591,7 +591,7 @@ def main(config):#, hw_overwrite=None):
     # unused
     #nStackMags = rint(2 * config["halfWindow"] * 0.5) # /* consecutive magnetograms are shifted about 1 degree apart */
 
-    sensAdj = 1 # unused and undefined in original code
+    #sensAdj = 1 # unused and undefined in original code
 
     drms_getkey, nRecs = get_drms_parameters(inRecs, config["input_ds"])
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
@@ -1357,7 +1357,8 @@ if __name__ == "__main__":
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-
+    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5]) # cut out .fits
+    
     if config["bin"]:
         # create small synoptic map
         # length  = [x,y]
@@ -1379,5 +1380,6 @@ if __name__ == "__main__":
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
+        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5]) # cut out .fits
 
     print('%s complete' %__file__)
