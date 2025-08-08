@@ -1,16 +1,36 @@
 This is currently abused as a todo list
 
 # TODO
+
+## up next
+- new session folder handling
+- identify los parameter for hmiphisynoptic.py
+- figure out ./history folder
+- figure out missing data
+
+
 ## General
 - bulk data processing with jv2ts and resizemappingmag could work again after the maximum processing time on DRMS was increased to 24h 
-- Do we care? Should we adapt .sh script creation accordingly or keep it for easy0 parallelization?
+- Do we care? Should we adapt .sh script creation accordingly or keep it for easy0 parallelization? -> YES
+
+- what do I need to save to reproduce the map
+  - config
+  - file list of used phi data
+  - hmi time stamps
+  - phi time stamps
+  - phi/hmi data selection
+  - most of it can probably 
+  - maybe add all this to a ./history/ folder 
 
 
 ## synop_pipeline.py
-- INTERRUPTING a script during DRMS data INGESTION with set_info will CRASH DRMS SERVERWIDE
+- check if /output can be replaced wiht an absolute path elsewhere
+- implement new_session/load_session functionality
+  
 
 ## 1_m720s_drms_pipe.py
 - python script verbose output logging?
+- add functionality for separate bash scripts created from nrt
 
 
 ## 2_phi_drms_interface.py
@@ -24,6 +44,9 @@ This is currently abused as a todo list
 - consider changing the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
 - isolate adaptive weight function code to properly understand and document it again
 - figure out why data in synoptic output is missing
+- write synop.fits back into drms
+
+
 
 ## Data selection
 - switch to official github kernel
