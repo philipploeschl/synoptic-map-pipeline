@@ -431,8 +431,8 @@ def main():
         batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
     
         file = fits.open(outpath_data+fname)[1]
-        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
-        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.maprmax))
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.phi_maprmax))
+        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.phi_maprmax))
         batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
         batch_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
 
