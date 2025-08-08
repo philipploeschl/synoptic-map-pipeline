@@ -591,7 +591,7 @@ def main(config):#, hw_overwrite=None):
     # unused
     #nStackMags = rint(2 * config["halfWindow"] * 0.5) # /* consecutive magnetograms are shifted about 1 degree apart */
 
-    #sensAdj = 1 # unused and undefined in original code
+    sensAdj = 1 # unused and undefined in original code
 
     drms_getkey, nRecs = get_drms_parameters(inRecs, config["input_ds"])
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
