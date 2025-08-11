@@ -155,7 +155,7 @@ awf_cmin = 5  # minimum contribution %
 awf_cmax = 5  # maximum contribution %
 awf_dmin = 25 # latitude border until which minimum contribution is used
 awf_dmax = 60 # latitude border from which maximum contribution is used
-awf_lim  = True
+awf_lim  = False  # TODO unexpected behaviour with NaN in synop.fits output when using awf_nlim = 25
 awf_nlim = 25 # default: 25, TODO understand this parameter again
 
 # rebinning
