@@ -66,7 +66,7 @@ def get_drms_parameters(inRecs, input_ds):
    
         drms_param.append(dict_tmp)
         nRecs += 1
-    
+
     return drms_param, nRecs
 
 # Misc functions
@@ -594,9 +594,10 @@ def main(config):#, hw_overwrite=None):
     sensAdj = 1 # unused and undefined in original code
 
     drms_getkey, nRecs = get_drms_parameters(inRecs, config["input_ds"])
+
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
-    
+
     imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
     imrec = [] # list to hold dictionary
 
@@ -1291,16 +1292,18 @@ def convert_image_array(img_in, img_out, nx, ny):
 
 # TODO MOVE TO CONFIG
 def get_arg_parameters():
-    
+
     # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
     config = {
         
         
-        "cr":            global_config.cr,
-        "input_ds":      global_config.data_series_remap, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
-        "timestring" :   global_config.timestring, 
-        "synop_outname": global_config.synop_outname,
-        "synop_outpath": global_config.synop_outpath,
+        "cr": global_config.cr,
+        "input_ds":    global_config.data_series_remap, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        "timestring":  global_config.timestring, 
+        "synop_name":  global_config.synop_name,
+        "synop_small_name": global_config.synop_small_name,
+
+        "synop_path": global_config.synop_path,
 
         # Adjacent Meridian Contribution for Weight Function Shape
         "awf_nimg": global_config.awf_nimg , # ODD number of images considered for the weightfunction, ODD number: center + N on each side
@@ -1325,7 +1328,7 @@ def get_arg_parameters():
         "lgmax":        global_config.lgmax,     # +90,
         "checkqual":    global_config.checkqual, # 0,
         "center":       global_config.center,    # 0.0,
-        "los":          global_config.los,       # 0,
+        "los":          0,                       # 0, # obsolete variable
         "dlog":         global_config.dlog,      # 0,
         "nEquivPtsReq": global_config.nEquivPtsReq, # 20, 
         "noiseS":       global_config.noiseS,       # 3.0, 
@@ -1344,9 +1347,10 @@ if __name__ == "__main__":
     
     config = get_arg_parameters()    
     session_folder = get_current_session_folder()
-    synop_outpath = session_folder + config["synop_outpath"]
+    synop_outpath = os.path.join(session_folder, config["synop_path"])
 
     synop, epts, length, imrec =  main(config)
+
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
     synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
