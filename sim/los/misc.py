@@ -117,6 +117,8 @@ def make_handle_sigint(stop_signal_path):
 
 def run_all_scripts(verbose=False, prefix=''):
 
+    if verbose: print("Running DRMS bash scripts...")
+
     session_folder = get_current_session_folder()
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
