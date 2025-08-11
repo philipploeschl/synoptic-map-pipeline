@@ -17,7 +17,7 @@ def calc_trec(crln_obs, car_rot, verbose=False):
     # remap and <180 means that HMI_FUTR is the current CAR_ROT and HMI_PAST is the previous CAR_ROT
     
     # TODO WHY IS THIS HARD CODED HERE?
-    #car_rot = 2258
+    car_rot = 2258
     
     # THIS IS LOGIC DOESN'T MAKE SENSE FOR THE BOTTOM LEFT QUARTER OF OBSERVATIONS (ORBIT_PLOTS)
     if False:# crln_obs > 180:
@@ -400,7 +400,10 @@ def main():
         trec = fld[1].header['T_REC']
         fld.close()
 
-        if i % config.nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
+        print(f"DEBUG number of fitsfiles {len(fitsfiles)}")
+        nsplit = int(np.ceil(len(fitsfiles)/config.nparallel))
+        
+        if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
 
             if i > 0: 
                 batch_out.write('echo "PHI data batch %s done"'%j)
