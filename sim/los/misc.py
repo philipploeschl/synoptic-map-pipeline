@@ -203,7 +203,7 @@ def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
     return files
 
 
-def plot_synoptic(synop, outpath, name):
+def plot_synoptic(synop, outpath, name, pdf=True):
 
     labelsize = 12
     ticksize  = 10
@@ -256,8 +256,10 @@ def plot_synoptic(synop, outpath, name):
     
     fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
     
-    plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
-
+    if pdf:
+        plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+    else:
+        plt.show()
 
 #if __name__ == "__main__":
     # Example usage
