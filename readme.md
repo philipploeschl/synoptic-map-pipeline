@@ -2,14 +2,7 @@ This is currently abused as a todo list
 
 # TODO
 
-## up next
-- implement new_session/load_session functionality
-- identify los parameter for hmiphisynoptic.py
-  - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
-    if (radialFound)
-          noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
-  - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
-- figure out ./history folder
+## Up next
 
 
 
@@ -44,6 +37,8 @@ This is currently abused as a todo list
 
 - delete output scripts from previous run when reprocessing in an existing session
 
+- figure out some form of processing history folder, maybe using the synop_pipeline.py log
+
 
 ## synop_pipeline.py
 - check if /output can be replaced wiht an absolute path elsewhere
@@ -59,6 +54,7 @@ This is currently abused as a todo list
 - option for .sh scripts only
 - clean up old code
 - python script verbose output logging?
+
 - why is car_rot hard coded in calc_trec()?
   - logic doesn't seem to work in current implementation
   - Hard coding 2258 makes sure that the 0-86° data is assigned to 2258 instead of 2257.
@@ -67,7 +63,9 @@ This is currently abused as a todo list
 
 
 ## 4_hmiphisynoptic.py
-- consider changing the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
+- change the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
+  - this will require adaptations in 2_phi_drms_interface.py
+
 - isolate adaptive weight function code to properly understand and document it again
 - figure out why data in synoptic output is missing
 - write synop.fits back into drms
@@ -77,9 +75,30 @@ This is currently abused as a todo list
   synVal = sumfinal / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
 
 
+- identify los parameter for hmiphisynoptic.py
+  - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
+    if (radialFound)
+          noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
+  - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
+
+
 ## Data selection
 - switch to official github kernel
-- 
+
+
+
+## Gherardo talking points
+- report that things should work now
+- old and new 4_hmiphisynoptic.py scripts are confirmed to be identical
+- move to python based function calls in synop_pipeline.py for new session handling
+- current limitations with awf_lim parameter
+- identify los parameter for hmiphisynoptic.py
+  - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
+    if (radialFound)
+          noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
+  - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
+  
+
 
 
 ## Notes on DRMS discussion with Zhi-Chao
@@ -104,4 +123,5 @@ File structure created in misc.py: create_session_folder
        - DATA
        - SCRIPTS   
        - LOGS
+
 
