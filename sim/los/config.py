@@ -7,10 +7,10 @@ verbose = True
 
 # Create new session, reads session_path.txt to access 
 new_session = True
-load_session = "CR2258_pipeline_test2_20250808_140902"
+prev_session = "CR2258_pipeline_test_20250808_140902"
 
 # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
-id = "pipeline_test2" 
+id = "pipeline_test" 
 
 # Data path to PHI data for DRMS ingestion
 #phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/pipeline_test/'
@@ -98,14 +98,14 @@ data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synopt
 ################# Pipeline Configuraiton ##################
 ###########################################################
 
-run_drms_prep          = True # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe    = True  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_m720s_drms_pipe    = False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
 run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
 
 run_hmi_scripts        = False # run all HMI scripts in the outpath_scripts directory 
 run_phi_scripts        = False # run all PHI scripts in the outpath_scripts directory 
 
-run_hmiphisynoptic     = False # run 4_hmisynoptic.py to create the synoptic maps
+run_hmiphisynoptic     = True # run 4_hmisynoptic.py to create the synoptic maps
 run_polefilling        = False # run all synoptic map pole filling
 
 
@@ -171,7 +171,7 @@ lgmin        = -90
 lgmax        = +90
 checkqual    = 0
 center       = 0.0
-los          = 0 # todo
+#los          = 0 # obsolete
 dlog         = 0
 nEquivPtsReq = 20 
 noiseS       = 3.0
