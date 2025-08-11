@@ -270,6 +270,7 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         # multi * 2 = total width in central half widths chwidth
         # (multi-1)*2 = widths in the wings
         # (multi-1) = width of one wing
+        
         n1 = np.ceil((multi-1)*chwidth[i][0]).astype(int) # needs to be >1.0 to work without NaNs 
         n2 = np.ceil((multi-1)*chwidth[i][1]).astype(int) # needs to be >1.0 to work without NaNs
 
