@@ -3,9 +3,9 @@
 ################# Pipeline Configuration ##################
 ###########################################################
 
-run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_drms_prep          = True # run 0_drms_prep.py to create JSD files and data series in DRMS
 run_m720s_drms_pipe    = False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface = True # run 2_phi_drms_interface.py to create the phi data series
+run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
 
 run_hmi_scripts        = False # run all HMI scripts in the outpath_scripts directory 
 run_phi_scripts        = False # run all PHI scripts in the outpath_scripts directory 
@@ -60,8 +60,12 @@ synop_path  = 'synop/'   # path to synoptic maps, relative to synop/output/CR_NU
 
 
 # path to JSD templates, relative to synop/
-template_path = "drms_prep/" 
+template_path = "drms_templates/" 
 
+# Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
+# https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
+spice_mkpath = '/scratch/slam/loeschl/spice/solar-orbiter/kernels/mk/'  # path to meta kernel
+spice_mkname = 'solo_ANC_soc-flown-mk.tm' # meta kernel name
 
 ###########################################################
 ################# Data series definition ##################
@@ -90,7 +94,7 @@ synoptic_template = "synoptic_template.jsd"           # template for synoptic da
 polfil_template   = "synoptic_mr_polfil_template.jsd" # template for polfil data series
 
 # Toggle data series creation from above JSF files in DRMS
-create_series = True
+create_series = False
 
 
 ###########################################################

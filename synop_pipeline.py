@@ -1,7 +1,7 @@
 import os
 import subprocess
 import config
-from misc import run_all_scripts, get_current_session_folder
+from src.misc import run_all_scripts, get_current_session_folder
 
 # ToDo:
 # - Move session creation logic into this file and replace python file calls with direct function calls
@@ -23,17 +23,17 @@ if __name__ == "__main__":
 
     if config.run_drms_prep:
         if config.verbose: print("Running 0_drms_prep.py ...")
-        subprocess.call(['python', '0_drms_prep.py'])
+        subprocess.call(['python', './src/los/0_drms_prep.py'])
         # 0_drms_prep.main(config, session_folder)
 
     if config.run_m720s_drms_pipe:
         if config.verbose: print("Running 1_m720s_drms_pipe.py ...")
-        subprocess.call(['python', '1_m720s_drms_pipe.py'])
+        subprocess.call(['python', './src/los/1_m720s_drms_pipe.py'])
         # 1_m720s.drms_pipe.main(config, session_folder)
 
     if config.run_phi_drms_interface:
         if config.verbose: print("Running 2_phi_drms_interface.py ...")
-        subprocess.call(['python', '2_phi_drms_interface.py'])  
+        subprocess.call(['python', './src/los/2_phi_drms_interface.py'])  
         # 2_phi_drms_interface.main(config, session_folder)
 
     # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
@@ -46,12 +46,12 @@ if __name__ == "__main__":
 
     if config.run_hmiphisynoptic:
         if config.verbose: print("Running 3_hmiphisynoptic.py ...")
-        subprocess.call(['python', '3_hmiphisynoptic.py'])
+        subprocess.call(['python', './src/los/3_hmiphisynoptic.py'])
         # 3_hmiphisynoptic.main(config, session_folder)
 
     # Todo
     #if config.run_polefilling:
-        #subprocess.call(['4_polfil.sh'])
+        #subprocess.call(['./src/los/4_polfil.sh'])
     
 
 
