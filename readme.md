@@ -143,3 +143,6 @@ File structure created in misc.py: create_session_folder
        - LOGS
 
 
+# SPICE Kernel Setup
+- git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
+- link kernel directory via config.spice_kernel
