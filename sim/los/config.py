@@ -1,3 +1,20 @@
+
+###########################################################
+################# Pipeline Configuration ##################
+###########################################################
+
+run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_m720s_drms_pipe    = False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface = True # run 2_phi_drms_interface.py to create the phi data series
+
+run_hmi_scripts        = False # run all HMI scripts in the outpath_scripts directory 
+run_phi_scripts        = False # run all PHI scripts in the outpath_scripts directory 
+
+run_hmiphisynoptic     = False # run 3_hmisynoptic.py to create the synoptic maps
+run_polefilling        = False # run all synoptic map pole filling
+
+
+
 ###########################################################
 #################### Global parameters ####################
 ###########################################################
@@ -6,15 +23,21 @@
 verbose = True
 
 # Create new session, reads session_path.txt to access 
-new_session = True
-prev_session = "CR2258_pipeline_test_20250808_140902"
+new_session = True # PLACEHOLDER
+prev_session = "CR2258_pipeline_test_20250808_140902" # PLACEHOLDER
 
 # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
 id = "pipeline_test" 
 
 # Data path to PHI data for DRMS ingestion
-#phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/pipeline_test/'
+# direct path for old implementation
 phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
+
+# database path for new implementation
+phi_dbpath = "/data/slam/valori/test_l2_fmdb/FDT_test_release_jan-sep_2022_ghost_corr_update_defringed/l2/"
+date_start = "2022-06-03" # YYYY-MM-DD
+date_end   = "2022-06-18" # YYYY-MM-DD
+key        = "blos"       # data segment
 
 
 # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
@@ -32,12 +55,9 @@ synop_path  = 'synop/'   # path to synoptic maps, relative to synop/output/CR_NU
 #       - DATA
 #       - SCRIPTS   
 #       - LOGS
+#       - JSD
+#       - SYNOP
 
-# redefine where the bash scripts are stored!
-# automatically create synop/output/CR_NUMBER_SESSION_ID/
-# add "cd phi_datapath" to the beginning of the bash scripts
-# add "cd script_path" to the end of the bash scripts
-# careful with the script splitting routine, probably needs to be added to each
 
 # path to JSD templates, relative to synop/
 template_path = "drms_prep/" 
@@ -80,11 +100,10 @@ create_series = True
 if Mr:
     proj = "Mr"
     Btype = "Radial"
-    mcorlev = 2 # for jv2ts command line 
-else:
+    mcorlev = 2 # option for magnetic correction: 0=none; 1=line of sight; 2=radial"
     proj = "Ml"
     Btype = "line-of-sight"
-    mcorlev = 1 # for jv2ts command line 
+    mcorlev = 1 # option for magnetic correction: 0=none; 1=line of sight; 2=radial"
 
 data_series_phi   = "%s.phi_CR%s_%s"         %(dataseries_owner, cr, id)
 data_series_jv2ts = "%s.%s_hiresmap_CR%s_%s" %(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
@@ -93,20 +112,6 @@ data_series_remap = "%s.%s_remap_CR%s_%s"    %(dataseries_owner, proj, cr, id) #
 data_series_synop  = "%s.synoptic_%s_%s" %(dataseries_owner, proj, id) # synoptic data series name
 data_series_polfil = "%s.synoptic_Mr_polfil_%s" %(dataseries_owner, id) # synoptic Mr polfil data series name
 
-
-###########################################################
-################# Pipeline Configuraiton ##################
-###########################################################
-
-run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe    = False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
-
-run_hmi_scripts        = False # run all HMI scripts in the outpath_scripts directory 
-run_phi_scripts        = False # run all PHI scripts in the outpath_scripts directory 
-
-run_hmiphisynoptic     = True # run 4_hmisynoptic.py to create the synoptic maps
-run_polefilling        = False # run all synoptic map pole filling
 
 
 ###########################################################
@@ -126,7 +131,8 @@ period = "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI" # CR2258
 filter_duplicates = True
 
 # split batch scripts after nsplit entries
-nparallel = 15  # number of parallel DRMS shell scripts
+nparallel_hmi = 15  # number of parallel HMI DRMS shell scripts
+nparallel_phi = 1   # number of parallel PHI DRMS shell scripts
 
 
 ###########################################################
@@ -138,7 +144,7 @@ phi_maprmax = 0.9925 # maximum radius for the synoptic map
 
 
 ###########################################################
-################### 4_hmiphisynoptic.py ###################
+################### 3_hmiphisynoptic.py ###################
 ###########################################################
 
 # Synoptic map output file name - JSD FILES NEED TO BE ALTERED IF THIS PARAMETERS IS CHANGED
@@ -150,13 +156,13 @@ timestring = "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI@12m,2022.06.17_22:
 # todo this timestring has to be created from the above hmi timestring. timestring = hmi_period+phi_period
 
 # Adjacent Meridian Contribution for Weight Function Shape
-awf_nimg = 5
+awf_nimg = 5  # UNEVEN number of images considered by the weight function default=5: central image +2 on each side
 awf_cmin = 5  # minimum contribution %
 awf_cmax = 5  # maximum contribution %
 awf_dmin = 25 # latitude border until which minimum contribution is used
 awf_dmax = 60 # latitude border from which maximum contribution is used
-awf_lim  = False  # TODO unexpected behaviour with NaN in synop.fits output when using awf_nlim = 25
-awf_nlim = 25 # default: 25, TODO understand this parameter again
+awf_lim  = False  # TODO DO NOT USE FOR NOW. Unexpected behaviour with NaN in synop.fits output when using awf_nlim = 25
+awf_nlim = 25 # default: 25, TODO understand this parameter again, there might be a factor 2 missing/too much in the code using this
 
 # rebinning
 bin = True
@@ -164,58 +170,18 @@ xbin = 5 # HMI default 5
 ybin = 4 # HMI default 4
 
 # classic hmisynoptic parameters
-nsig         = 3.0
-mapmmax      = 1800 #1800, 
-sinbdivs     = 720 #720,
-lgmin        = -90
-lgmax        = +90
-checkqual    = 0
-center       = 0.0
-#los          = 0 # obsolete
-dlog         = 0
-nEquivPtsReq = 20 
-noiseS       = 3.0
-maxNoiseAdj  = 3.0
-minOutPts    = 4.0
-# todo copy parameter description from .c file
-# check how to set los and radialfound (not in the config yet), probably needs auto setup from Mr=True parameter
+nsig         = 3.0  # TODO: not sure what the difference to noiseS is
+mapmmax      = 1800 # determines mapcols (default: 1800)
+sinbdivs     = 720  # number of increments in sin latitude from 0 to 1 (default: 720)
+lgmin        = -90  # longitude minimum, degrees (default: -90)
+lgmax        = +90  # longitude maximum, degrees (default: +90)
+checkqual    = 0    # un
+center       = 0.0  # relative offset to central meridian for magnetogram slice data selection
+#los          = 0   # OBSOLETE, scheduled to be removed
+dlog         = 0    # log flag for the c code. currently unused
+nEquivPtsReq = 20   # number of HMI magnetograms for averaged pixels
+noiseS       = 3.0  # std dev of noise
+maxNoiseAdj  = 3.0  # maximum adjustment due to increases with latitude of the noise level (radial data only) 
+minOutPts    = 4.0  # minimum number of points that must exist before outliers can be  discarded when calulating summary statistics
 
 
-# Adaptive Weight Function
-# - code relies on images taken from the ecliptic
-# - lattitude specific weight function control needs to consider out of ecliptic observations
-# - understand awf_lim and describe it properly
-
-
-
-"""
-ToDo List
-- refacdtor spice kernels to use official solar orbiter github repository
-- SPICE kernel names and download paths
-- Timestamps or file paths for the PHI data
-- https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
-- /scratch/valori/nrt_fmdb/l2/DATES
-- phi-fdt-blos_OBSDATE-PROCESSINGDATE-DID always take latest processing date if multiple are available 
-- possibly option to select if you want to take the last one or specifiy version as file list
-- how do I handle quality bits
-- provide meta data with dates for each longitdues
-- file list from start and end date with exception list
-- check how synptic map pipeline handles noise outliers since PHI might come wiht sqrt(3) difference for onboard averaged data. make sure we don't lose data without noticing
-
-"""
-
-"""
-roadmap
-- old test case 2240 -> 2258 for the updated header
-- test case may 2025
-- date +-5d of FDT
-"""
-
-"""
-ToDo config parameters
-- time stamps for paths
-- parameters to connect the scripts
-
-- generic JSD files
-- automatic data_series creation
-"""
