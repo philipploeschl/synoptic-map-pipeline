@@ -3,17 +3,13 @@ import spiceypy.utils.support_types as stypes
 import numpy as np
 import os, sys
 
-# Add the project root (two levels up from this script)
-project_root = os.path.abspath(os.path.join(__file__, ".."))
-sys.path.insert(0, project_root)
-
 import config
 
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
     cur_wd = os.getcwd()
-    #os.chdir(kpath)
+    os.chdir(kpath)
     spice.furnsh(kpath+kname)
     os.chdir(cur_wd)
     nloaded = spice.ktotal("ALL")
@@ -34,8 +30,8 @@ def get_solo_coverage(mkpath):
         kernel_data=spice.kdata(kernel,"ALL")
         if "solo_ANC_soc-orbit" in kernel_data[0]:
             solo_coverage = stypes.SPICEDOUBLE_CELL(2)
-            #kernel_path = os.path.join(mkpath,Path(kernel_data[0]))
-            kernel_path = kernel_data[0]
+            kernel_path = os.path.join(mkpath, kernel_data[0])
+            #kernel_path = kernel_data[0]
             spice.spkcov(kernel_path,-144,solo_coverage) #-144 is the NAIF ID for Solar Orbiter
             coverage_out=spice.wnfetd(solo_coverage,0)
             return(coverage_out)
