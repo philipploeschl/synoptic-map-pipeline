@@ -3,14 +3,14 @@
 ################# Pipeline Configuration ##################
 ###########################################################
 
-run_drms_prep          = True # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe    = False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface = False # run 2_phi_drms_interface.py to create the phi data series
+run_drms_prep          = False # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_m720s_drms_pipe    = True  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface = True # run 2_phi_drms_interface.py to create the phi data series
 
 run_hmi_scripts        = False # run all HMI scripts in the outpath_scripts directory 
 run_phi_scripts        = False # run all PHI scripts in the outpath_scripts directory 
 
-run_hmiphisynoptic     = False # run 3_hmisynoptic.py to create the synoptic maps
+run_hmiphisynoptic     = True # run 3_hmisynoptic.py to create the synoptic maps
 run_polefilling        = False # run all synoptic map pole filling
 
 
@@ -58,9 +58,9 @@ synop_path  = 'synop/'   # path to synoptic maps, relative to synop/output/CR_NU
 #       - JSD
 #       - SYNOP
 
-
 # path to JSD templates, relative to synop/
 template_path = "drms_templates/" 
+
 
 # Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
 # https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
@@ -105,6 +105,7 @@ if Mr:
     proj = "Mr"
     Btype = "Radial"
     mcorlev = 2 # option for magnetic correction: 0=none; 1=line of sight; 2=radial"
+else:
     proj = "Ml"
     Btype = "line-of-sight"
     mcorlev = 1 # option for magnetic correction: 0=none; 1=line of sight; 2=radial"
