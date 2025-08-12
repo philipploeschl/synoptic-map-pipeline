@@ -50,6 +50,14 @@ This is currently abused as a todo list
 - figure out some form of processing history folder, maybe using the synop_pipeline.py log
 
 
+- the above concept won't work with importing a config python file
+- there is some general fuckery with the file structure and imports
+- config.py currently can't cleanly be imported from src/los/ if it is located in the root directory
+- the project has to properly be rearranged as a package -> talk to Johannes
+- where will I put synop_pipeline.py, data_selection.py? leave in src or move up to root?
+- moving the file structure around fucks up all the file pat definitions -> always make a full test run and see if the outputs land in the right locations
+
+
 ## synop_pipeline.py
 - check if /output can be replaced wiht an absolute path elsewhere
 - implement new_session/load_session functionality
@@ -141,6 +149,7 @@ File structure created in misc.py: create_session_folder
        - DATA
        - SCRIPTS   
        - LOGS
+
 
 
 # SPICE Kernel Setup
