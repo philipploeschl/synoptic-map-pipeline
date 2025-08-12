@@ -10,8 +10,13 @@
 
 import os, sys
 import subprocess
-import config as config
-from misc import create_session_folder
+
+project_root = os.path.abspath(os.path.join(__file__, "../../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import src.config as config
+from src.misc import create_session_folder
 
 def create_series(config, outpath, outname):
     if config.create_series:

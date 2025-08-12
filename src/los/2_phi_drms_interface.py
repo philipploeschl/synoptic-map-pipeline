@@ -1,12 +1,18 @@
 import os, sys, subprocess
-import config
+
 import numpy as np
 from scipy import interpolate
 from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
 from sunpy.coordinates.sun import carrington_rotation_time
-from misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue, get_phi_filenames
+
+project_root = os.path.abspath(os.path.join(__file__, "../../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import src.config as config
+from src.misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue, get_phi_filenames
 
 # Create DRMS compatible FITS header
 

@@ -14,10 +14,16 @@ from solephem import solephem
 import datetime as datetime
 from copy import copy
 from astropy.io import fits
-import os
+import os, sys
 from datetime import date
-import config as global_config
-from misc import get_current_session_folder, plot_synoptic
+
+project_root = os.path.abspath(os.path.join(__file__, "../../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import src.config as global_config
+from src.misc import get_current_session_folder, plot_synoptic
+
 
 # DEFINES
 QUAL_CHECK = "0xfffefb00"

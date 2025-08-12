@@ -1,8 +1,14 @@
 import subprocess
 import sys, os#, getopt
-import config
-from misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
 import numpy as np
+
+project_root = os.path.abspath(os.path.join(__file__, "../../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+import src.config as config
+from src.misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
+
 
 def get_M_720s_count(data_series, period, interval):
     
@@ -56,6 +62,7 @@ def cmd_args(argv):
 def main():
 
     session_folder = get_current_session_folder()
+    print(f"debug {session_folder}, {config.script_path}")
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
 
@@ -73,7 +80,7 @@ def main():
         
         for duplicate in time_duplicates:
             if duplicate in times:
-                print("Skipping %s (duplicate)" %duplicate)
+                if config.verbose: print("Skipping %s (duplicate)" %duplicate)
                 times.remove(duplicate)
 
     # looks like this is unsed and obsolete   
