@@ -7,6 +7,8 @@ This is currently abused as a todo list
 
 
 ## General
+- check how synptic map pipeline handles noise outliers since PHI might come wiht sqrt(3) difference for onboard averaged data. make sure we don't lose data without noticing
+- understand quality bits
 
 ### Log functionality
 - set up proper logging using the python logging library
@@ -18,7 +20,7 @@ This is currently abused as a todo list
 - provide config as argv to synop_pipeline.py?
 - read config from session_path/config/ if previous session is provided?
 
-- what do I need to save to reproduce the map
+- what do I need to save to reproduce the map?
   - config
   - file list of used phi data
   - hmi time stamps
@@ -27,13 +29,18 @@ This is currently abused as a todo list
   - most of it can probably 
   - maybe add all this to a ./history/ folder 
 
+
 ### Session handling
-- implement new_session/load_session functionality
-  - change synop_pipeline.py to directly call each steps main() file and pass main(config, session_folder)
-  - new_session = True creates new session folder
-  - new_session = False loads session defined in output_path+prev_session
-  - OR just providing a config creates a new session, and providing a sessoin reads an old config -> no extra config parameters required
-  - removal of inter-python communication makes session_path.txt obsolete
+- Move session creation logic into this file and replace python file calls with direct function calls
+  - python synop_pipeline.py --config=/path/to/config.py -> creates new session folder and saves the config into that folder
+  - python synop_pipeline.py --session=/path/to/session_folder/ loads a previous session and uses the config from that folder
+  - python synop_pipeline.py without command line arguments will default to config.py in sim/los/
+- load config in synop_pipeline.py and pass it to sub routine calls along with the session folder
+- direct execution of python sub routines will continued to be supported via their respective "if __name__ = "__main__":" structures
+- session_path.txt obsolete due to replacing inter-script communication with direct calls
+- ./script/ output cleanup advisable for repeated processing in a single session
+- split up config.py into pipeline speciifc pipeline_config.py and Carrington rotation specific user/session_config.py?
+  - possibly only for previous session calls where configs are loaded from /session_path/config/
 
 - delete output scripts from previous run when reprocessing in an existing session
 
@@ -62,7 +69,7 @@ This is currently abused as a todo list
 
 
 
-## 4_hmiphisynoptic.py
+## 3_hmiphisynoptic.py
 - change the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
   - this will require adaptations in 2_phi_drms_interface.py
 
@@ -71,7 +78,7 @@ This is currently abused as a todo list
 - write synop.fits back into drms
 
 - debug runtime warning on CR2258 synoptic processing:
-  /scratch/slam/loeschl/dev/python/synop/sim/los/4_hmiphisynoptic.py:1087: RuntimeWarning: invalid value encountered in scalar divide
+  /scratch/slam/loeschl/dev/python/synop/sim/los/3_hmiphisynoptic.py:1087: RuntimeWarning: invalid value encountered in scalar divide
   synVal = sumfinal / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
 
 
@@ -81,24 +88,32 @@ This is currently abused as a todo list
           noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
   - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
 
+- Adaptive Weight Function
+  - code relies on images taken from the ecliptic
+  - latitude specific weight function control needs to consider out of ecliptic observations
+  - understand awf_lim and describe it properly
+  - force uneven number for awf_nimg
+
 
 ## Data selection
 - switch to official github kernel
-
+- provide some form of meta data that tracks the data used for each longitude
+- data selection through file list that is provided wiht a start and end date and possibly respects exceptions
 
 
 ## Gherardo talking points
-- report that things should work now
-- old and new 4_hmiphisynoptic.py scripts are confirmed to be identical
-- move to python based function calls in synop_pipeline.py for new session handling
-- current limitations with awf_lim parameter
+- old and new 3_hmiphisynoptic.py scripts are confirmed to be identical
+- plan to move to python based function calls in synop_pipeline.py for new session handling
+- current limitations with awf_lim parameter - don't use for now (leave it False)
 - identify los parameter for hmiphisynoptic.py
   - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
     if (radialFound)
           noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
   - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
-  
-
+- carrot = 2258 currently hardcoded in 2_phi_drms_interface.py
+  - this will be fixed once the automatic data_selection is operational
+- direct fmdb access implemented
+- separate nparallel parameters for phi and hmi since it doesn't make sense to split both 1500 (hmi) and 50 (phi) files into the same amount of processes
 
 
 ## Notes on DRMS discussion with Zhi-Chao
