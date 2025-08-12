@@ -30,7 +30,7 @@ prev_session = "CR2258_pipeline_test_20250808_140902" # PLACEHOLDER
 id = "pipeline_test" 
 
 # Data path to PHI data for DRMS ingestion
-# direct path for old implementation
+# direct path for old implementation NOT FUNCTIONAL
 phi_datapath = '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
 
 # database path for new implementation
