@@ -1,6 +1,5 @@
 import os, sys
 from datetime import datetime
-import config
 import subprocess
 import glob
 import signal
@@ -13,6 +12,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as patches
 import sunpy.map
 
+# Add the project root (two levels up from this script)
+project_root = os.path.abspath(os.path.join(__file__, ".."))
+sys.path.insert(0, project_root)
+
+import config
+
 
 def create_session_folder():
     """
@@ -21,8 +26,9 @@ def create_session_folder():
     """
 
     # Set this to your project’s output base directory
-    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     output_base = os.path.join(root_path, config.output_path)
+    #print(f"debug {output_base}")
     session_path_file = os.path.join(output_base, "session_path.txt")
 
     cr_str = f"{config.cr:04d}"
@@ -55,7 +61,7 @@ def get_current_session_folder():
     Returns the most recently created session folder, or None if not found.
     """
 
-    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     output_base = os.path.join(root_path, config.output_path)
     session_path_file = os.path.join(output_base, "session_path.txt")
 
