@@ -1,12 +1,3 @@
-# call 0_drms_prep.py to create JSD files and data series in DRMS
-# call 1_m720s_drms_pipe.py to create the hiresmap and remap
-# call 2_phi_drms_interface.py to create the phi data series
-# call 3_hmisynoptic.py to create the synoptic maps
-
-# 0 -> 1,2 in parallel -> 3
-# scripts 1, 2 need pid id monitoring to know when they are finished
-# 4 needs to wait for 1,2 to finish
-
 import os
 import subprocess
 import config
