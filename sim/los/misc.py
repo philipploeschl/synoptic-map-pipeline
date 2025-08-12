@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.colors as mcol
 from astropy.io import fits
-from datetime import datetime as dt_obj
 from datetime import timedelta
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as patches
@@ -185,12 +184,12 @@ def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
     #Rename to avoid conflict with datetime class
     pathda=os.path.join(str(phi_dbpath), '')            # Data directory
 
-    t0 = datetime.datetime.strptime(date_st, '%Y-%m-%d').date()
-    t1 = datetime.datetime.strptime(date_end,'%Y-%m-%d').date()
+    t0 = datetime.strptime(date_st, '%Y-%m-%d').date()
+    t1 = datetime.strptime(date_end,'%Y-%m-%d').date()
     prefix = 'solo_L2_phi-fdt-'+key+'_*.fits.gz'
     files=[]
     for i in range((t1-t0).days+1):
-        T=(t0 + datetime.timedelta(days=i)).strftime('%Y-%m-%d')
+        T=(t0 + timedelta(days=i)).strftime('%Y-%m-%d')
         date_files=glob.glob(pathda+T+'/'+prefix)
         if isinstance(date_files, str):
             files.append(os.path.join(T,os.path.basename(date_files)))
@@ -261,10 +260,15 @@ def plot_synoptic(synop, outpath, name, pdf=True):
     else:
         plt.show()
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
     # Example usage
     #create_cr_session_folder()
     #session = get_current_session_folder()
     
-
-
+    #phi_dbpath = "/data/slam/valori/test_l2_fmdb/FDT_test_release_jan-sep_2022_ghost_corr_update_defringed/l2/"
+    #date_st    = "2022-06-03"
+    #date_end   = "2022-06-18"
+    #key        = "blos"
+    files = get_phi_filenames(config.phi_dbpath, config.date_start, config.date_end, config.key, config.verbose)
+    for i, file in enumerate(files):
+        print(i, file)
