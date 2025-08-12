@@ -6,7 +6,7 @@ from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
 from sunpy.coordinates.sun import carrington_rotation_time
-from misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
+from misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue, get_phi_filenames
 
 # Create DRMS compatible FITS header
 
@@ -183,11 +183,12 @@ def main():
     outpath_data    = os.path.join(session_folder, config.data_path)
     #outpath_logs    = os.path.join(session_folder, config.log_path)
 
-    #logpath_rel = os.path.relpath(outpath_logs, outpath_scripts)
-    #datapath_rel = os.path.relpath(outpath_data, outpath_scripts)
 
-    files = os.listdir(config.phi_datapath)
-    fitsfiles = [file for file in files if file.endswith(".fits") or file.endswith(".fits.gz")]
+    # old config.phi_datapath implementation
+    #files = os.listdir(config.phi_datapath)
+    #fitsfiles = [file for file in files if file.endswith(".fits") or file.endswith(".fits.gz")]
+
+    fitsfiles = get_phi_filenames(config.phi_dbpath, config.date_start, config.date_end, config.key, config.verbose)
 
     if fitsfiles[0].endswith(".fits"):
         n_end = 5
@@ -198,8 +199,8 @@ def main():
     clons = []
 
     for file in fitsfiles:
-        l2 = fits.open(config.phi_datapath+file)
-    
+        #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
+        l2 = fits.open(os.path.join(config.phi_dbpath,file))
         if config.verbose: print("Processing %s ..." %file)
         
         prim = fits.PrimaryHDU()
@@ -372,7 +373,7 @@ def main():
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
         
         hdul = fits.HDUList([prim, l2drms])
-        hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[:-n_end]), overwrite=True)
+        hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
 
     if config.verbose: print('\nDRMS compatible FITS header creation complete.\n\n')
 
@@ -400,8 +401,7 @@ def main():
         trec = fld[1].header['T_REC']
         fld.close()
 
-        print(f"DEBUG number of fitsfiles {len(fitsfiles)}")
-        nsplit = int(np.ceil(len(fitsfiles)/config.nparallel))
+        nsplit = int(np.ceil(len(fitsfiles)/config.nparallel_phi))
         
         if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
 
