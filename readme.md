@@ -2,8 +2,10 @@ This is currently abused as a todo list
 
 # TODO
 
-## Up next
-
+## Known issues:
+- 2_phi_drms_interface.py:20 hardcodes car_rot = 2258 inside calc_trec() since the logic for the allocation to the  CR doesn't work properly 
+- I've never tested changing output_path to something outside of the project folder yet so try that at your own risk if necessary.
+- awf_nlim = True has an issue that introduces NaNs into the synoptic map. I already have a lead but it's fairly low on the list since we can just use it without the limiter (set to False)
 
 
 ## General
