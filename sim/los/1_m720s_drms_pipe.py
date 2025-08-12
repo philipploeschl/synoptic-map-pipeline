@@ -79,7 +79,7 @@ def main():
     # looks like this is unsed and obsolete   
     n_m720s = get_M_720s_count(config.dataseries_input, config.period, config.interval)     # line count for time stamps
 
-    nsplit = int(np.ceil(n_m720s/config.nparallel))
+    nsplit = int(np.ceil(n_m720s/config.nparallel_hmi))
 
     # split files after nsplit entries    
     j = 0
