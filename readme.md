@@ -179,3 +179,18 @@ File structure created in misc.py: create_session_folder
 # SPICE Kernel Setup
 - git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
 - link kernel directory via config.spice_kernel
+
+
+# How To use synop_pipeline.py
+
+## With both config and session
+python synop_pipeline.py --config /path/to/config.yaml --session /path/to/session_folder
+
+## With only config (creates/uses default session logic)
+python synop_pipeline.py --config=/path/to/config.yaml
+
+# With only session
+python synop_pipeline.py --session=/path/to/session_folder
+
+## Defaults
+python synop_pipeline.py
