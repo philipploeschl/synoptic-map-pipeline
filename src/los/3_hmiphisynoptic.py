@@ -577,7 +577,7 @@ def magStats(val, npts, sum_, outThreshold):
 
 
 # Synoptic map main function
-def main(config):#, hw_overwrite=None):
+def synoptic_map(config):#, hw_overwrite=None):
     
     inRecs = config["timestring"]
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
@@ -1349,14 +1349,12 @@ def get_arg_parameters():
     return config    
 
 
-
-if __name__ == "__main__":
-    
+def main():
     config = get_arg_parameters()    
     session_folder = get_current_session_folder()
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
-    synop, epts, length, imrec =  main(config)
+    synop, epts, length, imrec =  synoptic_map(config)
 
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
@@ -1394,3 +1392,9 @@ if __name__ == "__main__":
         plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5]) # cut out .fits
 
     print('%s complete' %__file__)
+
+
+
+
+if __name__ == "__main__":
+    main()
