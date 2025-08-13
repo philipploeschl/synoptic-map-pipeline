@@ -1360,7 +1360,7 @@ def main(global_config, session_folder):
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], config) # cut out .fits
+    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], config, pdf=True) # cut out .fits
     
     if config["bin"]:
         # create small synoptic map
@@ -1383,7 +1383,7 @@ def main(global_config, session_folder):
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], config) # cut out .fits
+        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], config, pdf=True) # cut out .fits
 
     print('%s complete' %__file__)
 
