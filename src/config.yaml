@@ -3,14 +3,14 @@
 ################# Pipeline Configuration ##################
 ###########################################################
 
-run_drms_prep:           True # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_drms_prep:           False # run 0_drms_prep.py to create JSD files and data series in DRMS
 run_m720s_drms_pipe:     False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
 run_phi_drms_interface:  False # run 2_phi_drms_interface.py to create the phi data series
 
 run_hmi_scripts:         False # run all HMI scripts in the outpath_scripts directory 
 run_phi_scripts:         False # run all PHI scripts in the outpath_scripts directory 
 
-run_hmiphisynoptic:      False # run 3_hmisynoptic.py to create the synoptic maps
+run_hmiphisynoptic:      True # run 3_hmisynoptic.py to create the synoptic maps
 run_polefilling:         False # run all synoptic map pole filling
 
 
@@ -21,10 +21,6 @@ run_polefilling:         False # run all synoptic map pole filling
 
 # Enable verbose output
 verbose: True
-
-# Create new session, reads session_path.txt to access 
-new_session: True # PLACEHOLDER
-prev_session: "CR2258_pipeline_test_20250808_140902" # PLACEHOLDER
 
 # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
 id: "pipeline_test" 
