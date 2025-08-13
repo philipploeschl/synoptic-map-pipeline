@@ -1,6 +1,7 @@
 import yaml
 from pathlib import Path
 import warnings
+from datetime import datetime
 
 class Config:
     # Default values
@@ -185,6 +186,7 @@ class Config:
 
     }
 
+
     def __init__(self, config_path):
         """Initialize Config with a path to the YAML file."""
         self._path = Path(config_path)
@@ -192,6 +194,7 @@ class Config:
         self._load()
         self._assemble_name_strings()
     
+
     def _load(self):
         """Load YAML config and apply defaults."""
         if not self._path.exists():
@@ -214,18 +217,27 @@ class Config:
             else:
                 self._data[key] = loaded[key]
     
+
     def reload(self):
         """Reload config from disk."""
         self._load()
 
-    def __getattr__(self, name):
-        """Allow attribute-style access (e.g., config.verbose)."""
-        if name in self._data:
-            return self._data[name]
-        raise AttributeError(f"No such config key: {name}")
 
-    def __repr__(self):
-        return f"<Config {self._path.name}: {self._data}>"
+    def save(self, output_path):
+        """
+        Save the current config to a YAML file.
+        This can be used for logging the exact settings used in a run.
+        """
+        output_path = Path(output_path)
+
+        # Ensure the directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Add timestamp to file header as a comment
+        with output_path.open("w") as f:
+            f.write(f"# Saved config on {datetime.now().isoformat()}\n")
+            yaml.safe_dump(self._data, f, sort_keys=False)
+
 
     def _assemble_name_strings(self):
 
@@ -249,6 +261,20 @@ class Config:
         self._data["synop_name"]       = "synop%s.fits"       % self._data["proj"]
         self._data["synop_small_name"] = "synop%s_small.fits" % self._data["proj"]
 
+
+    def __getattr__(self, name):
+        """Allow attribute-style access (e.g., config.verbose)."""
+        if name in self._data:
+            return self._data[name]
+        raise AttributeError(f"No such config key: {name}")
+
+
+    def __repr__(self):
+        return f"<Config {self._path.name}: {self._data}>"
+    
+
+
+    
 
 if __name__ == "__main__":
 
