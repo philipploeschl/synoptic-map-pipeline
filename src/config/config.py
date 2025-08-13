@@ -6,7 +6,6 @@ class Config:
     # Default values
     _DEFAULTS = {
 
-    
         ###########################################################
         ################# Pipeline Configuration ##################
         ###########################################################
@@ -64,7 +63,8 @@ class Config:
         #       - SYNOP
 
         # path to JSD templates, relative to synop/
-        "template_path": "drms_templates/", 
+        "template_path": "data/drms/templates/", 
+
 
         # Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
         # https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
