@@ -7,12 +7,7 @@ from astropy.io import fits
 from datetime import datetime, timedelta
 from sunpy.coordinates.sun import carrington_rotation_time
 
-project_root = os.path.abspath(os.path.join(__file__, "../../.."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-import src.config as config
-from src.misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue, get_phi_filenames
+from utils.utils import add_script_header, add_check_continue, get_phi_filenames
 
 # Create DRMS compatible FITS header
 
@@ -175,7 +170,7 @@ def get_drms_keywords(inRecs, input_ds):
 
 
 
-def main():
+def main(config, session_folder):
 
     #TODO 
     # - clean up old code
@@ -184,11 +179,9 @@ def main():
     #set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    session_folder = get_current_session_folder()
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_data    = os.path.join(session_folder, config.data_path)
     #outpath_logs    = os.path.join(session_folder, config.log_path)
-
 
     # old config.phi_datapath implementation
     #files = os.listdir(config.phi_datapath)
@@ -417,12 +410,6 @@ def main():
 
                 # make the script is executable
                 subprocess.call(['chmod', '755', os.path.join(outpath_scripts, remap_str)])
-
-                if False:# config.run_phi_scripts:
-                    # Run all scripts in parallel
-                    if config.verbose: print('Running %s ...' %remap_str)
-                    run_script_with_nohup(session_folder, remap_str)
-
                 j+=1 
     
             #jv2ts_log = os.path.join(logpath_rel, 'phi_jv2ts_%s_%s.log'% (config.proj, j))
@@ -460,9 +447,6 @@ def main():
     if config.verbose: 
         print('\nDRMS ingestion script creation complete.\n')
 
-    if False: #config.run_phi_scripts:
-        if config.verbose: print('Running %s ...' %remap_str)
-        run_script_with_nohup(session_folder, remap_str)
 
 if __name__ == "__main__":
     #main(sys.argv[1:])

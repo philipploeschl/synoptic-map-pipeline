@@ -1,8 +1,7 @@
 import subprocess
-import sys, os#, getopt
+import os
 import numpy as np
-from config import Config
-from src.misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
+from utils.utils import add_script_header, add_check_continue
 
 
 def get_M_720s_count(data_series, period, interval):
@@ -54,13 +53,11 @@ def cmd_args(argv):
     return inputfile, outputfile
 """
 
-def main(config):
+def main(config, session_folder):
 
-    session_folder = get_current_session_folder()
-    print(f"debug {session_folder}, {config.script_path}")
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
-
+    
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
     jv2ts = 'setsid jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 config.mcorlev=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n' 
@@ -95,10 +92,6 @@ def main(config):
 
                 # make the script is executable
                 subprocess.call(['chmod', '755', os.path.join(outpath_scripts, remap_str)])
-
-                if False: #config.run_hmi_scripts:
-                    # Run all scripts in parallel
-                    run_script_with_nohup(session_folder, remap_str)
                 j+=1 
        
             # define the log file for the next batch script
@@ -121,10 +114,6 @@ def main(config):
 
     batch_out.write('echo "HMI data batch %s done"'%j)
     batch_out.close()
-    
-    if False: #config.run_hmi_scripts:
-        if config.verbose: print('Running %s ...' %remap_str)
-        run_script_with_nohup(session_folder, remap_str)
     
     if config.verbose: 
         print('\nHMI processing script creation complete.\n')

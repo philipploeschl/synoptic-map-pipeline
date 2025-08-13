@@ -10,14 +10,14 @@
 import numpy as np
 import scipy as sp
 import subprocess
-from solephem import solephem
+from utils.solephem import solephem
 import datetime as datetime
 from copy import copy
 from astropy.io import fits
 import os, sys
 from datetime import date
 
-from src.misc import get_current_session_folder, plot_synoptic
+from utils.plots import plot_synoptic
 
 
 # DEFINES
@@ -1344,9 +1344,8 @@ def get_arg_parameters(global_config):
     return config    
 
 
-def main(global_config):
+def main(global_config, session_folder):
     config = get_arg_parameters(global_config)    
-    session_folder = get_current_session_folder()
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
     synop, epts, length, imrec =  synoptic_map(config)
@@ -1361,7 +1360,7 @@ def main(global_config):
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5]) # cut out .fits
+    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], config) # cut out .fits
     
     if config["bin"]:
         # create small synoptic map
@@ -1384,7 +1383,7 @@ def main(global_config):
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5]) # cut out .fits
+        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], config) # cut out .fits
 
     print('%s complete' %__file__)
 
