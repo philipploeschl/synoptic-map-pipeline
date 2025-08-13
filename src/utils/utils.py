@@ -1,0 +1,282 @@
+import os, sys
+from datetime import datetime
+import subprocess
+import glob
+import signal
+import numpy as np
+import matplotlib.pylab as plt
+import matplotlib.colors as mcol
+from astropy.io import fits
+from datetime import timedelta
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.patches as patches
+import sunpy.map
+
+# Add the project root (two levels up from this script)
+project_root = os.path.abspath(os.path.join(__file__, ".."))
+sys.path.insert(0, project_root)
+
+import yaml_config as config
+
+
+def create_session_folder():
+    """
+    Creates a session folder named CRXXXX_<timestamp>, writes the path to a file,
+    and returns the full path.
+    """
+
+    # Set this to your project’s output base directory
+    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    output_base = os.path.join(root_path, config.output_path)
+    #print(f"debug {output_base}")
+    session_path_file = os.path.join(output_base, "session_path.txt")
+
+    cr_str = f"{config.cr:04d}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    id = f"{config.id}"
+    folder_name = f"CR{cr_str}_{id}_{timestamp}"
+    session_folder = os.path.join(output_base, folder_name)
+
+    script_folder = os.path.join(session_folder, config.script_path)
+    log_folder    = os.path.join(session_folder, config.log_path)
+    data_folder   = os.path.join(session_folder, config.data_path)
+    jsd_folder    = os.path.join(session_folder, config.jsd_path)
+    synop_folder  = os.path.join(session_folder, config.synop_path)
+
+    os.makedirs(script_folder, exist_ok=True)       
+    os.makedirs(log_folder,    exist_ok=True)
+    os.makedirs(data_folder,   exist_ok=True)
+    os.makedirs(jsd_folder,    exist_ok=True)
+    os.makedirs(synop_folder,  exist_ok=True)
+    
+    # Save path to session_path.txt
+    with open(session_path_file, "w") as f:
+        f.write(session_folder)
+
+    return session_folder
+
+
+def get_current_session_folder():
+    """
+    Returns the most recently created session folder, or None if not found.
+    """
+
+    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    output_base = os.path.join(root_path, config.output_path)
+    session_path_file = os.path.join(output_base, "session_path.txt")
+
+    if not os.path.exists(session_path_file):
+        return None
+    with open(session_path_file) as f:
+        return f.read().strip()
+    
+    
+def run_script_with_nohup(session_path, script_name):
+    script_path = os.path.join(session_path, config.script_path, script_name)
+    log_path    = os.path.join(session_path, config.log_path, script_name.replace('.sh', '.log'))
+    pid_path    = os.path.join(session_path, config.log_path, script_name.replace('.sh', '.pid'))
+
+    # Ensure the script is executable
+    subprocess.call(['chmod', '755', script_path])
+
+    # Run the script in background with nohup and capture its PID
+    cmd = f'nohup {script_path} > {log_path} 2>&1 & echo $! > {pid_path}'
+    subprocess.call(cmd, shell=True)
+
+
+def add_script_header(batch_out, script_name="script.sh"):
+    """
+    Adds a check_continue function to the batch script to handle Ctrl+C gracefully.
+    """
+    batch_out.write('#!/bin/bash\n')
+    batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n\n")
+
+    batch_out.write('check_continue() {\n')
+    batch_out.write('  if [ -f "stop_signal" ]; then\n')
+    batch_out.write('    echo "[%s $$] Detected stop signal. Exiting before next command."\n'% script_name)
+    batch_out.write('    exit 0\n')
+    batch_out.write('  fi\n')
+    batch_out.write('}\n\n')
+
+
+def add_check_continue(batch_out):
+    batch_out.write('check_continue\n')
+
+                    
+def find_sh_scripts(directory, prefix=''):
+    """Find all .sh files in the given directory."""
+    return sorted(glob.glob(os.path.join(directory, '%s*.sh'%prefix)))
+
+
+def make_handle_sigint(stop_signal_path):
+    def handle_sigint(signum, frame):
+
+        global interrupted
+        interrupted = True
+        print("\n[Python] Ctrl-C detected. Signaling scripts to stop after current step.")
+        # Create a file that shell scripts will check for
+        with open(os.path.join(stop_signal_path, "stop_signal"), "w") as f:
+            f.write("stop")
+    return handle_sigint
+
+
+def run_all_scripts(verbose=False, prefix=''):
+
+    if verbose: print("Running DRMS bash scripts...")
+
+    session_folder = get_current_session_folder()
+    outpath_scripts = os.path.join(session_folder, config.script_path)
+    outpath_logs    = os.path.join(session_folder, config.log_path)
+    
+    # Change to the script directory to detect the stop signal, change back to cwd at the end
+    cwd = os.getcwd()
+    os.chdir(outpath_scripts)
+
+    # --- Find all .sh scripts in the directory ---
+    scripts = find_sh_scripts(outpath_scripts, prefix)
+    processes = []
+
+    #signal.signal() is a Python function that registers a signal handler.
+    #signal.SIGINT represents the interrupt signal generated by pressing Ctrl+C in the terminal.
+    #handle_sigint is the function you want Python to call when SIGINT occurs.
+    signal.signal(signal.SIGINT, make_handle_sigint(outpath_scripts))
+
+    try:
+        for script_path in scripts:
+            script_name = os.path.basename(script_path)
+            log_path = os.path.join(outpath_logs, script_name.replace('.sh', '.log'))
+            #pid_path = os.path.join(outpath_logs, script_name.replace('.sh', '.pid'))
+
+            # Make script executable
+            subprocess.call(['chmod', '755', script_path])
+
+            # Open log file
+            log_file = open(log_path, 'w')
+
+            # Launch script
+            if verbose: print('Running %s... Check %s for progress.' %(script_name, config.log_path))
+            p = subprocess.Popen([script_path], stdout=log_file, stderr=subprocess.STDOUT)
+            processes.append(p)
+
+            # Save PID
+            #with open(pid_path, 'w') as f:
+            #    f.write(str(p.pid))
+
+        # Optional: wait for all to complete
+        for p in processes:
+            p.wait()
+
+    except Exception as e:
+        print(f"[Python] Exception: {e}")
+    finally:
+        # Cleanup
+        if os.path.exists(os.path.join(outpath_scripts, "stop_signal")):
+            os.remove(os.path.join(outpath_scripts, "stop_signal"))
+        os.chdir(cwd)
+        print("[Python] Done.")
+
+    """
+    # old exception handling
+    except KeyboardInterrupt:
+        print("Caught Ctrl+C! Terminating subprocesses...")
+        for p in processes:
+            p.terminate()  # Or p.kill() if needed
+            
+        print("All subprocesses terminated.")
+    """
+
+
+def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
+
+    pathda=os.path.join(str(phi_dbpath), '')            # Data directory
+
+    t0 = datetime.strptime(date_st, '%Y-%m-%d').date()
+    t1 = datetime.strptime(date_end,'%Y-%m-%d').date()
+    prefix = 'solo_L2_phi-fdt-'+key+'_*.fits.gz'
+    files=[]
+    for i in range((t1-t0).days+1):
+        T=(t0 + timedelta(days=i)).strftime('%Y-%m-%d')
+        date_files=glob.glob(pathda+T+'/'+prefix)
+        if isinstance(date_files, str):
+            files.append(os.path.join(T,os.path.basename(date_files)))
+        elif isinstance(date_files, list):
+            for onefile in  date_files:
+                files.append(os.path.join(T,os.path.basename(onefile)))
+
+    files = sorted(files)
+
+    return files
+
+
+def plot_synoptic(synop, outpath, name, pdf=True):
+
+    labelsize = 12
+    ticksize  = 10
+    titlesize = 14
+    suptitlesize=16
+    fontsize = labelsize
+
+    ytick_latitude = []
+    ytick_normalize = []
+    for i in range(19):
+        calculation = np.sin((np.pi/18)*(i-9.0))
+        ytick_latitude.append(calculation)
+        ytick_normalize.append((calculation+1)*720.)
+
+    # make the plot
+    fig, ax = plt.subplots(figsize=(14,6))
+    fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
+    ax.tick_params(labelsize=14)
+    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,0,1440])
+    ax.set_title(f'HMI {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
+    ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
+
+    # label the x-axis 
+    xlabels    = [0,30,60,90,120,150,180,210,240,270,300,330,360]
+    xlocations = [0,300,600,900,1200,1500,1800,2100,2400,2700,3000,3300,3600]
+    ax.set_xticks(xlocations)
+    ax.set_xticklabels(xlabels)
+    ax.set_xlabel('Carrington Longitude [°]', fontsize=labelsize)
+
+    # Create the latitude labels on the right-hand side of the plot
+    ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ',' 20',' ',' 40',' ',' 60',' ',' 80',' ']
+    ylocations_r = ytick_normalize
+    ax.set_yticks(ylocations_r)
+    ax.set_yticklabels(ylabels_r)
+    ax.set_ylabel('Sine Latitude [°]', fontsize=labelsize)
+    ax.yaxis.labelpad=0
+    ax.tick_params(labelsize=labelsize, axis='both', which='both', bottom=True, top=True, left=True, right=True, labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+
+    # After `ax.imshow(...)` or similar:
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="3%", pad=0.25)
+
+    # Add colorbar
+    if config.Mr:
+        cbar = fig.colorbar(im, cax=cax, orientation='vertical')
+        cbar.set_label(label='$B_r$ [Gauss]', size=labelsize, labelpad=-15)
+    else:
+        cbar = fig.colorbar(im, cax=cax, orientation='vertical')
+        cbar.set_label(label='$B_{LoS}$ [Gauss]', size=labelsize, labelpad=-15)
+    
+    fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
+    
+    if pdf:
+        plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+    else:
+        plt.show()
+
+
+
+#if __name__ == "__main__":
+    # Example usage
+    #create_cr_session_folder()
+    #session = get_current_session_folder()
+    
+    #phi_dbpath = "/data/slam/valori/test_l2_fmdb/FDT_test_release_jan-sep_2022_ghost_corr_update_defringed/l2/"
+    #date_st    = "2022-06-03"
+    #date_end   = "2022-06-18"
+    #key        = "blos"
+    #files = get_phi_filenames(config.phi_dbpath, config.date_start, config.date_end, config.key, config.verbose)
+    #for i, file in enumerate(files):
+    #    print(i, file)
