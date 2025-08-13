@@ -2,6 +2,7 @@ import os
 import subprocess
 import config
 from misc import run_all_scripts, get_current_session_folder
+#from los.drms_prep import main as drms_prep_main
 
 # ToDo:
 # - Move session creation logic into this file and replace python file calls with direct function calls
@@ -24,7 +25,7 @@ if __name__ == "__main__":
     if config.run_drms_prep:
         if config.verbose: print("Running 0_drms_prep.py ...")
         subprocess.call(['python', 'los/0_drms_prep.py'])
-        # 0_drms_prep.main(config, session_folder)
+        #drms_prep_main.main()#config, session_folder)
 
     if config.run_m720s_drms_pipe:
         if config.verbose: print("Running 1_m720s_drms_pipe.py ...")
@@ -53,5 +54,3 @@ if __name__ == "__main__":
     #if config.run_polefilling:
         #subprocess.call(['los/4_polfil.sh'])
     
-
-
