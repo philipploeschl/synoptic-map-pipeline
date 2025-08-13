@@ -14,10 +14,10 @@ def create_session_folder(config):
     """
 
     # Set this to your project’s output base directory
-    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    root_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
     output_base = os.path.join(root_path, config.output_path)
-    #print(f"debug {output_base}")
-    session_path_file = os.path.join(output_base, "session_path.txt")
+
+    #session_path_file = os.path.join(output_base, "session_path.txt")
 
     cr_str = f"{config.cr:04d}"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -37,9 +37,13 @@ def create_session_folder(config):
     os.makedirs(jsd_folder,    exist_ok=True)
     os.makedirs(synop_folder,  exist_ok=True)
     
+    if config.verbose: print(f"Creating new session folder... {session_folder}")
+
     # Save path to session_path.txt
-    with open(session_path_file, "w") as f:
-        f.write(session_folder)
+    #with open(session_path_file, "w") as f:
+    #    f.write(session_folder)
+
+    config.update("session", folder_name)
 
     return session_folder
 
@@ -108,7 +112,7 @@ def make_handle_sigint(stop_signal_path):
     return handle_sigint
 
 
-def run_all_scripts(config, verbose=False, prefix=''):
+def run_bash_scripts(config, verbose=False, prefix=''):
 
     if verbose: print("Running DRMS bash scripts...")
 
