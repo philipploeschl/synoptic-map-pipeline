@@ -17,11 +17,6 @@ from astropy.io import fits
 import os, sys
 from datetime import date
 
-project_root = os.path.abspath(os.path.join(__file__, "../../.."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-import src.config as global_config
 from src.misc import get_current_session_folder, plot_synoptic
 
 
@@ -1298,7 +1293,7 @@ def convert_image_array(img_in, img_out, nx, ny):
 
 
 # TODO MOVE TO CONFIG
-def get_arg_parameters():
+def get_arg_parameters(global_config):
 
     # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
     config = {
@@ -1349,8 +1344,8 @@ def get_arg_parameters():
     return config    
 
 
-def main():
-    config = get_arg_parameters()    
+def main(global_config):
+    config = get_arg_parameters(global_config)    
     session_folder = get_current_session_folder()
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 

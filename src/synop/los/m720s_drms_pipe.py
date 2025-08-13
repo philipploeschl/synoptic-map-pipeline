@@ -1,12 +1,7 @@
 import subprocess
 import sys, os#, getopt
 import numpy as np
-
-project_root = os.path.abspath(os.path.join(__file__, "../../.."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-import src.config as config
+from config import Config
 from src.misc import run_script_with_nohup, get_current_session_folder, add_script_header, add_check_continue
 
 
@@ -59,7 +54,7 @@ def cmd_args(argv):
     return inputfile, outputfile
 """
 
-def main():
+def main(config):
 
     session_folder = get_current_session_folder()
     print(f"debug {session_folder}, {config.script_path}")
@@ -136,4 +131,5 @@ def main():
 
 if __name__ == "__main__":
     #main(sys.argv[1:])
-    main()
+    config = Config()
+    main(config)
