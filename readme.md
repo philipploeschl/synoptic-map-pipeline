@@ -155,6 +155,27 @@ File structure created in misc.py: create_session_folder
 
 
 
+  SYNOP
+  - DATA
+    - DRMS
+  - OUTPUT
+    - OUTPUT_SESSIONID
+  - SRC
+    - BASE
+      - CONFIG
+        - config.py
+      - LOG
+    - synop_pipeline.py
+    - data_selection.py
+    - SYNOP
+      - LOS
+      - VEC
+    - UTILS
+      - solepehm.py
+      - spice_functions
+      - misc.py -> rename to utils.py
+
+
 # SPICE Kernel Setup
 - git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
 - link kernel directory via config.spice_kernel
