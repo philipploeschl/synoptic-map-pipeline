@@ -2,11 +2,11 @@ import os
 import subprocess
 import argparse
 
-from src.utils.utils import run_all_scripts, get_current_session_folder
-from los.drms_preparation import main as drms_main
-from los.m720s_drms_pipe import main as hmi_data_main
-from los.phi_drms_interface import main as phi_data_main
-from los.hmiphisynoptic import main as synop_main
+from utils.utils import run_bash_scripts, create_session_folder
+from synop.los.drms_preparation import main as drms_main
+from synop.los.m720s_drms_pipe import main as hmi_data_main
+from synop.los.phi_drms_interface import main as phi_data_main
+from synop.los.hmiphisynoptic import main as synop_main
 
 from config.config import Config
 
@@ -34,15 +34,16 @@ if __name__ == "__main__":
 
     args = parse_args()
 
+    # Load config from YAML
+    config = Config(config_path=args.config) if args.config else Config()
+
     # Determine session folder
     if args.session:
         session_folder = os.path.abspath(args.session)
     else:
-        session_folder = get_current_session_folder() # TODO CHANGE SO IT LOADS PROVIDED SESSION
-
-    # Load config from YAML
-    config = Config(config_path=args.config) if args.config else Config()
-
+        session_folder = create_session_folder(config) 
+        
+    config.save(output_path=session_folder)
 
     if config.run_drms_prep:
         if config.verbose: print("Running 0_drms_prep.py ...")
@@ -61,15 +62,15 @@ if __name__ == "__main__":
 
     # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
     if config.run_hmi_scripts and config.run_phi_scripts:
-        run_all_scripts(verbose=config.verbose)
+        run_bash_scripts(config, verbose=config.verbose)
     elif config.run_phi_scripts:
-        run_all_scripts(verbose=config.verbose, prefix='phi')
+        run_bash_scripts(config, verbose=config.verbose, prefix='phi')
     elif config.run_hmi_scripts:
-        run_all_scripts(verbose=config.verbose, prefix='hmi')
+        run_bash_scripts(config, verbose=config.verbose, prefix='hmi')
 
     if config.run_hmiphisynoptic:
         if config.verbose: print("Running 3_hmiphisynoptic.py ...")
-        subprocess.call(['python', 'los/3_hmiphisynoptic.py'])
+        #subprocess.call(['python', 'los/3_hmiphisynoptic.py'])
         synop_main(config, session_folder)
 
     # Todo
