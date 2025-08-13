@@ -187,35 +187,55 @@ class Config:
     }
 
 
-    def __init__(self, config_path):
-        """Initialize Config with a path to the YAML file."""
-        self._path = Path(config_path)
+    def __init__(self, config_path=None):
+        """Initialize Config with an optional path to the YAML file."""
+        self._path = Path(config_path) if config_path else None
         self._data = {}
         self._load()
         self._assemble_name_strings()
-    
+
+    def _deep_update(self, defaults, overrides):
+        """
+        Recursively merge overrides into defaults.
+        - If a key exists in both and both values are dicts, merge them.
+        - Otherwise, overwrite the default with the override.
+        """
+        result = defaults.copy()
+        for key, value in overrides.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = self._deep_update(result[key], value)
+            else:
+                result[key] = value
+        return result
 
     def _load(self):
         """Load YAML config and apply defaults."""
-        if not self._path.exists():
-            warnings.warn(f"Config file not found: {self._path}. Using all defaults.")
-            self._data = self._DEFAULTS.copy()
+        # Start with defaults
+        self._data = self._DEFAULTS.copy()
+
+        # No file path given → just use defaults
+        if self._path is None:
+            warnings.warn("No config file provided, using all defaults.")
             return
 
+        # File path given but missing
+        if not self._path.exists():
+            warnings.warn(f"Config file not found: {self._path}. Using all defaults.")
+            return
+
+        # Try loading YAML
         try:
             with self._path.open("r") as f:
                 loaded = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
             raise RuntimeError(f"Error parsing YAML config: {e}")
 
-        # Merge defaults with loaded values
-        self._data = self._DEFAULTS.copy()
-        for key, default_value in self._DEFAULTS.items():
-            if key not in loaded:
-                #warnings.warn(f"Missing config key '{key}', using default: {default_value}")
-                continue
-            else:
-                self._data[key] = loaded[key]
+        # Deep merge
+        self._data = self._deep_update(self._DEFAULTS, loaded)
     
 
     def reload(self):
@@ -274,7 +294,7 @@ class Config:
     
 
 
-    
+
 
 if __name__ == "__main__":
 
