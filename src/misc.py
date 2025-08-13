@@ -16,7 +16,7 @@ import sunpy.map
 project_root = os.path.abspath(os.path.join(__file__, ".."))
 sys.path.insert(0, project_root)
 
-import config
+import yaml_config as config
 
 
 def create_session_folder():
@@ -266,6 +266,7 @@ def plot_synoptic(synop, outpath, name, pdf=True):
     else:
         plt.show()
 
+
 if __name__ == "__main__":
     # Example usage
     #create_cr_session_folder()
@@ -275,6 +276,6 @@ if __name__ == "__main__":
     #date_st    = "2022-06-03"
     #date_end   = "2022-06-18"
     #key        = "blos"
-    files = get_phi_filenames(config.phi_dbpath, config.date_start, config.date_end, config.key, config.verbose)
-    for i, file in enumerate(files):
-        print(i, file)
+    #files = get_phi_filenames(config.phi_dbpath, config.date_start, config.date_end, config.key, config.verbose)
+    #for i, file in enumerate(files):
+    #    print(i, file)
