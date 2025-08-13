@@ -83,7 +83,10 @@ This is currently abused as a todo list
 ## 3_hmiphisynoptic.py
 - change the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
   - this will require adaptations in 2_phi_drms_interface.py
+  - no need to save phi.fits with updated header if it's possible to directly ADD keywords with set_info
+    -> ingest and add keywords instead
 
+    
 - isolate adaptive weight function code to properly understand and document it again
 - figure out why data in synoptic output is missing
 - write synop.fits back into drms
