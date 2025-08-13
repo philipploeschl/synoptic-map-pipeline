@@ -2,10 +2,16 @@ This is currently abused as a todo list
 
 # TODO
 
+## Tests for next release
+- confirm full run
+
+
 ## Known issues:
 - 2_phi_drms_interface.py:20 hardcodes car_rot = 2258 inside calc_trec() since the logic for the allocation to the  CR doesn't work properly 
 - I've never tested changing output_path to something outside of the project folder yet so try that at your own risk if necessary.
 - awf_nlim = True has an issue that introduces NaNs into the synoptic map. I already have a lead but it's fairly low on the list since we can just use it without the limiter (set to False)
+- python  path/synop_pipeline.py --config=/path/to/config.yaml
+  - config path must be absolute or relative to synop_pipeline.py rather than relative to cwd
 
 
 
@@ -19,8 +25,6 @@ This is currently abused as a todo list
 - possibly set up different levels of verbose output
 
 ### Config updates
-- split config into user_config.py and pipeline_config.py
-- provide config as argv to synop_pipeline.py?
 - read config from session_path/config/ if previous session is provided?
 
 - what do I need to save to reproduce the map?
@@ -161,19 +165,17 @@ File structure created in misc.py: create_session_folder
   - OUTPUT
     - OUTPUT_SESSIONID
   - SRC
-    - BASE
-      - CONFIG
-        - config.py
-      - LOG
     - synop_pipeline.py
     - data_selection.py
+    - CONFIG
+      - config.py
     - SYNOP
       - LOS
-      - VEC
+      - VECT
     - UTILS
       - solepehm.py
-      - spice_functions
-      - misc.py -> rename to utils.py
+      - spice_utils.py
+      - misc_utils.py (formerly misc.py)
 
 
 # SPICE Kernel Setup
