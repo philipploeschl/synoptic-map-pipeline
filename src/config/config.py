@@ -28,9 +28,8 @@ class Config:
         # Enable verbose output
         "verbose": True,
 
-        # Create new session, reads session_path.txt to access 
-        "new_session": True, # PLACEHOLDER
-        "prev_session": "CR2258_pipeline_test_20250808_140902", # PLACEHOLDER
+        # Stores current session for documentation
+        "session": None,
 
         # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
         "id": "pipeline_test",
@@ -237,6 +236,13 @@ class Config:
         # Deep merge
         self._data = self._deep_update(self._DEFAULTS, loaded)
     
+    def update(self, key, value):
+        """Update a config value."""
+        if key in self._data:
+            self._data[key] = value
+        else:
+            raise KeyError(f"Config key '{key}' does not exist.")
+        
 
     def reload(self):
         """Reload config from disk."""
@@ -249,12 +255,13 @@ class Config:
         This can be used for logging the exact settings used in a run.
         """
         output_path = Path(output_path)
+        file = output_path.joinpath('config.yaml')
 
         # Ensure the directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Add timestamp to file header as a comment
-        with output_path.open("w") as f:
+        with file.open("w") as f:
             f.write(f"# Saved config on {datetime.now().isoformat()}\n")
             yaml.safe_dump(self._data, f, sort_keys=False)
 
@@ -293,7 +300,7 @@ class Config:
         return f"<Config {self._path.name}: {self._data}>"
     
 
-
+    
 
 
 if __name__ == "__main__":
