@@ -187,7 +187,7 @@ def run_all_scripts(verbose=False, prefix=''):
 
 
 def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
-    #Rename to avoid conflict with datetime class
+
     pathda=os.path.join(str(phi_dbpath), '')            # Data directory
 
     t0 = datetime.strptime(date_st, '%Y-%m-%d').date()
