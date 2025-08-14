@@ -1,18 +1,62 @@
 This is currently abused as a todo list
 
-# TODO
+# FEATURES
+## Updated session sandling
+The session handling now is now done directly from the main wrapper synop_pipeline.py instead of drms_prep.py. This replaces the previous handover via session_path.txt
 
-## Tests for next release
-- confirm full run
+Full command:
+
+   python synop_pipeline.py --config /path/to/config.yaml --session /path/to/previous/session_folder (optional)
+
+  - required: config.yaml - uses default values for missing parameters or in case no config file is provided (defined in config.py)
+  - optional: provide a previous session via --session
+
+
+## Updated file structure
+
+SYNOPTIC-MAP-PIPELINE
+  - DATA
+    - DRMS                                    (JSD file templates)
+ - OUTPUT                                     (set via config.output_path)
+   - CR_NUMBER_YYYYMMDD_HHMMSS
+       - DATA                                 (PHI data with updated headers for DRMS ingestion)
+       - JSD                                  (JSD files for DRMS data series creation)
+       - LOGS                                 (DRMS bash script log files)
+       - SCRIPTS                              (DRMS bash cripts)
+       - SYNOP                                (synoptic map output in .fits and .pdf)
+       - config.yaml                          (copy of config file of the last session rerun)
+  - SRC
+    - synop_pipeline.py
+    - data_selection.py
+    - CONFIG
+      - config.py                             (config parser class)
+      - example_config.yaml                   (only intended as exmaple, this file is not read for default values!)
+    - SYNOP
+      - LOS                                   (line-of-sight code)
+      - VECT                                  (vector code (todo))
+    - UTILS
+      - solepehm.py                           (ephemeris functions for hmiphisynoptic.py)
+      - plots.py                              (plotting scripts)
+      - utils.py                              (formerly misc.py)
 
 
 ## Known issues:
-- 2_phi_drms_interface.py:20 hardcodes car_rot = 2258 inside calc_trec() since the logic for the allocation to the  CR doesn't work properly 
-- I've never tested changing output_path to something outside of the project folder yet so try that at your own risk if necessary.
+- phi_drms_interface.py:20 hardcodes car_rot = 2258 inside calc_trec() since the logic for the allocation to the  CR doesn't work properly 
+- UNTESTED: changing output_path to something outside of the project folder - try that at your own risk if necessary.
 - awf_nlim = True has an issue that introduces NaNs into the synoptic map. I already have a lead but it's fairly low on the list since we can just use it without the limiter (set to False)
 - python  path/synop_pipeline.py --config=/path/to/config.yaml
   - config path must be absolute or relative to synop_pipeline.py rather than relative to cwd
 
+
+# TODO
+
+## Data Selection
+- provide some form of meta data that tracks the data used for each longitude
+- data selection through file list that is provided wiht a start and end date and possibly respects exceptions
+
+  ### SPICE Kernel Setup
+  - git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
+  - link kernel directory via config.spice_kernel
 
 
 ## General
@@ -24,10 +68,14 @@ This is currently abused as a todo list
 - top level log for verbose output of .py scripts
 - possibly set up different levels of verbose output
 
-### Config updates
-- read config from session_path/config/ if previous session is provided?
 
-- what do I need to save to reproduce the map?
+
+
+### Session handling
+- delete output scripts from previous run when reprocessing in an existing session
+- figure out some form of processing history folder, maybe using the synop_pipeline.py log
+
+- processing history - what do I need to save to reproduce the map?
   - config
   - file list of used phi data
   - hmi time stamps
@@ -37,34 +85,9 @@ This is currently abused as a todo list
   - maybe add all this to a ./history/ folder 
 
 
-### Session handling
-- Move session creation logic into this file and replace python file calls with direct function calls
-  - python synop_pipeline.py --config=/path/to/config.py -> creates new session folder and saves the config into that folder
-  - python synop_pipeline.py --session=/path/to/session_folder/ loads a previous session and uses the config from that folder
-  - python synop_pipeline.py without command line arguments will default to config.py in sim/los/
-- load config in synop_pipeline.py and pass it to sub routine calls along with the session folder
-- direct execution of python sub routines will continued to be supported via their respective "if __name__ = "__main__":" structures
-- session_path.txt obsolete due to replacing inter-script communication with direct calls
-- ./script/ output cleanup advisable for repeated processing in a single session
-- split up config.py into pipeline speciifc pipeline_config.py and Carrington rotation specific user/session_config.py?
-  - possibly only for previous session calls where configs are loaded from /session_path/config/
-
-- delete output scripts from previous run when reprocessing in an existing session
-
-- figure out some form of processing history folder, maybe using the synop_pipeline.py log
-
-
-- the above concept won't work with importing a config python file
-- there is some general fuckery with the file structure and imports
-- config.py currently can't cleanly be imported from src/los/ if it is located in the root directory
-- the project has to properly be rearranged as a package -> talk to Johannes
-- where will I put synop_pipeline.py, data_selection.py? leave in src or move up to root?
-- moving the file structure around fucks up all the file pat definitions -> always make a full test run and see if the outputs land in the right locations
-
 
 ## synop_pipeline.py
 - check if /output can be replaced wiht an absolute path elsewhere
-- implement new_session/load_session functionality
   
 
 ## 1_m720s_drms_pipe.py
@@ -99,7 +122,6 @@ This is currently abused as a todo list
   /scratch/slam/loeschl/dev/python/synop/sim/los/3_hmiphisynoptic.py:1087: RuntimeWarning: invalid value encountered in scalar divide
   synVal = sumfinal / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
 
-
 - identify los parameter for hmiphisynoptic.py
   - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
     if (radialFound)
@@ -112,31 +134,6 @@ This is currently abused as a todo list
   - understand awf_lim and describe it properly
   - force uneven number for awf_nimg
 
-
-## Data selection
-- switch to official github kernel
-- provide some form of meta data that tracks the data used for each longitude
-- data selection through file list that is provided wiht a start and end date and possibly respects exceptions
-
-
-## Gherardo talking points
-- old and new 3_hmiphisynoptic.py scripts are confirmed to be identical
-- plan to move to python based function calls in synop_pipeline.py for new session handling
-
-- current limitations with awf_lim parameter - don't use for now (leave it False)
-
-- identify los parameter for hmiphisynoptic.py
-  - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
-    if (radialFound)
-          noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
-  - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
-
-- carrot = 2258 currently hardcoded in 2_phi_drms_interface.py
-  - this will be fixed once the automatic data_selection is operational
-
-- direct fmdb access implemented
-
-- separate nparallel parameters for phi and hmi since it doesn't make sense to split both 1500 (hmi) and 50 (phi) files into the same amount of processes
 
 
 ## Notes on DRMS discussion with Zhi-Chao
@@ -152,52 +149,14 @@ This is currently abused as a todo list
 - DRMS metadata might be available but actual data will be corrupted if it was downloaded from Stanford during periods with GPFS filesystem problems at MPS
 
 
-# File structure
-output/session_path.txt stores current session path. This file is written by 0_drms_prep.py and read from all consecutive scripts.
+# NOTES
 
-File structure created in misc.py: create_session_folder
- - OUTPUT_PATH/
-   - CR_NUMBER_YYYYMMDD_HHMMSS
-       - DATA
-       - SCRIPTS   
-       - LOGS
+- identify los parameter for hmiphisynoptic.py
+  - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
+    if (radialFound)
+          noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
+  - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
 
 
 
-  SYNOP
-  - DATA
-    - DRMS
-  - OUTPUT
-    - OUTPUT_SESSIONID
-  - SRC
-    - synop_pipeline.py
-    - data_selection.py
-    - CONFIG
-      - config.py
-    - SYNOP
-      - LOS
-      - VECT
-    - UTILS
-      - solepehm.py
-      - spice_utils.py
-      - misc_utils.py (formerly misc.py)
 
-
-# SPICE Kernel Setup
-- git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
-- link kernel directory via config.spice_kernel
-
-
-# How To use synop_pipeline.py
-
-## With both config and session
-python synop_pipeline.py --config /path/to/config.yaml --session /path/to/session_folder
-
-## With only config (creates/uses default session logic)
-python synop_pipeline.py --config=/path/to/config.yaml
-
-# With only session
-python synop_pipeline.py --session=/path/to/session_folder
-
-## Defaults
-python synop_pipeline.py
