@@ -10,8 +10,7 @@
 
 import os, sys
 import subprocess
-import config as config
-from misc import create_session_folder
+
 
 def create_series(config, outpath, outname):
     if config.create_series:
@@ -27,11 +26,9 @@ def create_series(config, outpath, outname):
 
 
 
-def main():
-    # create output directory if it does not exist
-    session_folder = create_session_folder()
+def main(config, session_folder):
 
-    path_root      = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+    path_root      = os.path.normpath(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../../"))
     path_templates = os.path.abspath(path_root + '/' + config.template_path)
     path_output    = os.path.join(session_folder, config.jsd_path)
 

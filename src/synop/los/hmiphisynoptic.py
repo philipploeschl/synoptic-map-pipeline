@@ -10,14 +10,15 @@
 import numpy as np
 import scipy as sp
 import subprocess
-from solephem import solephem
+from utils.solephem import solephem
 import datetime as datetime
 from copy import copy
 from astropy.io import fits
-import os
+import os, sys
 from datetime import date
-import config as global_config
-from misc import get_current_session_folder, plot_synoptic
+
+from utils.plots import plot_synoptic
+
 
 # DEFINES
 QUAL_CHECK = "0xfffefb00"
@@ -571,7 +572,7 @@ def magStats(val, npts, sum_, outThreshold):
 
 
 # Synoptic map main function
-def main(config):#, hw_overwrite=None):
+def synoptic_map(config):#, hw_overwrite=None):
     
     inRecs = config["timestring"]
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
@@ -1292,7 +1293,7 @@ def convert_image_array(img_in, img_out, nx, ny):
 
 
 # TODO MOVE TO CONFIG
-def get_arg_parameters():
+def get_arg_parameters(global_config):
 
     # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
     config = {
@@ -1343,14 +1344,11 @@ def get_arg_parameters():
     return config    
 
 
-
-if __name__ == "__main__":
-    
-    config = get_arg_parameters()    
-    session_folder = get_current_session_folder()
+def main(global_config, session_folder):
+    config = get_arg_parameters(global_config)    
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
-    synop, epts, length, imrec =  main(config)
+    synop, epts, length, imrec =  synoptic_map(config)
 
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
@@ -1362,7 +1360,7 @@ if __name__ == "__main__":
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5]) # cut out .fits
+    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
     
     if config["bin"]:
         # create small synoptic map
@@ -1385,6 +1383,12 @@ if __name__ == "__main__":
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5]) # cut out .fits
+        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
 
     print('%s complete' %__file__)
+
+
+
+
+if __name__ == "__main__":
+    main()
