@@ -54,6 +54,28 @@ SYNOPTIC-MAP-PIPELINE
 - provide some form of meta data that tracks the data used for each longitude
 - data selection through file list that is provided wiht a start and end date and possibly respects exceptions
 
+
+### Design:
+- find best combination from existing data
+    - from two continously running observations (HMI and PHI)
+    - constrained within a single CR to improve HMI maps
+    - arbitrary start and end dates crossing CR boundaries for fastest possible combination
+
+- find best combination at defined cadence for a future time window for mission planning
+- old design considers  equal spacing in carrington longitude, but in reality we will space in equal observation time increment
+  
+- refactor and rename carrington_observation_times and carrington_obsrevation_deg
+  - clearer name
+  - some of hte code is reused and can be outsourced into a function
+  - confirm it's working as intended
+
+- figure out why interp360 exists instead of using np.interp(period=360)
+
+- remove obsolete LLD/RSW functionality
+- maybe replace it with a list of available observatoin times if the observation cadence isn't constant
+
+- CONTINUE WITH UNDERSTANDING carrington_observation_coverage 
+
   ### SPICE Kernel Setup
   - git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
   - link kernel directory via config.spice_kernel
