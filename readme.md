@@ -2,10 +2,17 @@ This is currently abused as a todo list
 
 # TODO
 
+## Tests for next release
+- confirm full run
+
+
 ## Known issues:
 - 2_phi_drms_interface.py:20 hardcodes car_rot = 2258 inside calc_trec() since the logic for the allocation to the  CR doesn't work properly 
 - I've never tested changing output_path to something outside of the project folder yet so try that at your own risk if necessary.
 - awf_nlim = True has an issue that introduces NaNs into the synoptic map. I already have a lead but it's fairly low on the list since we can just use it without the limiter (set to False)
+- python  path/synop_pipeline.py --config=/path/to/config.yaml
+  - config path must be absolute or relative to synop_pipeline.py rather than relative to cwd
+
 
 
 ## General
@@ -18,8 +25,6 @@ This is currently abused as a todo list
 - possibly set up different levels of verbose output
 
 ### Config updates
-- split config into user_config.py and pipeline_config.py
-- provide config as argv to synop_pipeline.py?
 - read config from session_path/config/ if previous session is provided?
 
 - what do I need to save to reproduce the map?
@@ -49,6 +54,14 @@ This is currently abused as a todo list
 - figure out some form of processing history folder, maybe using the synop_pipeline.py log
 
 
+- the above concept won't work with importing a config python file
+- there is some general fuckery with the file structure and imports
+- config.py currently can't cleanly be imported from src/los/ if it is located in the root directory
+- the project has to properly be rearranged as a package -> talk to Johannes
+- where will I put synop_pipeline.py, data_selection.py? leave in src or move up to root?
+- moving the file structure around fucks up all the file pat definitions -> always make a full test run and see if the outputs land in the right locations
+
+
 ## synop_pipeline.py
 - check if /output can be replaced wiht an absolute path elsewhere
 - implement new_session/load_session functionality
@@ -74,7 +87,10 @@ This is currently abused as a todo list
 ## 3_hmiphisynoptic.py
 - change the data input to accept dedicated phi and hmi data series and do the T_REC remapping right there to allow for permanent production data series
   - this will require adaptations in 2_phi_drms_interface.py
+  - no need to save phi.fits with updated header if it's possible to directly ADD keywords with set_info
+    -> ingest and add keywords instead
 
+    
 - isolate adaptive weight function code to properly understand and document it again
 - figure out why data in synoptic output is missing
 - write synop.fits back into drms
@@ -106,15 +122,20 @@ This is currently abused as a todo list
 ## Gherardo talking points
 - old and new 3_hmiphisynoptic.py scripts are confirmed to be identical
 - plan to move to python based function calls in synop_pipeline.py for new session handling
+
 - current limitations with awf_lim parameter - don't use for now (leave it False)
+
 - identify los parameter for hmiphisynoptic.py
   - this seems to be tied to a discontinuied DRMS keyword FDRADIAL and only affects the noise thresholds of the synoptic map data selection
     if (radialFound)
           noiseLevel = noiseLevel * MIN(1 / cosrho, maxNoiseAdj);
   - noiseLevel seems to be an obsolete quantity that isn't used in the code anymore
+
 - carrot = 2258 currently hardcoded in 2_phi_drms_interface.py
   - this will be fixed once the automatic data_selection is operational
+
 - direct fmdb access implemented
+
 - separate nparallel parameters for phi and hmi since it doesn't make sense to split both 1500 (hmi) and 50 (phi) files into the same amount of processes
 
 
@@ -142,3 +163,41 @@ File structure created in misc.py: create_session_folder
        - LOGS
 
 
+
+  SYNOP
+  - DATA
+    - DRMS
+  - OUTPUT
+    - OUTPUT_SESSIONID
+  - SRC
+    - synop_pipeline.py
+    - data_selection.py
+    - CONFIG
+      - config.py
+    - SYNOP
+      - LOS
+      - VECT
+    - UTILS
+      - solepehm.py
+      - spice_utils.py
+      - misc_utils.py (formerly misc.py)
+
+
+# SPICE Kernel Setup
+- git clone --depth 1 https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
+- link kernel directory via config.spice_kernel
+
+
+# How To use synop_pipeline.py
+
+## With both config and session
+python synop_pipeline.py --config /path/to/config.yaml --session /path/to/session_folder
+
+## With only config (creates/uses default session logic)
+python synop_pipeline.py --config=/path/to/config.yaml
+
+# With only session
+python synop_pipeline.py --session=/path/to/session_folder
+
+## Defaults
+python synop_pipeline.py
