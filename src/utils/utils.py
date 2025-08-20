@@ -25,17 +25,7 @@ def create_session_folder(config):
     folder_name = f"CR{cr_str}_{id}_{timestamp}"
     session_folder = os.path.join(output_base, folder_name)
 
-    script_folder = os.path.join(session_folder, config.script_path)
-    log_folder    = os.path.join(session_folder, config.log_path)
-    data_folder   = os.path.join(session_folder, config.data_path)
-    jsd_folder    = os.path.join(session_folder, config.jsd_path)
-    synop_folder  = os.path.join(session_folder, config.synop_path)
-
-    os.makedirs(script_folder, exist_ok=True)       
-    os.makedirs(log_folder,    exist_ok=True)
-    os.makedirs(data_folder,   exist_ok=True)
-    os.makedirs(jsd_folder,    exist_ok=True)
-    os.makedirs(synop_folder,  exist_ok=True)
+    create_session_structure(config, session_folder)
     
     if config.verbose: print(f"Creating new session folder... {session_folder}")
 
@@ -47,50 +37,22 @@ def create_session_folder(config):
 
     return session_folder
 
+def create_session_structure(config, session_folder):
 
-def get_current_session_folder(config):
-    """
-    Returns the most recently created session folder, or None if not found.
-    """
+    # Creates substructre of the session folder if it doesn't exist.
+    script_folder = os.path.join(session_folder, config.script_path)
+    log_folder    = os.path.join(session_folder, config.log_path)
+    data_folder   = os.path.join(session_folder, config.data_path)
+    jsd_folder    = os.path.join(session_folder, config.jsd_path)
+    synop_folder  = os.path.join(session_folder, config.synop_path)
 
-    root_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-    output_base = os.path.join(root_path, config.output_path)
-    session_path_file = os.path.join(output_base, "session_path.txt")
+    os.makedirs(script_folder, exist_ok=True)       
+    os.makedirs(log_folder,    exist_ok=True)
+    os.makedirs(data_folder,   exist_ok=True)
+    os.makedirs(jsd_folder,    exist_ok=True)
+    os.makedirs(synop_folder,  exist_ok=True)
 
-    if not os.path.exists(session_path_file):
-        return None
-    with open(session_path_file) as f:
-        return f.read().strip()
     
-    
-def run_script_with_nohup(config, session_path, script_name):
-    script_path = os.path.join(session_path, config.script_path, script_name)
-    log_path    = os.path.join(session_path, config.log_path, script_name.replace('.sh', '.log'))
-    pid_path    = os.path.join(session_path, config.log_path, script_name.replace('.sh', '.pid'))
-
-    # Ensure the script is executable
-    subprocess.call(['chmod', '755', script_path])
-
-    # Run the script in background with nohup and capture its PID
-    cmd = f'nohup {script_path} > {log_path} 2>&1 & echo $! > {pid_path}'
-    subprocess.call(cmd, shell=True)
-
-
-def add_script_header(batch_out, script_name="script.sh"):
-    """
-    Adds a check_continue function to the batch script to handle Ctrl+C gracefully.
-    """
-    batch_out.write('#!/bin/bash\n')
-    batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n\n")
-
-    batch_out.write('check_continue() {\n')
-    batch_out.write('  if [ -f "stop_signal" ]; then\n')
-    batch_out.write('    echo "[%s $$] Detected stop signal. Exiting before next command."\n'% script_name)
-    batch_out.write('    exit 0\n')
-    batch_out.write('  fi\n')
-    batch_out.write('}\n\n')
-
-
 def add_check_continue(batch_out):
     batch_out.write('check_continue\n')
 
