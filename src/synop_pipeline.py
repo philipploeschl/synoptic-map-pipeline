@@ -62,11 +62,11 @@ if __name__ == "__main__":
 
     # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
     if config.run_hmi_scripts and config.run_phi_scripts:
-        run_bash_scripts(config, verbose=config.verbose)
+        run_bash_scripts(config, session_folder, verbose=config.verbose)
     elif config.run_phi_scripts:
-        run_bash_scripts(config, verbose=config.verbose, prefix='phi')
+        run_bash_scripts(config, session_folder, verbose=config.verbose, prefix='phi')
     elif config.run_hmi_scripts:
-        run_bash_scripts(config, verbose=config.verbose, prefix='hmi')
+        run_bash_scripts(config, session_folder, verbose=config.verbose, prefix='hmi')
 
     if config.run_hmiphisynoptic:
         if config.verbose: print("Running 3_hmiphisynoptic.py ...")
