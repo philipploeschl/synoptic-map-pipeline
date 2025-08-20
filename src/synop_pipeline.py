@@ -2,7 +2,7 @@ import os
 import subprocess
 import argparse
 
-from utils.utils import run_bash_scripts, create_session_folder
+from utils.utils import run_bash_scripts, create_session_folder, create_session_structure
 from synop.los.drms_preparation import main as drms_main
 from synop.los.m720s_drms_pipe import main as hmi_data_main
 from synop.los.phi_drms_interface import main as phi_data_main
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     # Determine session folder
     if args.session:
         session_folder = os.path.abspath(args.session)
+        create_session_structure(config, session_folder)
     else:
         session_folder = create_session_folder(config) 
         
