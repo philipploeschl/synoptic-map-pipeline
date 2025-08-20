@@ -347,6 +347,149 @@ def interp360(clon, clons, ets):
     return np.interp(clon, clons_lin[::-1], ets[::-1])
 
 
+def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
+
+    
+    # unpack obs_lld and obs_rsw
+    [solo_utc,  solo_et,  solo_clon,  solo_hdis, solo_src]  = solo_obs
+    [earth_utc, earth_et, earth_clon, earth_hdis] = earth_obs
+    
+
+    earth_src = np.zeros(len(earth_utc)) + 2    # src: 0 RSW, 1 LLD, 2 HMI
+
+    utc   = np.concatenate([solo_utc,  earth_utc])
+    ets   = np.concatenate([solo_et,   earth_et])
+    clons = np.concatenate([solo_clon, earth_clon])
+    hdis  = np.concatenate([solo_hdis, earth_hdis])
+    src   = np.concatenate([solo_src,  earth_src])
+
+
+    # The resulting array contains the et ordered solo values before the earth values
+    # This has to be ordered for increasing et again. The new order is determined with
+    # the np.argsort function and applied to all 5 arrays
+
+    order = np.argsort(ets)
+
+    utc   = utc[order]
+    ets   = ets[order]
+    clons = clons[order]
+    hdis  = hdis[order]
+    src   = src[order]
+
+    #return [utc, ets, src, order]
+
+    #start_time = "1 January 2022 00:00 (UTC)"   # LTP05 during high omega CR2256 start time
+    dt = np.array([])
+
+    coverage       = np.zeros(360)
+    coverage_src   = np.zeros(360)
+    coverage_track = []
+
+    # New version cannot iterate over general ets since there are entries
+    # for different INTERPOLATED ets for solo and hmi. Therefore, 
+    # merge solo_obs and earth_obs while tracking the obsevation source
+    # (add src array = 2 to earth_obs) and then iterate over all ets
+    # until the map is full. Discard remaining data once the map is full.
+    
+    # Maybe save single spacecraft coverage history for separate use?
+    # This also provides a temporal evolution of the synoptic map creation
+    # and can be used for future animations and the clon source plot
+    # Then create a nice clon source plot and a script for the temporal
+    # evolution with single frames for each observation
+
+    prev_eclon = None # tracks the last observed carrington longitude from earth
+    prev_sclon = None # tracks the last observed carrington longitude from solo
+
+    for i, et in enumerate(ets):
+        #print(i, clons[i], src[i])
+        coverage_src   = np.zeros(360)-1
+
+        if src[i] < 2:
+            clon = int(clons[i])
+            prev_clon = prev_sclon
+        else:
+            clon = int(clons[i])
+            prev_clon = prev_eclon
+
+        #print(i, et, coverage)
+
+        if prev_clon is None:
+            coverage[clon] = 1
+
+            coverage_src[clon] = src[i]
+            coverage_track.append(coverage_src)
+
+            #print(i, et, eclon, eclon, sclon, sclon, np.sum(coverage))
+            if src[i] < 2:
+                prev_sclon = clon
+            else:
+                prev_eclon = clon
+
+        else:
+            # observation in decreasing clon. prev_clon > clon
+            # prev_clon - clon < 0 indicates a jump from low to high longitudes
+            if prev_clon - clon < 0:
+                coverage[0:prev_clon] = 1     # fill up the lower longitudes since previous clon
+                coverage[clon:] = 1             # fill up the high lontitudes from the current clon to the end
+                                                # this can probably be converage[clon:] instead of :361
+
+                coverage_src[0:prev_clon] = src[i] # I don't think +1 is required: coverage_src[0:prev_clon+1] = src[i]
+                coverage_src[clon:] = src[i]
+                coverage_track.append(coverage_src)
+
+                if src[i] < 2:
+                    prev_sclon = clon
+                else:
+                    prev_eclon = clon
+            
+            elif prev_clon == 0:
+                coverage[clon:] = 1
+
+                coverage_src[clon:] = src[i]
+                coverage_track.append(coverage_src)
+
+                if src[i] < 2:
+                    prev_sclon = clon
+                else:
+                    prev_eclon = clon
+
+            else:
+                coverage[clon:prev_clon] = 1
+
+                coverage_src[clon:prev_clon] = src[i]
+                coverage_track.append(coverage_src)
+
+                if src[i] < 2:
+                    prev_sclon = clon
+                else:
+                    prev_eclon = clon
+                    
+
+            #print(i, et, eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
+
+
+        if np.sum(coverage) == 360:
+            dt = np.append(dt, (et - ets[0])/86400) # days
+            break
+
+    print('FSM Creation Time: %s days'% np.round(dt[0],2))
+    nobs =len(coverage_track)
+
+    if False:
+        fig, ax = plt.subplots()
+        ax.scatter(range(len(coverage_src)), coverage_src)#, label='HMI')
+        #ax.scatter(range(len(coverage_solo)),  coverage_solo,  label='PHI')
+        ax.set_xlabel('Carrington Longitude')
+        ax.set_ylabel('Coverage')
+        
+        #handles, labels = ax.get_legend_handles_labels()
+        #ax.legend(handles, labels)
+        plt.show()
+    
+    return [coverage, coverage_track, utc, ets, clons, hdis, src, order, nobs]
+
+
+
 
 
 #def main():
@@ -402,7 +545,7 @@ if __name__ == "__main__":
     delta_omega_earth = calc_relative_rotation(earth_HCI_state)
     delta_omega = delta_omega_solo
 
-    solo_clon = simple_carrington(solo_hlon,ets)
+    solo_clon  = simple_carrington(solo_hlon,ets)
     earth_clon = simple_carrington(earth_hlon, ets)
 
     t_obs = np.datetime64("2022-06-09T09:00:39")
@@ -415,7 +558,20 @@ if __name__ == "__main__":
     i_trec = np.searchsorted(ets, et_trec)
     earth_clon[i_trec]
 
-    #- CONTINUE WITH UNDERSTANDING carrington_observation_coverage 
+    # TODO 
+    # - refactor carrington observation functions and export the clon linearisation
+    # - add centi clon support for coverage calculation for compatibility with MIP implementation
+    # - use observation duration output and find best combination for each carrington rotation
+    # - identify config parameters for export
+
+    # - current workflow something like:
+    #   - run carrington_observation_duration to find best start date
+    #   - run carrington_observation_coverage for that start date
+
+    #   - convert solo2earth_times in prepartion for DRMS
+    #   - convert obs2drms_times for UTC to TAI conversion with DRMS compatible time string format
+
+
 
 #if __name__ == "__main__":
 #    main()
