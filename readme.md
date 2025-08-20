@@ -50,10 +50,28 @@ SYNOPTIC-MAP-PIPELINE
 
 # TODO
 
+- check if create_series paramters is still necessary after moving sesssion folder handling to the main wrapper. Will I ever run drms_prep.py without creating series now?
+
+- remove previous scripts on rerun of m720s and phi_interface scripts
+- consider phi duplicate detection safeguard
+
+- force PHI start magnetogram into data combination (probably in optimisation task)
+
+
+## Error Handling
+- check if DRMS series exists in m720s_drms_pipe and phi_drms_interface and return an error if missing
+
+## Quesitnos for Zhi-Chao
+- should we use mps_production or can we define and arbitrary official nmae for us?
+- how many parallel processes can we push into drms
+- official synoptic map ml and mr remap and maybe the final synop series
+
+
 ## Data Selection
 - provide some form of meta data that tracks the data used for each longitude
 - data selection through file list that is provided wiht a start and end date and possibly respects exceptions
-
+- get list of carrington rotation periods (start and end time) and find the fastest combination of data for each
+- continuous scan of fastest combination independent of carrington rotation (with HMI data spanning 2 CR)
 
 ### Design:
 - find best combination from existing data
