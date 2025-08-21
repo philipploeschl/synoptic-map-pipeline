@@ -15,29 +15,30 @@ Full command:
 ## Updated file structure
 
 SYNOPTIC-MAP-PIPELINE
-  - DATA
-    - DRMS                                    (JSD file templates)
- - OUTPUT                                     (set via config.output_path)
-   - CR_NUMBER_YYYYMMDD_HHMMSS
-       - DATA                                 (PHI data with updated headers for DRMS ingestion)
-       - JSD                                  (JSD files for DRMS data series creation)
-       - LOGS                                 (DRMS bash script log files)
-       - SCRIPTS                              (DRMS bash cripts)
-       - SYNOP                                (synoptic map output in .fits and .pdf)
-       - config.yaml                          (copy of config file of the last session rerun)
-  - SRC
-    - synop_pipeline.py
-    - data_selection.py
-    - CONFIG
-      - config.py                             (config parser class)
-      - example_config.yaml                   (only intended as exmaple, this file is not read for default values!)
-    - SYNOP
-      - LOS                                   (line-of-sight code)
-      - VECT                                  (vector code (todo))
-    - UTILS
-      - solepehm.py                           (ephemeris functions for hmiphisynoptic.py)
-      - plots.py                              (plotting scripts)
-      - utils.py                              (formerly misc.py)
+├─ DATA/
+│  └─ DRMS/                 # JSD file templates
+├─ OUTPUT/                  # set via config.output_path
+│  └─ CR_NUMBER_YYYYMMDD_HHMMSS/
+│     ├─ DATA/              # PHI data with updated headers for DRMS ingestion
+│     ├─ JSD/               # JSD files for DRMS data series creation
+│     ├─ LOGS/              # DRMS bash script log files
+│     ├─ SCRIPTS/           # DRMS bash scripts
+│     ├─ SYNOP/             # synoptic map output in .fits and .pdf
+│     └─ config.yaml        # copy of config file of the last session rerun
+└─ SRC/
+   ├─ synop_pipeline.py
+   ├─ data_selection.py
+   ├─ CONFIG/
+   │  ├─ config.py          # config parser class
+   │  └─ example_config.yaml# example config, not read for defaults
+   ├─ SYNOP/
+   │  ├─ LOS/               # line-of-sight code
+   │  └─ VECT/              # vector code (todo)
+   └─ UTILS/
+      ├─ solepehm.py        # ephemeris functions for hmiphisynoptic.py
+      ├─ plots.py           # plotting scripts
+      └─ utils.py           # formerly misc.py
+
 
 
 ## Known issues:
