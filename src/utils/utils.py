@@ -52,7 +52,21 @@ def create_session_structure(config, session_folder):
     os.makedirs(jsd_folder,    exist_ok=True)
     os.makedirs(synop_folder,  exist_ok=True)
 
+
+def add_script_header(batch_out, script_name="script.sh"):
+    """
+    Adds a check_continue function to the batch script to handle Ctrl+C gracefully.
+    """
+    batch_out.write('#!/bin/bash\n')
+    batch_out.write("trap '' SIGINT  # <-- Ignore Ctrl+C\n\n")  
+    batch_out.write('check_continue() {\n')
+    batch_out.write('  if [ -f "stop_signal" ]; then\n')
+    batch_out.write('    echo "[%s $$] Detected stop signal. Exiting before next command."\n'% script_name)
+    batch_out.write('    exit 0\n')
+    batch_out.write('  fi\n')
+    batch_out.write('}\n\n')
     
+        
 def add_check_continue(batch_out):
     batch_out.write('check_continue\n')
 
