@@ -1,39 +1,39 @@
-import spiceypy as spice
+import spiceypy as sp
 import spiceypy.utils.support_types as stypes
 import numpy as np
 import os, sys
 from pathlib import Path
 from config.config import Config
-
+from matplotlib import pyplot as plt
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
     cur_wd = os.getcwd()
     os.chdir(kpath)
-    spice.furnsh(kpath+kname)
+    sp.furnsh(kpath+kname)
     os.chdir(cur_wd)
-    nloaded = spice.ktotal("ALL")
+    nloaded = sp.ktotal("ALL")
     return(nloaded)
     
 def unloadkernel(kpath,kname):
     "This function unloads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
     cur_wd = os.getcwd()
     os.chdir(kpath)
-    spice.unload(kname)
+    sp.unload(kname)
     os.chdir(cur_wd)
-    nloaded = spice.ktotal("ALL")
+    nloaded = sp.ktotal("ALL")
     return(nloaded)
     
 def get_solo_coverage(mkpath):
     "This function simply returns the coverage of the loaded Solar Orbiter orbit kernel."
-    for kernel in range(0,spice.ktotal("ALL")-1):
-        kernel_data=spice.kdata(kernel,"ALL")
+    for kernel in range(0,sp.ktotal("ALL")-1):
+        kernel_data=sp.kdata(kernel,"ALL")
         if "solo_ANC_soc-orbit" in kernel_data[0]:
             solo_coverage = stypes.SPICEDOUBLE_CELL(2)
             kernel_path = os.path.join(mkpath, kernel_data[0])
             #kernel_path = kernel_data[0]
-            spice.spkcov(kernel_path,-144,solo_coverage) #-144 is the NAIF ID for Solar Orbiter
-            coverage_out=spice.wnfetd(solo_coverage,0)
+            sp.spkcov(kernel_path,-144,solo_coverage) #-144 is the NAIF ID for Solar Orbiter
+            coverage_out=sp.wnfetd(solo_coverage,0)
             return(coverage_out)
     else:
         raise ValueError("No Solar Orbiter orbit kernel found in loaded kernels.")
@@ -42,25 +42,25 @@ def get_orbit_coverage(kernel_path, kernel_name, obj_id):
     "This function simply returns the coverage of the given orbit kernel."
     orbit_coverage = stypes.SPICEDOUBLE_CELL(200)
     kernel_path = os.path.join(kernel_path,kernel_name)
-    spice.spkcov(kernel_path,obj_id,orbit_coverage)
-    coverage_out=spice.wnfetd(orbit_coverage,0)
+    sp.spkcov(kernel_path,obj_id,orbit_coverage)
+    coverage_out=sp.wnfetd(orbit_coverage,0)
     return(coverage_out)
 
 def calc_relative_rotation(hci_state):
     
-    omega_a = 14.713*spice.rpd()/86400.0
-    omega_b = -2.316*spice.rpd()/86400.0
-    omega_c = -1.787*spice.rpd()/86400.0
+    omega_a = 14.713*sp.rpd()/86400.0
+    omega_b = -2.316*sp.rpd()/86400.0
+    omega_c = -1.787*sp.rpd()/86400.0
 
     delta_omega = []
 
     for (index, item) in enumerate(hci_state[:,0]):
-        [void1,void2,lat] = spice.reclat(hci_state[index,0:3])
+        [void1,void2,lat] = sp.reclat(hci_state[index,0:3])
         omega_sun = omega_a + omega_b*(np.sin(lat)**2) + omega_c*(np.sin(lat)**4)
-        omega_sun_d_per_d = omega_sun*spice.dpr()*86400.0
-        (r_norm, r_mag) = spice.unorm(hci_state[index,0:3])
+        omega_sun_d_per_d = omega_sun*sp.dpr()*86400.0
+        (r_norm, r_mag) = sp.unorm(hci_state[index,0:3])
         omega_solo = np.cross(hci_state[index,0:3],hci_state[index,3:6])/(r_mag**2)
-        omega_solo_d_per_d = omega_solo[2]*spice.dpr()*86400.0
+        omega_solo_d_per_d = omega_solo[2]*sp.dpr()*86400.0
         delta_omega.append(omega_sun_d_per_d-omega_solo_d_per_d)
     return(delta_omega)
 
@@ -70,17 +70,17 @@ def simple_carrington(hci_lon, ets):
     base_time = "20 December 2018 11:47 (UTC)"
 
     omega = (2*np.pi)/(rotation_period*86400.0)
-    t0 = spice.str2et(base_time)
-    (basepos, ltime) = spice.spkpos("EARTH", t0, "SUN_INERTIAL","NONE","SUN")
-    (baserad,baselon,baselat) = spice.reclat(basepos)
-    baselon2 = (baselon*spice.dpr()+360.0) % 360
+    t0 = sp.str2et(base_time)
+    (basepos, ltime) = sp.spkpos("EARTH", t0, "SUN_INERTIAL","NONE","SUN")
+    (baserad,baselon,baselat) = sp.reclat(basepos)
+    baselon2 = (baselon*sp.dpr()+360.0) % 360
     
     clon = []
     for (index, et) in enumerate(ets):
         delta_t = et - t0
-        delta_phi = (delta_t*omega*spice.dpr()) % 360
+        delta_phi = (delta_t*omega*sp.dpr()) % 360
         zero_lon = (baselon2+delta_phi) % 360
-        solo_lon = (hci_lon[index]*spice.dpr()+360) % 360
+        solo_lon = (hci_lon[index]*sp.dpr()+360) % 360
         clon_buffer = (360+(solo_lon-zero_lon)) % 360
         if clon_buffer > 180:
             clon_buffer = clon_buffer - 360
@@ -97,7 +97,7 @@ def et2datetime64(ets):
     else:
         ets2=ets
     for et in ets2:
-        utc_string=spice.et2utc(et,"ISOC",3)
+        utc_string=sp.et2utc(et,"ISOC",3)
         outtime.append(np.datetime64(utc_string,"ms"))
     return(outtime)
 
@@ -108,7 +108,7 @@ def datetime642et(dts):
     if isinstance(timstr,str):
         timstr=[timstr]
     for time in timstr:
-        outet=spice.utc2et(time)
+        outet=sp.utc2et(time)
         outets.append(outet)
     return(outets)
 
@@ -351,11 +351,13 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
 
     
     # unpack obs_lld and obs_rsw
-    [solo_utc,  solo_et,  solo_clon,  solo_hdis, solo_src]  = solo_obs
+    [solo_utc,  solo_et,  solo_clon,  solo_hdis]  = solo_obs
     [earth_utc, earth_et, earth_clon, earth_hdis] = earth_obs
     
 
     earth_src = np.zeros(len(earth_utc)) + 2    # src: 0 RSW, 1 LLD, 2 HMI
+    solo_src  = np.zeros(len(solo_utc))  + 1    # src: 0 RSW, 1 LLD, 2 HMI
+
 
     utc   = np.concatenate([solo_utc,  earth_utc])
     ets   = np.concatenate([solo_et,   earth_et])
@@ -472,7 +474,7 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
             dt = np.append(dt, (et - ets[0])/86400) # days
             break
 
-    print('FSM Creation Time: %s days'% np.round(dt[0],2))
+    #print('FSM Creation Time: %s days'% np.round(dt[0],2))
     nobs =len(coverage_track)
 
     if False:
@@ -490,6 +492,126 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
 
 
 
+def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
+
+    start_time = "1 January 2022 00:00 (UTC)"   # LTP05 during high omega CR2256 start time
+    dt = np.array([])
+    dt_date = np.array([])
+    
+    t0_index = 0
+    ii = 0
+    
+    for i, time in enumerate(ets):
+
+        t0 = sp.str2et(start_time) + i*21600    # loop over every 1/4 day in mission duration
+        t0_index = np.ravel(np.argwhere(ets == t0))
+        t = t0
+        
+        if t0_index.size > 0:                       # check if exact timestamp was found
+            t0_index = t0_index[0]                  
+        else:                                       # first timestamp after time t0
+            try:
+                t0_index = np.ravel(np.argwhere(ets > t0))[0]
+            except:
+               break
+
+        if i == 0:
+            ii = t0_index
+
+        coverage = np.zeros(360)
+        
+
+        for i, et in enumerate(ets[t0_index:]):
+
+            eclon = int(earth_clon[t0_index+i])
+            sclon = int(solo_clon[t0_index+i])
+
+            # eclon and sclon are always decreasing after this operation
+            # -180 < clon < 180
+            if eclon < 0:
+                eclon = eclon + 360
+
+            if sclon < 0:
+                sclon = sclon + 360
+            
+            if i > 0:
+                if prev_eclon - eclon < 0:
+                    # if we jump over zero fill in both sides of the coverage array
+                    # 3xx:360 and 0:xx
+                    coverage[0:prev_eclon+1] = 1
+                    coverage[eclon:] = 1
+                    prev_eclon = eclon
+                    
+                elif prev_eclon == 0:
+                    coverage[eclon:] = 1
+                    prev_eclon = eclon
+
+                else:
+                    coverage[eclon:prev_eclon+1] = 1
+                    prev_eclon = eclon
+                
+                if prev_sclon - sclon < 0:
+                    coverage[0:prev_sclon+1] = 1
+                    coverage[sclon:] = 1
+                    prev_sclon = sclon
+
+                elif prev_sclon == 0:
+                    coverage[sclon:] = 1
+                    prev_sclon = sclon
+
+                else:
+                    coverage[sclon:prev_sclon+1] = 1
+                    prev_sclon = sclon
+                
+                #print(i, et, eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
+            else:
+                coverage[eclon] = 1
+                coverage[sclon] = 1
+                #print(i, et, eclon, eclon, sclon, sclon, np.sum(coverage))
+                prev_eclon = eclon
+                prev_sclon = sclon
+
+            if np.sum(coverage) == 360:
+                t = ets[t0_index+i]
+                dt = np.append(dt, (t - t0)/86400) # days
+                dt_date = np.append(dt_date, sp.et2utc(t0, 'C', 3))
+                break
+
+    print('min creation time: ', np.min(dt))
+    print('max creation time: ', np.max(dt))
+    print('avg creation time: ', np.average(dt))
+    
+    fsm_dates = np.where(dt < 16.5)[0]
+
+    """
+    #fsm_dates = np.where(dt[fsm_dates] >14)[0]
+    
+    #for i in fsm_dates:
+        #print(dt_date[i], dt[i])
+    # 5+ to start at ltp 5 / *2 since ltp are half yearly
+    ltp = 5+(ets[ii:ii+len(dt)]-ets[ii])/86400/365 * 2
+
+    fig, ax = plt.subplots(figsize=(16,9), linewidth=20, edgecolor='#930534')
+    ax.plot(ltp, dt, color='#003247', linewidth=4)  #003247 930534
+
+    text_style = dict(fontsize=14)
+
+    ax.set_title('Synoptic Map Observation Duration', y=1.05, fontsize=20)
+    ax.set_xlabel('LTP Period',**text_style)
+    ax.set_ylabel('Completion Time [Days]',**text_style)
+
+    ax.tick_params(labelsize=12)
+
+    ax.xaxis.labelpad=10
+    ax.yaxis.labelpad=10
+
+    fig.subplots_adjust(left=0.1,right=0.9,top=0.85,bottom=0.15)
+    #plt.savefig('./plots/fsm_observation_duration.png', dpi=120, edgecolor=fig.get_edgecolor())
+    #np.savetxt('./plots/fsm_observation_duration.txt', np.array([ltp, dt]).T, delimiter=',', comments='# LTP, DT')
+    
+    """
+
+    return dt, dt_date
 
 
 #def main():
@@ -511,9 +633,9 @@ if __name__ == "__main__":
     ets[len(ets)-1]=et_bounds[1]
 
     # get spacecraft state vector with spkezr, returns (position [km] and velocity [km/s]) and light time (one-way light time in seconds)
-    [solo_GSE_pos, ltime]    = spice.spkpos("SOLO", ets,"SOLO_GSE","NONE","EARTH")  
-    [solo_HCI_state, ltime]  = spice.spkezr("SOLO", ets,"SUN_INERTIAL","NONE","SUN") 
-    [earth_HCI_state, ltime] = spice.spkezr("EARTH",ets,"SUN_INERTIAL","NONE","SUN")
+    [solo_GSE_pos, ltime]    = sp.spkpos("SOLO", ets,"SOLO_GSE","NONE","EARTH")  
+    [solo_HCI_state, ltime]  = sp.spkezr("SOLO", ets,"SUN_INERTIAL","NONE","SUN") 
+    [earth_HCI_state, ltime] = sp.spkezr("EARTH",ets,"SUN_INERTIAL","NONE","SUN")
 
     solo_HCI_state = np.array(solo_HCI_state)
     solo_HCI_pos = solo_HCI_state[:,0:3]
@@ -532,14 +654,14 @@ if __name__ == "__main__":
     # reclat performs a rectangular to spherical conversion, returning distance, longitude and latitude
     # output in radians
     for i, void in enumerate(ets):
-        [earth_hdis[i], earth_hlon[i], earth_hlat[i]] = spice.reclat(earth_HCI_pos[i,:])
-        [solo_hdis[i],  solo_hlon[i],  solo_hlat[i]]  = spice.reclat(solo_HCI_pos[i,:])
+        [earth_hdis[i], earth_hlon[i], earth_hlat[i]] = sp.reclat(earth_HCI_pos[i,:])
+        [solo_hdis[i],  solo_hlon[i],  solo_hlat[i]]  = sp.reclat(solo_HCI_pos[i,:])
 
     solo_hdis = solo_hdis/AU
-    solo_hlat = solo_hlat*spice.dpr()
+    solo_hlat = solo_hlat*sp.dpr()
 
     earth_hdis = earth_hdis/AU
-    #earth_hlat = earth_hlat*spice.dpr() # unused, but could be used for further calculations
+    #earth_hlat = earth_hlat*sp.dpr() # unused, but could be used for further calculations
 
     delta_omega_solo  = calc_relative_rotation(solo_HCI_state)
     delta_omega_earth = calc_relative_rotation(earth_HCI_state)
@@ -557,6 +679,18 @@ if __name__ == "__main__":
     et_trec = datetime642et(t_rec)[0]
     i_trec = np.searchsorted(ets, et_trec)
     earth_clon[i_trec]
+
+
+    fsm_start = "2024-01-01T00:00:00"
+    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, 4)
+    solo_obs  = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, 4)
+
+
+    dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets)
+    #carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets)
+
+
+    [coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
 
     # TODO 
     # - refactor carrington observation functions and export the clon linearisation
@@ -591,14 +725,14 @@ if __name__ == "__main__":
     solo_clon[iclon]
 
     # Get all objects (targets) in loaded SPK kernels
-    objects = spice.spkobj("")  # empty string returns all loaded SPK objects
+    objects = sp.spkobj("")  # empty string returns all loaded SPK objects
 
     for obj in objects:
         # Number of segments for this object in loaded kernels
-        nseg = spice.spkntf("", obj)  # empty string = all loaded SPKs
+        nseg = sp.spkntf("", obj)  # empty string = all loaded SPKs
         for i in range(nseg):
             # Get segment descriptor and ID
-            descr, segid = spice.spkpars("", obj, i)
+            descr, segid = sp.spkpars("", obj, i)
             start_et, stop_et = descr[0], descr[1]
 
             # Sample timestamps to estimate resolution
@@ -611,14 +745,14 @@ if __name__ == "__main__":
 
 
     """
-    spice.furnsh("./kernels/meta_kernel.tm")
+    sp.furnsh("./kernels/meta_kernel.tm")
 
     # Define observation time
-    et = spice.str2et("2025-07-10T00:00:00")
+    et = sp.str2et("2025-07-10T00:00:00")
 
     # Get position of observer relative to Sun in J2000
-    pos_earth, _ = spice.spkpos("EARTH", et, "J2000", "LT+S", "SUN")
-    pos_solo, _ = spice.spkpos("SOLAR ORBITER", et, "J2000", "LT+S", "SUN")
+    pos_earth, _ = sp.spkpos("EARTH", et, "J2000", "LT+S", "SUN")
+    pos_solo, _ = sp.spkpos("SOLAR ORBITER", et, "J2000", "LT+S", "SUN")
 
     # Normalize to Sun's surface (unit vector * radius)
     R_sun_km = 696000.0
@@ -626,22 +760,22 @@ if __name__ == "__main__":
     sub_solo = np.array(pos_solo) / np.linalg.norm(pos_solo) * R_sun_km
 
     # Compute planetographic longitude (west positive), latitude, radius
-    lon_earth, lat_earth, _ = spice.reclat(sub_earth)
-    lon_solo, lat_solo, _ = spice.reclat(sub_solo)
+    lon_earth, lat_earth, _ = sp.reclat(sub_earth)
+    lon_solo, lat_solo, _ = sp.reclat(sub_solo)
 
     # Convert to degrees and normalize to 0–360
     lon_earth_deg = np.degrees(lon_earth) % 360
     lon_solo_deg = np.degrees(lon_solo) % 360
 
     # Get Carrington longitude of central meridian at 'et'
-    sun_rotation = spice.bodvrd("SUN", "LONG_AXIS", 1)  # returns [0.0]
-    _, l0_arr = spice.bodvrd("SUN", "PM", 3)  # PM = [W0, W_dot, epoch]
+    sun_rotation = sp.bodvrd("SUN", "LONG_AXIS", 1)  # returns [0.0]
+    _, l0_arr = sp.bodvrd("SUN", "PM", 3)  # PM = [W0, W_dot, epoch]
     W0, W_dot, t_epoch = l0_arr
 
     # Carrington rotation rate (degrees/day): ~14.1844 deg/day
     # Convert to degrees/sec
     carr_rate_deg_per_sec = 14.1844 / (24*3600)
-    d_et = et - spice.str2et("2000-01-01T12:00:00")   # seconds since J2000
+    d_et = et - sp.str2et("2000-01-01T12:00:00")   # seconds since J2000
 
     L0 = (W0 + W_dot * (et - t_epoch)) % 360
 
@@ -655,10 +789,10 @@ if __name__ == "__main__":
     lon_carr_solo = carrington_longitude(lon_solo_deg, L0)
 
     # Output
-    utc_time = spice.et2utc(et, 'ISOC', 0)
+    utc_time = sp.et2utc(et, 'ISOC', 0)
     print(f"Carrington longitude from Earth at {utc_time}: {lon_carr_earth:.2f}°")
     print(f"Carrington longitude from Solar Orbiter at {utc_time}: {lon_carr_solo:.2f}°")
 
     # Unload kernels after use
-    spice.kclear()
+    sp.kclear()
     """
