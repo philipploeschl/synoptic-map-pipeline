@@ -5,12 +5,13 @@ import os, sys
 from pathlib import Path
 from config.config import Config
 from matplotlib import pyplot as plt
+from sunpy.coordinates.sun import carrington_rotation_time, carrington_rotation_number
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
     cur_wd = os.getcwd()
     os.chdir(kpath)
-    sp.furnsh(kpath+kname)
+    sp.furnsh(os.path.join(kpath,kname))
     os.chdir(cur_wd)
     nloaded = sp.ktotal("ALL")
     return(nloaded)
@@ -351,8 +352,8 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
 
     
     # unpack obs_lld and obs_rsw
-    [solo_utc,  solo_et,  solo_clon,  solo_hdis]  = solo_obs
-    [earth_utc, earth_et, earth_clon, earth_hdis] = earth_obs
+    [solo_utc,  solo_ets,  solo_clon,  solo_hdis]  = solo_obs
+    [earth_utc, earth_ets, earth_clon, earth_hdis] = earth_obs
     
 
     earth_src = np.zeros(len(earth_utc)) + 2    # src: 0 RSW, 1 LLD, 2 HMI
@@ -360,7 +361,7 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
 
 
     utc   = np.concatenate([solo_utc,  earth_utc])
-    ets   = np.concatenate([solo_et,   earth_et])
+    ets   = np.concatenate([solo_ets,   earth_ets])
     clons = np.concatenate([solo_clon, earth_clon])
     hdis  = np.concatenate([solo_hdis, earth_hdis])
     src   = np.concatenate([solo_src,  earth_src])
@@ -406,18 +407,16 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
         #print(i, clons[i], src[i])
         coverage_src   = np.zeros(360)-1
 
+        clon = int(clons[i])
         if src[i] < 2:
-            clon = int(clons[i])
             prev_clon = prev_sclon
         else:
-            clon = int(clons[i])
             prev_clon = prev_eclon
 
         #print(i, et, coverage)
 
         if prev_clon is None:
             coverage[clon] = 1
-
             coverage_src[clon] = src[i]
             coverage_track.append(coverage_src)
 
@@ -431,7 +430,7 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
             # observation in decreasing clon. prev_clon > clon
             # prev_clon - clon < 0 indicates a jump from low to high longitudes
             if prev_clon - clon < 0:
-                coverage[0:prev_clon] = 1     # fill up the lower longitudes since previous clon
+                coverage[0:prev_clon] = 1       # fill up the lower longitudes since previous clon
                 coverage[clon:] = 1             # fill up the high lontitudes from the current clon to the end
                                                 # this can probably be converage[clon:] instead of :361
 
@@ -444,16 +443,17 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
                 else:
                     prev_eclon = clon
             
-            elif prev_clon == 0:
-                coverage[clon:] = 1
+            # WRONG! hitting zero completes the entire map
+            #elif prev_clon == 0: # this would probably work wiht the previous case as long as [0:0] doesn't raise an error
+            #    coverage[clon:] = 1
 
-                coverage_src[clon:] = src[i]
-                coverage_track.append(coverage_src)
+            #    coverage_src[clon:] = src[i]
+            #    coverage_track.append(coverage_src)
 
-                if src[i] < 2:
-                    prev_sclon = clon
-                else:
-                    prev_eclon = clon
+            #    if src[i] < 2:
+            #        prev_sclon = clon
+            #    else:
+            #        prev_eclon = clon
 
             else:
                 coverage[clon:prev_clon] = 1
@@ -466,16 +466,21 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
                 else:
                     prev_eclon = clon
                     
-
-            #print(i, et, eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
+        # prev_sclon and prev_eclon separation is kinda pointless in here
+        print(i, et, clon, prev_eclon, clon, prev_sclon, np.sum(coverage))
 
 
         if np.sum(coverage) == 360:
             dt = np.append(dt, (et - ets[0])/86400) # days
-            break
+            print('FSM Creation Time: %s days'% np.round(dt[0],2))
+            nobs =len(coverage_track)
+            return coverage, coverage_track, utc, ets, clons, hdis, src, order, nobs
 
-    #print('FSM Creation Time: %s days'% np.round(dt[0],2))
+
+        
     nobs =len(coverage_track)
+    return coverage, coverage_track, utc, ets, clons, hdis, src, order, nobs
+
 
     if False:
         fig, ax = plt.subplots()
@@ -488,22 +493,27 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
         #ax.legend(handles, labels)
         plt.show()
     
-    return [coverage, coverage_track, utc, ets, clons, hdis, src, order, nobs]
+    
 
 
 
-def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
+def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets, ets_start, cad):
 
-    start_time = "1 January 2022 00:00 (UTC)"   # LTP05 during high omega CR2256 start time
+    # carrington_observation_coverage concatenates solo and earth data and then
+    # processes everything in one go instead of doing it separately for earth
+    # and solo like in here
+
+    #start_time = "1 January 2022 00:00 (UTC)"   # LTP05 during high omega CR2256 start time
     dt = np.array([])
-    dt_date = np.array([])
+    dt_date = np.array([], dtype='datetime64[s]')
     
     t0_index = 0
     ii = 0
     
     for i, time in enumerate(ets):
 
-        t0 = sp.str2et(start_time) + i*21600    # loop over every 1/4 day in mission duration
+        #t0 = sp.str2et(start_time) + i*(cad*3600)       # loop over every 1/4 day in mission duration
+        t0 = ets_start + i*(cad*3600)
         t0_index = np.ravel(np.argwhere(ets == t0))
         t = t0
         
@@ -520,7 +530,6 @@ def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
 
         coverage = np.zeros(360)
         
-
         for i, et in enumerate(ets[t0_index:]):
 
             eclon = int(earth_clon[t0_index+i])
@@ -538,29 +547,133 @@ def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
                 if prev_eclon - eclon < 0:
                     # if we jump over zero fill in both sides of the coverage array
                     # 3xx:360 and 0:xx
-                    coverage[0:prev_eclon+1] = 1
+                    coverage[0:prev_eclon] = 1
                     coverage[eclon:] = 1
                     prev_eclon = eclon
                     
-                elif prev_eclon == 0:
-                    coverage[eclon:] = 1
-                    prev_eclon = eclon
-
                 else:
-                    coverage[eclon:prev_eclon+1] = 1
+                    coverage[eclon:prev_eclon] = 1
                     prev_eclon = eclon
                 
                 if prev_sclon - sclon < 0:
-                    coverage[0:prev_sclon+1] = 1
-                    coverage[sclon:] = 1
-                    prev_sclon = sclon
-
-                elif prev_sclon == 0:
+                    coverage[0:prev_sclon] = 1
                     coverage[sclon:] = 1
                     prev_sclon = sclon
 
                 else:
-                    coverage[sclon:prev_sclon+1] = 1
+                    coverage[sclon:prev_sclon] = 1
+                    prev_sclon = sclon
+                
+            else:
+                coverage[eclon] = 1
+                coverage[sclon] = 1
+
+                prev_eclon = eclon
+                prev_sclon = sclon
+
+            #print(i, et2datetime64(et), eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
+
+            if np.sum(coverage) == 360:
+                t = ets[t0_index+i]
+                dt = np.append(dt, (t - t0)/86400) # days
+                dt_date = np.append(dt_date, et2datetime64(t0)[0]) #sp.et2utc(t0, 'C', 3))
+                #return dt, dt_date
+                break # leave inner for and continue with outer for
+
+    print('min creation time: ', np.min(dt))
+    print('max creation time: ', np.max(dt))
+    print('avg creation time: ', np.average(dt))
+    
+    #fsm_dates = np.where(dt < 16.5)[0]
+
+    """
+    #fsm_dates = np.where(dt[fsm_dates] >14)[0]
+    
+    #for i in fsm_dates:
+        #print(dt_date[i], dt[i])
+    # 5+ to start at ltp 5 / *2 since ltp are half yearly
+    ltp = 5+(ets[ii:ii+len(dt)]-ets[ii])/86400/365 * 2
+
+    fig, ax = plt.subplots(figsize=(16,9), linewidth=20, edgecolor='#930534')
+    ax.plot(ltp, dt, color='#003247', linewidth=4)  #003247 930534
+
+    text_style = dict(fontsize=14)
+
+    ax.set_title('Synoptic Map Observation Duration', y=1.05, fontsize=20)
+    ax.set_xlabel('LTP Period',**text_style)
+    ax.set_ylabel('Completion Time [Days]',**text_style)
+
+    ax.tick_params(labelsize=12)
+
+    ax.xaxis.labelpad=10
+    ax.yaxis.labelpad=10
+
+    fig.subplots_adjust(left=0.1,right=0.9,top=0.85,bottom=0.15)
+    #plt.savefig('./plots/fsm_observation_duration.png', dpi=120, edgecolor=fig.get_edgecolor())
+    #np.savetxt('./plots/fsm_observation_duration.txt', np.array([ltp, dt]).T, delimiter=',', comments='# LTP, DT')
+    
+    """
+
+    return dt, dt_date
+
+
+def carrington_observation_duration_exp(solo_clon, earth_clon, ets):
+
+    # carrington_observation_coverage concatenates solo and earth data and then
+    # processes everything in one go instead of doing it separately for earth
+    # and solo like in here
+
+    #start_time = "1 January 2022 00:00 (UTC)"   # LTP05 during high omega CR2256 start time
+    dt = np.array([])
+    dt_date = np.array([], dtype='datetime64[s]')
+    
+    t0_index = 0
+    ii = 0
+    
+    for t0_index, t0 in enumerate(ets):
+
+        coverage = np.zeros(360)
+        
+        for i, et in enumerate(ets[t0_index:]):
+
+            eclon = int(earth_clon[t0_index+i])
+            sclon = int(solo_clon[t0_index+i])
+
+            # eclon and sclon are always decreasing after this operation
+            # -180 < clon < 180
+            if eclon < 0:
+                eclon = eclon + 360
+
+            if sclon < 0:
+                sclon = sclon + 360
+            
+            if i > 0:
+                if prev_eclon - eclon < 0:
+                    # if we jump over zero fill in both sides of the coverage array
+                    # 3xx:360 and 0:xx
+                    coverage[0:prev_eclon] = 1
+                    coverage[eclon:] = 1
+                    prev_eclon = eclon
+                    
+                #elif prev_eclon == 0:
+                #    coverage[eclon:] = 1
+                #    prev_eclon = eclon
+
+                else:
+                    coverage[eclon:prev_eclon] = 1
+                    prev_eclon = eclon
+                
+                if prev_sclon - sclon < 0:
+                    coverage[0:prev_sclon] = 1
+                    coverage[sclon:] = 1
+                    prev_sclon = sclon
+
+                #elif prev_sclon == 0:
+                #    coverage[sclon:] = 1
+                #    prev_sclon = sclon
+
+                else:
+                    coverage[sclon:prev_sclon] = 1
                     prev_sclon = sclon
                 
                 #print(i, et, eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
@@ -571,17 +684,20 @@ def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
                 prev_eclon = eclon
                 prev_sclon = sclon
 
+            #print(i, et2datetime64(et), eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
+
             if np.sum(coverage) == 360:
                 t = ets[t0_index+i]
                 dt = np.append(dt, (t - t0)/86400) # days
-                dt_date = np.append(dt_date, sp.et2utc(t0, 'C', 3))
-                break
+                dt_date = np.append(dt_date, et2datetime64(t0)[0]) #sp.et2utc(t0, 'C', 3))
+                #return dt, dt_date
+                break # leave inner for and continue with outer for
 
     print('min creation time: ', np.min(dt))
     print('max creation time: ', np.max(dt))
     print('avg creation time: ', np.average(dt))
     
-    fsm_dates = np.where(dt < 16.5)[0]
+    #fsm_dates = np.where(dt < 16.5)[0]
 
     """
     #fsm_dates = np.where(dt[fsm_dates] >14)[0]
@@ -619,8 +735,9 @@ if __name__ == "__main__":
     # Set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
-    
+    #config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
+    config = Config(config_path='config.yaml')
+
     # Load meta kernel
     loaded=loadkernel(config.spice_mkpath, config.spice_mkname)
  
@@ -681,16 +798,43 @@ if __name__ == "__main__":
     earth_clon[i_trec]
 
 
+    cad = 4 # observation cadence in hours
+    #dt, dt_date = carrington_observation_duration(solo_clon[::cad*3600], earth_clon[::cad*3600], ets[::cad*3600], et_bounds[0])
+    carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets, et_bounds[0], cad)
+
+    # times are only for a single carrington rotation
     fsm_start = "2024-01-01T00:00:00"
-    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, 4)
-    solo_obs  = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, 4)
+    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, cad)
+    solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, cad)
+    
 
+    #single index and integer et to prevent ERFA warnings for astropy time objects used in carrington_rotation_number()
+    crot_start = int(carrington_rotation_number(et2datetime64(int(et_bounds[0]))[0]))
+    crot_end   = int(carrington_rotation_number(et2datetime64(int(et_bounds[1]))[0]))
+    crots      = np.arange(crot_start, crot_end+1)
 
-    dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets)
-    #carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets)
+    crot_times = [np.datetime64(time) for time in carrington_rotation_time(crots).datetime]
+    crot_ets   = [datetime642et(time) for time in crot_times]
+    
+    # TODO BUG
+    # The way how I'm indexing ets with [::cad] here and how it's done in carringtion_observation_duration()
+    # isn't the same. Update carringtion_observation_duration() for proper indexing
 
+    print("CROT, DATE, TIME")
+    for t0, t1, crot in zip(crot_ets[:-1], crot_ets[1:], crots):
+        # Boolean mask for values between t0 and t1
+        # ets interval at same cadence ::cad as used in carrington_rotation_coverage()
+        mask = (ets[::cad] >= t0) & (ets[::cad] <= t1)
 
-    [coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
+        # Extract indices of current crot
+        indices = np.where(mask)[0]
+
+        # find minimum in the current crot range
+        imin = np.argwhere(dt[indices] == np.min(dt[indices]))[0][0]
+        
+        print(crot, dt_date[indices][imin], np.min(dt[indices]))
+
+    #[coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
 
     # TODO 
     # - refactor carrington observation functions and export the clon linearisation
