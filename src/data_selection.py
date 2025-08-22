@@ -681,15 +681,12 @@ if __name__ == "__main__":
     crot_times = [np.datetime64(time) for time in carrington_rotation_time(crots).datetime]
     crot_ets   = [datetime642et(time) for time in crot_times]
     
-    # TODO BUG
-    # The way how I'm indexing ets with [::cad] here and how it's done in carringtion_observation_duration()
-    # isn't the same. Update carringtion_observation_duration() for proper indexing
-
+    diff = len(ets)-len(dt)
     print("CROT, DATE, TIME")
     for t0, t1, crot in zip(crot_ets[:-1], crot_ets[1:], crots):
         # Boolean mask for values between t0 and t1
         # ets interval at same cadence ::cad as used in carrington_rotation_coverage()
-        mask = (ets[::cad] >= t0) & (ets[::cad] <= t1)
+        mask = (ets[:-diff] >= t0) & (ets[:-diff] <= t1)
 
         # Extract indices of current crot
         indices = np.where(mask)[0]
@@ -697,7 +694,7 @@ if __name__ == "__main__":
         # find minimum in the current crot range
         imin = np.argwhere(dt[indices] == np.min(dt[indices]))[0][0]
         
-        print(crot, dt_date[indices][imin], np.min(dt[indices]))
+        print(crot, dt_date[indices][imin], np.round(np.min(dt[indices]),2))
 
     #[coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
 
