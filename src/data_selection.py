@@ -6,6 +6,7 @@ from pathlib import Path
 from config.config import Config
 from matplotlib import pyplot as plt
 from sunpy.coordinates.sun import carrington_rotation_time, carrington_rotation_number
+import pandas as pd
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
@@ -248,7 +249,8 @@ def carrington_observation_times(clon, hdis, ets, start_time, interval):
     rotation_period = 27.2753#25.38 # sidereal period 
     n_obs = int(np.ceil(rotation_period*24)/interval)
 
-    t0 = sp.str2et(start_time)                  # convert start_time to et
+    #t0 = sp.str2et(start_time)                  # convert start_time to et
+    t0 = datetime642et(start_time)[0]
     t0_index = np.ravel(np.argwhere(ets == t0)) # find the et index of start_time
 
     if t0_index.size > 0:                       # check if exact timestamp was found
@@ -304,10 +306,6 @@ def carrington_observation_times(clon, hdis, ets, start_time, interval):
     for entry in obs_et:
         obs_utc = np.append(obs_utc, sp.et2utc(entry, 'c', 2))
     
-    if False:
-        print('###### RESULTS ######')
-        output = np.column_stack((obs_utc, obs_clon, obs_dist))
-        print(output)
 
     return [obs_utc, obs_et, obs_clon, obs_dist]
 
@@ -350,7 +348,10 @@ def interp360(clon, clons, ets):
 
 def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
 
-    
+    # this function relies on the observation split provided by carrington_observation_times and 
+    # can thus return different fast synoptic observation times than the carrington_observation_duration
+    # function which directly uses the et resolution
+
     # unpack obs_lld and obs_rsw
     [solo_utc,  solo_ets,  solo_clon,  solo_hdis]  = solo_obs
     [earth_utc, earth_ets, earth_clon, earth_hdis] = earth_obs
@@ -596,8 +597,46 @@ def carrington_observation_duration(solo_clon, earth_clon, ets):
     return dt, dt_date
 
 
+def optimise_carringtion_observation(et_bounds, ets, dt_date, dt):
+
+    # calculate the start date for the fastest carrington map for each carrington rotation
+
+    #single index and integer et to prevent ERFA warnings for astropy time objects used in carrington_rotation_number()
+    crot_start = int(carrington_rotation_number(et2datetime64(int(et_bounds[0]))[0]))
+    crot_end   = int(carrington_rotation_number(et2datetime64(int(et_bounds[1]))[0]))
+    crots      = np.arange(crot_start, crot_end+1)
+
+    crot_times = [np.datetime64(time) for time in carrington_rotation_time(crots).datetime]
+    crot_ets   = [datetime642et(time) for time in crot_times]
+    diff = len(ets)-len(dt)
+
+    # test = {}
+    # test[2240] = {"date": 123, "clon": 1234, "src": "hmi"}
+
+    opt_obs = pd.DataFrame(index=range(crot_start, crot_end), columns=["start_date", "obs_time"])
+    opt_obs.index.name = "carrington rotation"
+
+    for t0, t1, crot in zip(crot_ets[:-1], crot_ets[1:], crots):
+        # Boolean mask for values between t0 and t1
+        # ets interval at same cadence ::cad as used in carrington_rotation_coverage()
+        mask = (ets[:-diff] >= t0) & (ets[:-diff] <= t1)
+
+        # Extract indices of current crot
+        indices = np.where(mask)[0]
+
+        # find minimum in the current crot range
+        imin = np.argwhere(dt[indices] == np.min(dt[indices]))[0][0]
+
+        opt_obs.loc[crot] = [dt_date[indices][imin], np.round(np.min(dt[indices]),2)]
+
+    return opt_obs
+
+
 #def main():
 if __name__ == "__main__":
+    # List of config parameters
+    # et_resolution
+    # 
     # Set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -616,7 +655,7 @@ if __name__ == "__main__":
     ets[len(ets)-1]=et_bounds[1]
 
     # get spacecraft state vector with spkezr, returns (position [km] and velocity [km/s]) and light time (one-way light time in seconds)
-    [solo_GSE_pos, ltime]    = sp.spkpos("SOLO", ets,"SOLO_GSE","NONE","EARTH")  
+    #[solo_GSE_pos, ltime]    = sp.spkpos("SOLO", ets,"SOLO_GSE","NONE","EARTH")  
     [solo_HCI_state, ltime]  = sp.spkezr("SOLO", ets,"SUN_INERTIAL","NONE","SUN") 
     [earth_HCI_state, ltime] = sp.spkezr("EARTH",ets,"SUN_INERTIAL","NONE","SUN")
 
@@ -646,65 +685,51 @@ if __name__ == "__main__":
     earth_hdis = earth_hdis/AU
     #earth_hlat = earth_hlat*sp.dpr() # unused, but could be used for further calculations
 
-    delta_omega_solo  = calc_relative_rotation(solo_HCI_state)
-    delta_omega_earth = calc_relative_rotation(earth_HCI_state)
-    delta_omega = delta_omega_solo
+    #delta_omega_solo  = calc_relative_rotation(solo_HCI_state)
+    #delta_omega_earth = calc_relative_rotation(earth_HCI_state)
+    #delta_omega = delta_omega_solo
 
-    solo_clon  = simple_carrington(solo_hlon,ets)
+    solo_clon  = simple_carrington(solo_hlon, ets)
     earth_clon = simple_carrington(earth_hlon, ets)
 
-    t_obs = np.datetime64("2022-06-09T09:00:39")
-    et_tobs = datetime642et(t_obs)[0]
-    i_tobs = np.searchsorted(ets, et_tobs)
-    solo_clon[i_tobs]
 
-    t_rec = np.datetime64("2022-06-24T06:56:58")
-    et_trec = datetime642et(t_rec)[0]
-    i_trec = np.searchsorted(ets, et_trec)
-    earth_clon[i_trec]
+    #t_obs = np.datetime64("2022-06-09T09:00:39")
+    #et_tobs = datetime642et(t_obs)[0]
+    #i_tobs = np.searchsorted(ets, et_tobs)
+    #solo_clon[i_tobs]
 
-    cad = 4 # observation cadence in hours
+    #t_rec = np.datetime64("2022-06-24T06:56:58")
+    #et_trec = datetime642et(t_rec)[0]
+    #i_trec = np.searchsorted(ets, et_trec)
+    #earth_clon[i_trec]
+
+    solo_cad  = 4 # observation cadence in hours
+    earth_cad = 4
     #dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets, et_bounds[0], cad)
-    dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, ets)
+    dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, ets)  
+
+    opt_obs = optimise_carringtion_observation(et_bounds, ets, dt_date, dt)
+
+    print(opt_obs)
 
     # times are only for a single carrington rotation
-    fsm_start = "2024-01-01T00:00:00"
-    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, cad)
-    solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, cad)
-    
+    #fsm_start = "2024-01-01T00:00:00"
+    fsm_start = opt_obs.loc[2239]["start_date"]
+    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, earth_cad)
+    solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, solo_cad)
+    [coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
 
-    #single index and integer et to prevent ERFA warnings for astropy time objects used in carrington_rotation_number()
-    crot_start = int(carrington_rotation_number(et2datetime64(int(et_bounds[0]))[0]))
-    crot_end   = int(carrington_rotation_number(et2datetime64(int(et_bounds[1]))[0]))
-    crots      = np.arange(crot_start, crot_end+1)
-
-    crot_times = [np.datetime64(time) for time in carrington_rotation_time(crots).datetime]
-    crot_ets   = [datetime642et(time) for time in crot_times]
-    
-    diff = len(ets)-len(dt)
-    print("CROT, DATE, TIME")
-    for t0, t1, crot in zip(crot_ets[:-1], crot_ets[1:], crots):
-        # Boolean mask for values between t0 and t1
-        # ets interval at same cadence ::cad as used in carrington_rotation_coverage()
-        mask = (ets[:-diff] >= t0) & (ets[:-diff] <= t1)
-
-        # Extract indices of current crot
-        indices = np.where(mask)[0]
-
-        # find minimum in the current crot range
-        imin = np.argwhere(dt[indices] == np.min(dt[indices]))[0][0]
-        
-        print(crot, dt_date[indices][imin], np.round(np.min(dt[indices]),2))
-
-    #[coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
 
     # TODO 
+    # - create separate DRMS timestrings for HMI and PHI part
+    # - make sure to do the TAI conversion 
+    #
     # - refactor carrington observation functions and export the clon linearisation
     # - add centi clon support for coverage calculation for compatibility with MIP implementation
     # - use observation duration output and find best combination for each carrington rotation
     # - identify config parameters for export
 
-    # - current workflow something like:
+    # - current workflow:
     #   - run carrington_observation_duration to find best start date
     #   - run carrington_observation_coverage for that start date
 
