@@ -314,7 +314,8 @@ def build_and_solve_ilp(
         # Add to objective
         prob += penalty_A + penalty_B
 
-    
+        # penalty for far distance obesrvation
+        
         if export_lp_path:
             print("Exporting LP to", export_lp_path)
             prob.writeLP(export_lp_path)

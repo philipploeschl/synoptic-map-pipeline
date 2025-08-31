@@ -357,9 +357,9 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
     [earth_utc, earth_ets, earth_clon, earth_hdis] = earth_obs
     
 
-    earth_src = np.zeros(len(earth_utc)) + 2    # src: 0 RSW, 1 LLD, 2 HMI
-    solo_src  = np.zeros(len(solo_utc))  + 1    # src: 0 RSW, 1 LLD, 2 HMI
-
+    # src: 1 PHI, 2 HMI, old: 0 RSW, 1 LLD, 2 HMI
+    earth_src = np.zeros(len(earth_utc)) + 2    
+    solo_src  = np.zeros(len(solo_utc))  + 1
 
     utc   = np.concatenate([solo_utc,  earth_utc])
     ets   = np.concatenate([solo_ets,   earth_ets])
@@ -475,7 +475,7 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
             dt = np.append(dt, (et - ets[0])/86400) # days
             print('FSM Creation Time: %s days'% np.round(dt[0],2))
             nobs =len(coverage_track)
-            return coverage, coverage_track, utc, ets, clons, hdis, src, order, nobs
+            return coverage, coverage_track, utc[:nobs], ets[:nobs], clons[:nobs], hdis[:nobs], src[:nobs], order, nobs
 
 
         
@@ -483,20 +483,7 @@ def carrington_observation_coverage(solo_obs, earth_obs, plot=False):
     return coverage, coverage_track, utc, ets, clons, hdis, src, order, nobs
 
 
-    if False:
-        fig, ax = plt.subplots()
-        ax.scatter(range(len(coverage_src)), coverage_src)#, label='HMI')
-        #ax.scatter(range(len(coverage_solo)),  coverage_solo,  label='PHI')
-        ax.set_xlabel('Carrington Longitude')
-        ax.set_ylabel('Coverage')
-        
-        #handles, labels = ax.get_legend_handles_labels()
-        #ax.legend(handles, labels)
-        plt.show()
-    
-    
-
-def carrington_observation_duration(solo_clon, earth_clon, ets):
+def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
 
     # carrington_observation_coverage concatenates solo and earth data and then
     # processes everything in one go instead of doing it separately for earth
@@ -505,11 +492,13 @@ def carrington_observation_duration(solo_clon, earth_clon, ets):
     #start_time = "1 January 2022 00:00 (UTC)"   # LTP05 during high omega CR2256 start time
     dt = np.array([])
     dt_date = np.array([], dtype='datetime64[s]')
+    dt_hdis = np.array([])
     
     for t0_index, t0 in enumerate(ets):
 
         coverage = np.zeros(360)
-        
+        hdis = np.array([])
+
         for i, et in enumerate(ets[t0_index:]):
 
             eclon = int(earth_clon[t0_index+i])
@@ -539,10 +528,12 @@ def carrington_observation_duration(solo_clon, earth_clon, ets):
                     coverage[0:prev_sclon] = 1
                     coverage[sclon:] = 1
                     prev_sclon = sclon
+                    hdis = np.append(hdis, solo_hdis[t0_index+i])
 
                 else:
                     coverage[sclon:prev_sclon] = 1
                     prev_sclon = sclon
+                    hdis = np.append(hdis, solo_hdis[t0_index+i])
                 
             else:
                 coverage[eclon] = 1
@@ -550,6 +541,7 @@ def carrington_observation_duration(solo_clon, earth_clon, ets):
 
                 prev_eclon = eclon
                 prev_sclon = sclon
+                hdis = np.append(hdis, solo_hdis[t0_index+i])
 
             #print(i, et2datetime64(et), eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
 
@@ -557,47 +549,14 @@ def carrington_observation_duration(solo_clon, earth_clon, ets):
                 t = ets[t0_index+i]
                 dt = np.append(dt, (t - t0)/86400) # days
                 dt_date = np.append(dt_date, et2datetime64(t0)[0]) #sp.et2utc(t0, 'C', 3))
-                #return dt, dt_date
+                dt_hdis = np.append(dt_hdis, np.round(np.average(hdis), 6))
                 break # leave inner for and continue with outer for
 
-    print('min creation time: ', np.min(dt))
-    print('max creation time: ', np.max(dt))
-    print('avg creation time: ', np.average(dt))
-    
-    #fsm_dates = np.where(dt < 16.5)[0]
 
-    """
-    #fsm_dates = np.where(dt[fsm_dates] >14)[0]
-    
-    #for i in fsm_dates:
-        #print(dt_date[i], dt[i])
-    # 5+ to start at ltp 5 / *2 since ltp are half yearly
-    ltp = 5+(ets[ii:ii+len(dt)]-ets[ii])/86400/365 * 2
-
-    fig, ax = plt.subplots(figsize=(16,9), linewidth=20, edgecolor='#930534')
-    ax.plot(ltp, dt, color='#003247', linewidth=4)  #003247 930534
-
-    text_style = dict(fontsize=14)
-
-    ax.set_title('Synoptic Map Observation Duration', y=1.05, fontsize=20)
-    ax.set_xlabel('LTP Period',**text_style)
-    ax.set_ylabel('Completion Time [Days]',**text_style)
-
-    ax.tick_params(labelsize=12)
-
-    ax.xaxis.labelpad=10
-    ax.yaxis.labelpad=10
-
-    fig.subplots_adjust(left=0.1,right=0.9,top=0.85,bottom=0.15)
-    #plt.savefig('./plots/fsm_observation_duration.png', dpi=120, edgecolor=fig.get_edgecolor())
-    #np.savetxt('./plots/fsm_observation_duration.txt', np.array([ltp, dt]).T, delimiter=',', comments='# LTP, DT')
-    
-    """
-
-    return dt, dt_date
+    return dt, dt_date, dt_hdis
 
 
-def optimise_carringtion_observation(et_bounds, ets, dt_date, dt):
+def optimise_carringtion_observation(et_bounds, ets, dt_date, dt, dt_hdis):
 
     # calculate the start date for the fastest carrington map for each carrington rotation
 
@@ -608,12 +567,9 @@ def optimise_carringtion_observation(et_bounds, ets, dt_date, dt):
 
     crot_times = [np.datetime64(time) for time in carrington_rotation_time(crots).datetime]
     crot_ets   = [datetime642et(time) for time in crot_times]
-    diff = len(ets)-len(dt)
+    diff = len(ets)-len(dt) # dt will be shorter due to incomplete ets for last carrington period in the series
 
-    # test = {}
-    # test[2240] = {"date": 123, "clon": 1234, "src": "hmi"}
-
-    opt_obs = pd.DataFrame(index=range(crot_start, crot_end), columns=["start_date", "obs_time"])
+    opt_obs = pd.DataFrame(index=range(crot_start, crot_end), columns=["start_date", "obs_time", "avg_hdis"])
     opt_obs.index.name = "carrington rotation"
 
     for t0, t1, crot in zip(crot_ets[:-1], crot_ets[1:], crots):
@@ -627,9 +583,114 @@ def optimise_carringtion_observation(et_bounds, ets, dt_date, dt):
         # find minimum in the current crot range
         imin = np.argwhere(dt[indices] == np.min(dt[indices]))[0][0]
 
-        opt_obs.loc[crot] = [dt_date[indices][imin], np.round(np.min(dt[indices]),2)]
+        opt_obs.loc[crot] = [dt_date[indices][imin], np.round(dt[indices][imin],2), dt_hdis[indices][imin]]
 
     return opt_obs
+
+
+
+
+def obs2drms_times(ets):
+
+    "Converts input UTC to TAI and Spice compatible time string into a DRMS time string"
+
+    months = dict([('JAN', '01'), ('FEB', '02'), ('MAR', '03'), ('APR', '04'), ('MAY', '05'), ('JUN', '06'), 
+                   ('JUL', '07'), ('AUG', '08'), ('SEP', '09'), ('OCT', '10'), ('NOV', '11'), ('DEC', '12')]) 
+
+    # TAI is exactly 37 seconds ahead of UTC. The 37 seconds results from the initial difference 
+    # of 10 seconds at the start of 1972, plus 27 leap seconds in UTC since 1972. 
+    ets_tai  = ets + 37
+
+    tai_str = np.array([])
+    fmt = "%s.%s.%s_%s:%s:%s_TAI"
+
+    for et_tai in ets_tai:
+
+        # convert "14 May 2014 14:46 (UTC)" to "2014.05.14_14:46:00_TAI"
+        t = sp.et2utc(et_tai,"C",3)
+        et_tai = fmt % (t[:4], months[t[5:8]], t[9:11], t[12:14], t[15:17], t[18:20])
+        tai_str = np.append(tai_str, et_tai)
+
+    return ets_tai, tai_str
+
+
+def drms_timestring(tai_str, ets_tai, src, clons, priority, out_dir='./output/', save=False):
+
+    """ Shortens the list of DRMS compatible TAIs to a single time period string"""
+    
+
+    order = np.argsort(clons)
+    tai_str = tai_str[order]
+    ets_tai = ets_tai[order]
+    src     = src[order]
+
+    # CAREFUL, this breaks if PHI and HMI aren't sampled at HMI > 2PHI cadence
+    # index of transition between observatories
+    itrans = np.ravel(np.argwhere(np.diff(src)!=0)+1) # count from 0 to trans[0] for first set
+    itrans = np.append(itrans, len(src))               # cover entries between last transition and end
+
+    drms_str = ''
+    phi_str = ''
+    hmi_str = ''
+
+
+    # src: 0 RSW, 1 LLD, 2 HMI
+    # hmi: time1-time2
+    # rsw: time1,time2,time3,...
+    # lld: time1,time2,time3,...
+     
+    low = 0
+
+    for high in itrans:
+        # use time periods for HMI
+        if src[low] == 2:
+            drms_str += tai_str[low] + '-' + tai_str[high-1] + ','
+            hmi_str  += tai_str[low] + '-' + tai_str[high-1] + ','
+
+        else:
+            # this if skips overlapping single observations that crawl
+            # into earlier HMI observations
+            if high-low == 1: 
+                # only single observation. Check if between HMI observation
+                if src[high]== 2 and src[low-1] == 2:
+                     # skip PHI observation
+                    low = high
+                    continue
+            
+            for i in range(low, high):
+                
+                # convert "14 May 2014 14:46 (UTC)" to "2014.05.14_14:46:00_TAI"
+                #t12 = sp.et2utc(tai_ets[i]+720,"C",3) # tai_str after 12minutes
+                #tai12_str = fmt % (t12[:4], months[t12[5:8]], t12[9:11], t12[12:14], t12[15:17], t12[18:20])
+                 
+                drms_str += tai_str[i] + ','
+                phi_str  += tai_str[i] + ','
+                #drms_str += tai_str[i] + '-' + tai12_str + ','
+                
+        low = high
+
+
+    
+    #from last transition to end
+    #for i in range(low, len(src)):
+    #   drms_str += tai_str[i] + ','
+    #   print(drms_str)
+
+    drms_str = drms_str[:-1] # truncate the last ','
+    hmi_str  = hmi_str[:-1]  # truncate the last ','
+    phi_str  = phi_str[:-1]  # truncate the last ','
+
+    if save:
+        with open(out_dir+'drms_string.txt', 'w') as f1:
+            print(drms_str, file=f1)
+        
+        with open(out_dir+'drms_phi_string.txt', 'w') as f2:
+            print(phi_str, file=f2)
+        
+        with open(out_dir+'drms_hmi_string.txt', 'w') as f3:
+            print(hmi_str, file=f3)
+        
+    return drms_str, tai_str, ets_tai, src, clons, order
 
 
 #def main():
@@ -640,8 +701,8 @@ if __name__ == "__main__":
     # Set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    #config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
-    config = Config(config_path='config.yaml')
+    config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
+    #config = Config(config_path='config.yaml')
 
     # Load meta kernel
     loaded=loadkernel(config.spice_mkpath, config.spice_mkname)
@@ -703,12 +764,13 @@ if __name__ == "__main__":
     #i_trec = np.searchsorted(ets, et_trec)
     #earth_clon[i_trec]
 
+    # WARNING, setting high HMI cadence breaks filtering in drms_timestring() if solo_cad > 2*earth_cad
     solo_cad  = 4 # observation cadence in hours
     earth_cad = 4
     #dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets, et_bounds[0], cad)
-    dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, ets)  
+    dt, dt_date, dt_hdis = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets)  
 
-    opt_obs = optimise_carringtion_observation(et_bounds, ets, dt_date, dt)
+    opt_obs = optimise_carringtion_observation(et_bounds, ets, dt_date, dt, dt_hdis)
 
     print(opt_obs)
 
@@ -717,16 +779,32 @@ if __name__ == "__main__":
     fsm_start = opt_obs.loc[2239]["start_date"]
     earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, earth_cad)
     solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, solo_cad)
-    [coverage, track, utc, et, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
+    [coverage, track, utcs_obs, ets_obs, clons, hdis, src, order, n] = carrington_observation_coverage(solo_obs, earth_obs, plot=False)
 
+
+
+    source = ["NONE", "PHI", "HMI"]
+    for i, j, k in zip(utcs_obs[order][:n], clons[order][:n], src[order][:n]):
+        print(i,j,source[int(k)])
+
+
+
+
+
+
+
+
+    #sp.kclear()
 
     # TODO 
     # - create separate DRMS timestrings for HMI and PHI part
     # - make sure to do the TAI conversion 
+    # - refactor code
+    # - try chatgpt stuff
+    # - save carrington_observation_duration output to file to speed things up
     #
     # - refactor carrington observation functions and export the clon linearisation
     # - add centi clon support for coverage calculation for compatibility with MIP implementation
-    # - use observation duration output and find best combination for each carrington rotation
     # - identify config parameters for export
 
     # - current workflow:
