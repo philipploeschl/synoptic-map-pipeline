@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from sunpy.coordinates.sun import carrington_rotation_time, carrington_rotation_number
 import pandas as pd
 import argparse
+from datetime import datetime, timedelta
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
@@ -410,7 +411,7 @@ def carrington_observation_coverage(solo_obs, earth_obs):
     prev_sclon = None # tracks the last observed carrington longitude from solo
 
     for i, et in enumerate(ets):
-        
+        print(i, et2datetime64(et)[0], clons[i], src[i])
         clon = int(clons[i])
 
         if src[i] == "PHI": prev_clon = prev_sclon
@@ -436,14 +437,17 @@ def carrington_observation_coverage(solo_obs, earth_obs):
         else:
             # observation in decreasing clon. prev_clon > clon
             # prev_clon - clon < 0 indicates a jump from low to high longitudes
-            if prev_clon - clon < 0:
-                coverage[0:prev_clon] = True       # fill up the lower longitudes since previous clon
-                coverage[clon:] = True             # fill up the high lontitudes from the current clon to the end
+            # hmiphisynoptic.py does not wrap from left to right end!
+            # remove this case for now and find a workaround
+            if False:#prev_clon - clon < 0:
+                # with wrap around: jump over zero fill in both sides of the coverage array
+                coverage[0:prev_clon] = True    # fill up the lower longitudes since previous clon
+                coverage[clon:] = True          # fill up the high lontitudes from the current clon to the end
                                                 # this can probably be converage[clon:] instead of :361
 
                 if src[i] == "PHI": 
                     coverage_phi[0:prev_clon] = True
-                    coverage_phi[clon] = True
+                    coverage_phi[clon:] = True
 
                     coverage_time_phi[0:prev_clon] = et2datetime64(et)[0]
                     coverage_time_phi[clon:]       = et2datetime64(et)[0]
@@ -454,7 +458,7 @@ def carrington_observation_coverage(solo_obs, earth_obs):
 
                 elif src[i] == "HMI": 
                     coverage_hmi[0:prev_clon] = True
-                    coverage_hmi[clon] = True
+                    coverage_hmi[clon:] = True
 
                     coverage_time_hmi[0:prev_clon] = et2datetime64(et)[0]
                     coverage_time_hmi[clon:]       = et2datetime64(et)[0]
@@ -462,7 +466,36 @@ def carrington_observation_coverage(solo_obs, earth_obs):
                     coverage_clon_hmi[0:prev_clon] = clons[i]
                     coverage_clon_hmi[clon:]       = clons[i]
                     prev_eclon = clon
-            
+            elif prev_clon - clon < 0:
+                # wrap around disabled
+                # use previous clon to fill until zero
+                # use current clon to fill 360 to current clon
+                # TODO
+                coverage[0:prev_clon] = True    # fill up the lower longitudes since previous clon
+                coverage[clon:] = True          # fill up the high lontitudes from the current clon to the end
+                                                # this can probably be converage[clon:] instead of :361
+
+                if src[i] == "PHI": 
+                    coverage_phi[0:prev_clon] = coverage_phi[prev_clon]
+                    coverage_phi[clon:] = True
+                    
+                    coverage_time_phi[0:prev_clon] = coverage_time_phi[prev_clon] # fill with the previous clon
+                    coverage_time_phi[clon:]       = et2datetime64(et)[0]
+
+                    coverage_clon_phi[0:prev_clon] = coverage_clon_phi[prev_clon] 
+                    coverage_clon_phi[clon:]       = clons[i]
+                    prev_sclon = clon
+
+                elif src[i] == "HMI": 
+                    coverage_hmi[0:prev_clon] = coverage_hmi[prev_clon]
+                    coverage_hmi[clon:] = True
+
+                    coverage_time_hmi[0:prev_clon] = coverage_time_hmi[prev_clon]
+                    coverage_time_hmi[clon:]       = et2datetime64(et)[0]
+
+                    coverage_clon_hmi[0:prev_clon] = coverage_clon_hmi[prev_clon]
+                    coverage_clon_hmi[clon:]       = clons[i]
+                    prev_eclon = clon
             else:
                 coverage[clon:prev_clon] = True                
 
@@ -508,124 +541,6 @@ def carrington_observation_coverage(solo_obs, earth_obs):
             return coverage_time, coverage_clon, coverage_src
     
     raise ValueError("Coverage not complete within given observation times.")
-
-
-def carrington_observation_coverage_backup(solo_obs, earth_obs, plot=False):
-
-    # this function relies on the observation cadence provided by carrington_observation_times and 
-    # can thus return different fast synoptic observation times than the carrington_observation_duration
-    # function which directly uses the et resolution
-
-    # unpack obs_lld and obs_rsw
-    [solo_utc,  solo_ets,  solo_clon,  solo_hdis]  = solo_obs
-    [earth_utc, earth_ets, earth_clon, earth_hdis] = earth_obs
-    
-
-    # src: 1 PHI, 2 HMI, old: 0 RSW, 1 LLD, 2 HMI
-    earth_src = np.zeros(len(earth_utc)) + 2    
-    solo_src  = np.zeros(len(solo_utc))  + 1
-
-    utc   = np.concatenate([solo_utc,  earth_utc])
-    ets   = np.concatenate([solo_ets,   earth_ets])
-    clons = np.concatenate([solo_clon, earth_clon])
-    hdis  = np.concatenate([solo_hdis, earth_hdis])
-    src   = np.concatenate([solo_src,  earth_src])
-
-
-    # The resulting array contains the et ordered solo values before the earth values
-    # This has to be ordered for increasing et again. The new order is determined with
-    # the np.argsort function and applied to all 5 arrays
-
-    order = np.argsort(ets)
-
-    utc   = utc[order]
-    ets   = ets[order]
-    clons = clons[order]
-    hdis  = hdis[order]
-    src   = src[order]
-
-    coverage       = np.zeros(360)
-    coverage_time  = np.empty(360, dtype="datetime64[s]")
-
-    coverage_track = []
-    coverage_src   = np.zeros(360)
-
-    # New version cannot iterate over general ets since there are entries
-    # for different INTERPOLATED ets for solo and hmi. Therefore, 
-    # merge solo_obs and earth_obs while tracking the obsevation source
-    # (add src array = 2 to earth_obs) and then iterate over all ets
-    # until the map is full. Discard remaining data once the map is full.
-    
-    # Maybe save single spacecraft coverage history for separate use?
-    # This also provides a temporal evolution of the synoptic map creation
-    # and can be used for future animations and the clon source plot
-    # Then create a nice clon source plot and a script for the temporal
-    # evolution with single frames for each observation
-
-    prev_eclon = None # tracks the last observed carrington longitude from earth
-    prev_sclon = None # tracks the last observed carrington longitude from solo
-
-    for i, et in enumerate(ets):
-
-        clon = int(clons[i])
-        if src[i] < 2:
-            prev_clon = prev_sclon
-        else:
-            prev_clon = prev_eclon
-
-
-        if prev_clon is None:
-            coverage[clon] = 1
-            coverage_src[clon] = src[i]
-            coverage_time[clon] = et2datetime64(et)[0]
-            coverage_track.append(coverage_src)
-
-
-            
-            if src[i] < 2:
-                prev_sclon = clon
-            else:
-                prev_eclon = clon
-
-        else:
-            # observation in decreasing clon. prev_clon > clon
-            # prev_clon - clon < 0 indicates a jump from low to high longitudes
-            if prev_clon - clon < 0:
-                coverage[0:prev_clon] = 1       # fill up the lower longitudes since previous clon
-                coverage[clon:] = 1             # fill up the high lontitudes from the current clon to the end
-                                                # this can probably be converage[clon:] instead of :361
-
-                coverage_src[0:prev_clon] = src[i] # I don't think +1 is required: coverage_src[0:prev_clon+1] = src[i]
-                coverage_src[clon:] = src[i]
-                
-                coverage_time[0:prev_clon] = et2datetime64(et)[0]
-                coverage_time[clon:]       = et2datetime64(et)[0]
-
-                coverage_track.append(coverage_src)
-
-                if src[i] < 2:
-                    prev_sclon = clon
-                else:
-                    prev_eclon = clon
-            
-            else:
-                coverage[clon:prev_clon] = 1
-                coverage_src[clon:prev_clon] = src[i]
-                coverage_time[clon:prev_clon] = et2datetime64(et)[0]
-                coverage_track.append(coverage_src)
-
-                if src[i] < 2:
-                    prev_sclon = clon
-                else:
-                    prev_eclon = clon
-                    
-
-        if np.sum(coverage) == 360:
-            dt = (et - ets[0])/86400 # days
-            print('FSM Creation Time: %s days'% np.round(dt,2))
-            break
-    return coverage, coverage_time, coverage_src, utc[:i], ets[:i], clons[:i], hdis[:i], src[:i], order, i
-
 
 
 def calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets):
@@ -749,10 +664,10 @@ def obs2drms_times(obs_utc):
     return drms_times
 
 
-def create_drms_timestring(tai_str, coverage_src):
-
+def create_drms_timestring(tai_str, coverage_src, cad_hmi, cad_phi):
+    
     # Shortens the list of DRMS compatible TAIs to a single time period string
-
+    skip = False
     src = np.zeros(len(coverage_src))
     src[coverage_src=='PHI'] = 1
     src[coverage_src=='HMI'] = 2
@@ -774,8 +689,22 @@ def create_drms_timestring(tai_str, coverage_src):
     start = len(src)-1
 
     for end in idx_trans[::-1]:
+
         print(start, end)
-        # use time periods for HMI
+        # skip single entries at the beginning and end of the list if they accidentally made it in
+        if start == end: 
+            skip = True
+            start = end-1
+            continue
+
+        if skip:
+            # start timestring from previous entry to fill in data for the skipped longitudes
+            dt = datetime.strptime(tai_str[start], "%Y.%m.%d_%H:%M:%S_TAI")
+            offset_seconds = cad_hmi if coverage_src[start] == "HMI" else cad_phi
+            dt = dt - timedelta(seconds=offset_seconds)
+            tai_str[start] = dt.strftime("%Y.%m.%d_%H:%M:%S_TAI")
+            skip = False
+        
         if coverage_src[start] == "HMI":
             tstr_hmi  += tai_str[start] + '-' + tai_str[end] + ','
 
@@ -783,6 +712,7 @@ def create_drms_timestring(tai_str, coverage_src):
             tstr_phi  += tai_str[start] + '-' + tai_str[end] + ','
                 
         start = end-1 # next entry to process is one before the current end
+        
 
     # remove ',' after last entry
     tstr_hmi  = tstr_hmi[:-1]  
@@ -888,17 +818,13 @@ if __name__ == "__main__":
 
     coverage_time, coverage_clon, coverage_src = carrington_observation_coverage(solo_obs, earth_obs)
 
-    for i, (j, k, l) in enumerate(zip(coverage_time, coverage_clon, coverage_src)):
-        print(i, j, k, l)
-
     clons_obs, idx = np.unique(coverage_clon, return_index=True)
     obs_utc = coverage_time[idx]
     obs_src = coverage_src[idx]
 
     drms_tai = obs2drms_times(obs_utc)
-
-    timestring_hmi, timestring_phi = create_drms_timestring(drms_tai, coverage_src)
-
+    
+    timestring_hmi, timestring_phi = create_drms_timestring(drms_tai, obs_src, config.earth_cad, config.solo_cad)
 
 
     #sp.kclear()
