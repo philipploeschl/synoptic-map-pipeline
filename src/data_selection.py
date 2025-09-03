@@ -7,6 +7,7 @@ from config.config import Config
 from matplotlib import pyplot as plt
 from sunpy.coordinates.sun import carrington_rotation_time, carrington_rotation_number
 import pandas as pd
+import argparse
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
@@ -245,6 +246,8 @@ def carrington_observation_times(clon, hdis, ets, start_time, interval):
     obs_et     = np.array([])
     obs_dist   = np.array([])
     obs_clon   = np.array([])
+
+    interval = interval / 3600 # convert seconds to hours
 
     rotation_period = 27.2753#25.38 # sidereal period 
     n_obs = int(np.ceil(rotation_period*24)/interval)
@@ -509,7 +512,7 @@ def carrington_observation_coverage(solo_obs, earth_obs):
 
 def carrington_observation_coverage_backup(solo_obs, earth_obs, plot=False):
 
-    # this function relies on the observation split provided by carrington_observation_times and 
+    # this function relies on the observation cadence provided by carrington_observation_times and 
     # can thus return different fast synoptic observation times than the carrington_observation_duration
     # function which directly uses the et resolution
 
@@ -625,7 +628,7 @@ def carrington_observation_coverage_backup(solo_obs, earth_obs, plot=False):
 
 
 
-def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
+def calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets):
 
     # carrington_observation_coverage concatenates solo and earth data and then
     # processes everything in one go instead of doing it separately for earth
@@ -698,13 +701,13 @@ def carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets):
     return dt, dt_date, dt_hdis
 
 
-def optimise_carringtion_observation(et_bounds, ets, dt_date, dt, dt_hdis):
+def optimise_carringtion_rotation(start_date, end_date, ets, dt_date, dt, dt_hdis):
 
     # calculate the start date for the fastest carrington map for each carrington rotation
 
     #single index and integer et to prevent ERFA warnings for astropy time objects used in carrington_rotation_number()
-    crot_start = int(carrington_rotation_number(et2datetime64(int(et_bounds[0]))[0]))
-    crot_end   = int(carrington_rotation_number(et2datetime64(int(et_bounds[1]))[0]))
+    crot_start = int(carrington_rotation_number(start_date))
+    crot_end   = int(carrington_rotation_number(end_date))
     crots      = np.arange(crot_start, crot_end+1)
 
     crot_times = [np.datetime64(time) for time in carrington_rotation_time(crots).datetime]
@@ -788,27 +791,45 @@ def create_drms_timestring(tai_str, coverage_src):
     return tstr_hmi, tstr_phi
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run the synoptic pipeline with optional config and session paths."
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to config.yaml (uses default parameters if no config is provided)."
+    )
+    return parser.parse_args()
+
+
 
 if __name__ == "__main__":
-    # List of config parameters
-    # et_resolution
-    # 
+
     # Set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    AU = 149598000.0 #km
 
+    # Load config from YAML
+    #args = parse_args()
+    #config = Config(config_path=args.config) if args.config else Config()
     config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
-    #config = Config(config_path='config.yaml')
 
     # Load meta kernel
     loaded=loadkernel(config.spice_mkpath, config.spice_mkname)
  
-    AU = 149598000.0 #km
-    et_resolution = 3600
-
+    
+    # get Ephemeris Time (et) range for SolO mission
     et_bounds=get_solo_coverage(config.spice_mkpath) # ET timestamps over entire SolO mission
-
-    ets = np.arange(et_bounds[0],et_bounds[1],et_resolution)
+    ets = np.arange(et_bounds[0],et_bounds[1], config.et_resolution)
     ets[len(ets)-1]=et_bounds[1]
+
+    if et_bounds[0] > datetime642et(config.cr_date_start)[0]:
+        raise ValueError("Start date is before start of SolO mission.")
+    
+    if et_bounds[1] < datetime642et(config.cr_date_end)[0]:
+        raise ValueError("End date is after end of SolO mission.")
+    
 
     # get spacecraft state vector with spkezr, returns (position [km] and velocity [km/s]) and light time (one-way light time in seconds)
     #[solo_GSE_pos, ltime]    = sp.spkpos("SOLO", ets,"SOLO_GSE","NONE","EARTH")  
@@ -835,49 +856,40 @@ if __name__ == "__main__":
         [earth_hdis[i], earth_hlon[i], earth_hlat[i]] = sp.reclat(earth_HCI_pos[i,:])
         [solo_hdis[i],  solo_hlon[i],  solo_hlat[i]]  = sp.reclat(solo_HCI_pos[i,:])
 
+    
     solo_hdis = solo_hdis/AU
     solo_hlat = solo_hlat*sp.dpr()
-
     earth_hdis = earth_hdis/AU
-    #earth_hlat = earth_hlat*sp.dpr() # unused, but could be used for further calculations
 
-    #delta_omega_solo  = calc_relative_rotation(solo_HCI_state)
-    #delta_omega_earth = calc_relative_rotation(earth_HCI_state)
-    #delta_omega = delta_omega_solo
 
+    # Calculate carrington longitudes as seen from Earth and SolO
     solo_clon  = simple_carrington(solo_hlon, ets)
     earth_clon = simple_carrington(earth_hlon, ets)
 
+    # calculate observation durations for all possible start times
+    crobs_duration, crobs_start, crobs_hdis = calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets)  
+    
 
-    #t_obs = np.datetime64("2022-06-09T09:00:39")
-    #et_tobs = datetime642et(t_obs)[0]
-    #i_tobs = np.searchsorted(ets, et_tobs)
-    #solo_clon[i_tobs]
+    # save output here to file to speed up future processing
+    #pd.DataFrame(np.column_stack((crobs_duration, crobs_start, crobs_hdis)), columns=["obs_duration_days", "start_date", "avg_hdis"]).to_csv( \
+    #config.output_path + 'carrington_observation_duration_' + config.cr_date_start.replace(' ', '_') + '_' + config.cr_date_end.replace(' ', '_') + '.csv', index=False)
 
-    #t_rec = np.datetime64("2022-06-24T06:56:58")
-    #et_trec = datetime642et(t_rec)[0]
-    #i_trec = np.searchsorted(ets, et_trec)
-    #earth_clon[i_trec]
-
-    # WARNING, setting high HMI cadence breaks filtering in drms_timestring() if solo_cad > 2*earth_cad
-    solo_cad  = 4 # observation cadence in hours
-    earth_cad = 4
-    #dt, dt_date = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets, et_bounds[0], cad)
-    dt, dt_date, dt_hdis = carrington_observation_duration(solo_clon, earth_clon, solo_hdis, ets)  
-
-    opt_obs = optimise_carringtion_observation(et_bounds, ets, dt_date, dt, dt_hdis)
+    # find the optimal start time for each carrington rotation for the fastest synoptic map creation
+    crobs_opt = optimise_carringtion_rotation(config.cr_date_start, config.cr_date_end, ets, crobs_start, crobs_duration, crobs_hdis)
 
 
     # produce output list with optimised observation start date for each carrington rotation
 
     # pick a specific carrington rotation for further processing
     # load output from optimise_carringtion_observation and pick a specific CR
-    fsm_start = opt_obs.loc[2239]["start_date"]
-    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, earth_cad)
-    solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, solo_cad)
+    fsm_start = crobs_opt.loc[2284]["start_date"]
+    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, config.earth_cad)
+    solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, config.solo_cad)
 
     coverage_time, coverage_clon, coverage_src = carrington_observation_coverage(solo_obs, earth_obs)
 
+    for i, (j, k, l) in enumerate(zip(coverage_time, coverage_clon, coverage_src)):
+        print(i, j, k, l)
 
     clons_obs, idx = np.unique(coverage_clon, return_index=True)
     obs_utc = coverage_time[idx]
