@@ -69,6 +69,11 @@ SYNOPTIC-MAP-PIPELINE
 
 
 ## Data Selection
+- How do we want to handle the output?
+  - separate output folder?
+  - skip session structure I guess
+
+  
 - provide some form of meta data that tracks the data used for each longitude
 - data selection through file list that is provided wiht a start and end date and possibly respects exceptions
 - get list of carrington rotation periods (start and end time) and find the fastest combination of data for each
