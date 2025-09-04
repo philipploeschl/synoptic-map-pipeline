@@ -250,7 +250,7 @@ def carrington_observation_times(clon, hdis, ets, start_time, interval):
 
     interval = interval / 3600 # convert seconds to hours
 
-    rotation_period = 27.2753#25.38 # sidereal period 
+    rotation_period = 28 # add some grace period for cadence spacing#  27.2753#25.38 # sidereal period 
     n_obs = int(np.ceil(rotation_period*24)/interval)
 
     #t0 = sp.str2et(start_time)                  # convert start_time to et
@@ -317,7 +317,6 @@ def carrington_observation_times(clon, hdis, ets, start_time, interval):
 
 def interp360(clon, clons, ets):
     
-    print((clons[0], clon, np.interp(clon, clons, ets, period=360)))
     # interpolate within one cycle of carrington longitues [0,360]
 
     # numpy interp needs the data in increasing order
@@ -327,9 +326,7 @@ def interp360(clon, clons, ets):
     signs = np.sign(clons)
     #trans = np.ravel(np.argwhere(np.diff(signs) == 2) + 1) # for -180 to 180
     trans = np.ravel(np.argwhere(np.diff(clons)>0) + 1) # for 0 to 360
-    #print(clon)
-    #print(trans)
-    #print(clons)
+
     # linearise between transition points
     clons_lin = np.copy(clons)                 # tracks the clon angle that has elapsed since t0 (positive, increasing)
     for i, pos in enumerate(trans):
@@ -344,7 +341,6 @@ def interp360(clon, clons, ets):
         clon = (clon-(clons[0]-360)) % 180 * -1
 
     #print(clons_lin)
-    print(clons[0], clon, np.interp(clon, clons_lin[::-1], ets[::-1]))
 
     #set_trace()
     return np.interp(clon, clons_lin[::-1], ets[::-1])
@@ -411,7 +407,7 @@ def carrington_observation_coverage(solo_obs, earth_obs):
     prev_sclon = None # tracks the last observed carrington longitude from solo
 
     for i, et in enumerate(ets):
-        print(i, et2datetime64(et)[0], clons[i], src[i])
+
         clon = int(clons[i])
 
         if src[i] == "PHI": prev_clon = prev_sclon
@@ -674,14 +670,11 @@ def create_drms_timestring(tai_str, coverage_src, cad_hmi, cad_phi):
 
     # +1 PHI->HMI, first HMI entry after PHI
     # -1 HMI->PHI, first PHI entry after HMI
-    #idx_trans = np.diff(src) 
-
 
     # index of transition between observatories
     idx_trans = np.ravel(np.argwhere(np.diff(src)!=0)+1) # count from 0 to trans[0] for first set
     idx_trans = np.insert(idx_trans, 0, 0)               # cover entries between start and first transition
-    #idx_trans = np.append(idx_trans, len(src)-1)        # cover entries between last transition and end
-    #idx_trans = idx_trans[::-1]                          
+                     
     tstr_phi = ''
     tstr_hmi = ''
 
@@ -690,7 +683,6 @@ def create_drms_timestring(tai_str, coverage_src, cad_hmi, cad_phi):
 
     for end in idx_trans[::-1]:
 
-        print(start, end)
         # skip single entries at the beginning and end of the list if they accidentally made it in
         if start == end: 
             skip = True
@@ -801,8 +793,6 @@ if __name__ == "__main__":
     
 
     # save output here to file to speed up future processing
-    #pd.DataFrame(np.column_stack((crobs_duration, crobs_start, crobs_hdis)), columns=["obs_duration_days", "start_date", "avg_hdis"]).to_csv( \
-    #config.output_path + 'carrington_observation_duration_' + config.cr_date_start.replace(' ', '_') + '_' + config.cr_date_end.replace(' ', '_') + '.csv', index=False)
 
     # find the optimal start time for each carrington rotation for the fastest synoptic map creation
     crobs_opt = optimise_carringtion_rotation(config.cr_date_start, config.cr_date_end, ets, crobs_start, crobs_duration, crobs_hdis)
@@ -812,21 +802,60 @@ if __name__ == "__main__":
 
     # pick a specific carrington rotation for further processing
     # load output from optimise_carringtion_observation and pick a specific CR
-    fsm_start = crobs_opt.loc[2284]["start_date"]
-    earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, fsm_start, config.earth_cad)
-    solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, fsm_start, config.solo_cad)
-
-    coverage_time, coverage_clon, coverage_src = carrington_observation_coverage(solo_obs, earth_obs)
-
-    clons_obs, idx = np.unique(coverage_clon, return_index=True)
-    obs_utc = coverage_time[idx]
-    obs_src = coverage_src[idx]
-
-    drms_tai = obs2drms_times(obs_utc)
+    if os.path.isabs(config.output_path):
+        output_path = os.join(config.output_path, config.obsplan_path)
+    else:   
+        root_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
+        output_path = os.path.join(root_path, config.output_path, config.obsplan_path)
     
-    timestring_hmi, timestring_phi = create_drms_timestring(drms_tai, obs_src, config.earth_cad, config.solo_cad)
+    os.makedirs(output_path, exist_ok=True)
+
+    tstr_hmi = []
+    tstr_phi = []
+    for cr, obs in crobs_opt.iterrows():
+        earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, obs["start_date"], config.earth_cad)
+        solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, obs["start_date"], config.solo_cad)
+
+        coverage_time, coverage_clon, coverage_src = carrington_observation_coverage(solo_obs, earth_obs)
+
+        clons_obs, idx = np.unique(coverage_clon, return_index=True)
+        obs_utc = coverage_time[idx]
+        obs_src = coverage_src[idx]
+
+        drms_tai = obs2drms_times(obs_utc)
+        
+        timestring_hmi, timestring_phi = create_drms_timestring(drms_tai, obs_src, config.earth_cad, config.solo_cad)
+        
+        tstr_hmi.append(timestring_hmi)
+        tstr_phi.append(timestring_phi) 
+        
+        os.makedirs(os.path.join(output_path, f'CR{cr}'), exist_ok=True)
+        with open(os.path.join(output_path, f'CR{cr}', f'carrington_observation_times_CR{cr}.txt'), 'w') as f:
+            f.write('DRMS_TAI_TIMESTRING_HMI\n')
+            f.write(f'{timestring_hmi}\n')
+            f.write('\n')
+            f.write('DRMS_TAI_TIMESTRING_PHI\n')
+            f.write(f'{timestring_phi}\n')
+            f.write('\n')
+            f.write('UTC\tCARRINGTON_LONGITUDE\tSOURCE\n')
+            for u, c, s in zip(obs_utc, clons_obs, obs_src):
+                f.write(f'{u}\t{c:.6f}\t{s}\n')
+            f.write('\n')
 
 
+    crobs_opt['timestr_hmi'] = tstr_hmi
+    crobs_opt['timestr_phi'] = tstr_phi
+
+
+    # Write overview plan
+    crobs_opt["obs_time"] = pd.to_numeric(crobs_opt["obs_time"], errors="coerce")  # converts strings to floats, NaN if not possible
+    crobs_opt["avg_hdis"] = pd.to_numeric(crobs_opt["avg_hdis"], errors="coerce")  # converts strings to floats, NaN if not possible
+    crobs_opt["obs_time"] = crobs_opt["obs_time"].map(lambda x: f"{x:.2f}")
+    crobs_opt["avg_hdis"] = crobs_opt["avg_hdis"].map(lambda x: f"{x:.6f}")
+    crobs_opt.to_csv(os.path.join(output_path,'carrington_observation_plan_' + str(config.cr_date_start).replace(' ', '_') + '_' + str(config.cr_date_end).replace(' ', '_') + '.csv'), sep="\t", index=True)  
+       
+            # add phi and hmi timestrings to crobs_opt and save to file in output_path/planning
+    # save full coverage and timestrings to dedicated files in dedicated folders
     #sp.kclear()
 
     # TODO 
