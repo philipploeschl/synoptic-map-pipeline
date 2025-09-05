@@ -93,26 +93,26 @@ def CarringtonTime(crot, L):
     t = (C2 + CT * C1) * SID
 
     #t = T1853 + CT * C1 * SID;
-    solephem(t, eph);
+    solephem(t, eph)
 
     #print(eph[8])
-    err = CT - eph[8];
-    solephem(t + 6 * 3600.0, eph);
-    CTp50m = eph[8];
-    solephem(t - 6 * 3600.0, eph);
-    CTm50m = eph[8];
+    err = CT - eph[8]
+    solephem(t + 6 * 3600.0, eph)
+    CTp50m = eph[8]
+    solephem(t - 6 * 3600.0, eph)
+    CTm50m = eph[8]
     
     #interpolate to correct t
-    t += 12 * 3600 * (err / (CTp50m - CTm50m));
-    solephem(t, eph);
-    err = CT - eph[8];
-    solephem(t + 300.0, eph);
-    CTp50m = eph[8];
-    solephem(t - 300.0, eph);
-    CTm50m = eph[8];
+    t += 12 * 3600 * (err / (CTp50m - CTm50m))
+    solephem(t, eph)
+    err = CT - eph[8]
+    solephem(t + 300.0, eph)
+    CTp50m = eph[8]
+    solephem(t - 300.0, eph)
+    CTm50m = eph[8]
     
     #interpolate tao correct t
-    t += 600 * (err / (CTp50m - CTm50m));
+    t += 600 * (err / (CTp50m - CTm50m))
 
     return t
 
@@ -544,7 +544,7 @@ def magStats(val, npts, sum_, outThreshold):
             sum_ -= last
         
         else:
-            idx = 1;
+            idx = 1
             sum_ -= first
 
         #for (iOut = 0; idx < npts && iOut < actPts; idx++, iOut++)
@@ -586,7 +586,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     
     config["length"] = [length[0], length[1]]
     
-    synstep = 360.0 / length[0];
+    synstep = 360.0 / length[0]
     synstart = (config["cr"] - 1) * 360.0 + 0.0 * synstep
     synend = config["cr"] * 360.0 - 1.0 * synstep
 
@@ -634,7 +634,7 @@ def synoptic_map(config):#, hw_overwrite=None):
 
         rkey = int(drms_getkey[inRec]["FDRADIAL"])
         if (rkey > 0):
-            print("  Found radial keyword %d, ds=%d.\n", rkey, ds);
+            print("  Found radial keyword %d, ds=%d.\n", rkey, ds)
             if (losFound):
                 print("  Attempt to use a mixture of radial and line-of-sight images.\n")
                 print("    Rejecting ds=%d.\n" %ds)
@@ -650,13 +650,13 @@ def synoptic_map(config):#, hw_overwrite=None):
                 continue
 
             else:
-                losFound = 1;
+                losFound = 1
 
         csKey = int(drms_getkey[inRec]["CARSTRCH"])
         #csKey = (drms_ismissing_int(csKey)) ? 0 : csKey;
 
         if(idx == 0):
-            carrStretch = csKey;
+            carrStretch = csKey
 
         else:
             if(csKey != carrStretch):
@@ -668,7 +668,7 @@ def synoptic_map(config):#, hw_overwrite=None):
         if (carrStretch > 0):
             csCoeffKey = float(drms_getkey[inRec]["DIFROT_A"])
             if (idx == 0):
-                diffrotA = float(csCoeffKey);
+                diffrotA = float(csCoeffKey)
             else: 
                 if (np.fabs(csCoeffKey - diffrotA) > 0.001):
                     print("  Attempt to use inconsistent carr stretch parameters.\n")
@@ -1105,7 +1105,7 @@ def CalcSynCols(start, #int start,
                     synop[row * length[0] + col] = synVal
                 
             else:
-                synop[row * length[0] + col] = DRMS_MISSING_FLOAT;
+                synop[row * length[0] + col] = DRMS_MISSING_FLOAT
     
             ww[row * length[0] + col] = npts
             #//	 epts[row * len[0] + col] = nEquivPts;
@@ -1162,9 +1162,9 @@ def create_header(outRec, config, stats, imrec, small=False):
         yout = config["length"][1]
 
     eph = np.zeros(30)
-    tstart = CarringtonTime(config["cr"], 360.0);
-    tstop  = CarringtonTime(config["cr"], 0.0);
-    trot   = CarringtonTime(config["cr"], 180.0);
+    tstart = CarringtonTime(config["cr"], 360.0)
+    tstop  = CarringtonTime(config["cr"], 0.0)
+    trot   = CarringtonTime(config["cr"], 180.0)
     delta_T = sscan_time("1977.01.01_00:00:00_TAI") - sscan_time("1601.01.01_00:00:00_UT")
     
     firstidx = 0
