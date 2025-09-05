@@ -176,5 +176,5 @@ solo_cad:  14400  # defaut: 14400 = 4h in seconds
 
 # Use ISO 8601 compatible format for numpy datetime: 'YYYY-MM-DDTHH:MM:SS'
 cr_date_start: '2022-01-01T00:00:00'
-cr_date_send:  '2026-12-31T00:00:00'
+cr_date_end:  '2026-12-31T00:00:00'
 
