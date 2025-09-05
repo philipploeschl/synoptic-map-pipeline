@@ -4,8 +4,9 @@ import subprocess
 import glob
 import signal
 from datetime import timedelta
-
-
+import numpy as np
+from sunpy.coordinates.sun import carrington_rotation_time
+from scipy import interpolate
 
 def create_session_folder(config):
     """
@@ -176,8 +177,178 @@ def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
 
 
 
+def get_dataseries_count(data_series, period, interval):
+    
+    si_string = "show_info -iP %s[%s%s]" %(data_series, period, interval)
+    wc_string = "%s | wc -l" % si_string
+    
+    wc_out = int(subprocess.check_output(wc_string, shell=True)[:-1].decode("utf-8"))
+    
+    return wc_out 
 
 
+def get_dataseries_times(data_series, period, interval):
+    
+    times = []
+    si_string = "show_info -iP %s[%s%s]" %(data_series, period, interval)
+    
+    si_out = subprocess.check_output(si_string, shell=True)[:-1].decode("utf-8")
+    
+    raw = si_out.split('\n') #separate data series from SUMS path
+    
+    for line in raw[1:]:
+        i = line.find('[')
+        j = line.find(']')
+        times.append(line[i+1:j]) # [clong, cmLong]
+
+    return times 
+
+
+def get_dates_from_timestring(timestring, drms=False):
+    
+    # Split into all timestamps
+    parts = timestring.replace("-", ",").split(",")
+
+    # Parse into datetime objects (strip "_TAI")
+    times = [datetime.strptime(p.replace("_TAI", ""), "%Y.%m.%d_%H:%M:%S") for p in parts]
+
+    # Get min and max
+    if drms:
+        earliest = min(times).strftime("%Y.%m.%d_%H:%M:%S_TAI")
+        latest   = max(times).strftime("%Y.%m.%d_%H:%M:%S_TAI")
+    else:
+        earliest = min(times).strftime("%Y-%m-%d")
+        latest   = max(times).strftime("%Y-%m-%d")
+
+    return earliest, latest
+
+
+#OBSOLETE
+def get_drms_keywords(inRecs, input_ds):
+
+    #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
+    show_info = 'show_info %s["%s"] key="T_REC,CRLN_OBS,CAR_ROT"'
+    
+    #-P for path and -A for segment
+    si_out = subprocess.check_output(show_info %(input_ds, inRecs) , shell=True)[:-1].decode("utf-8")
+    raw = si_out.split('\n')
+
+    formatted = [] 
+    drms_param = []
+    
+    nRecs = 0
+    keys = raw[0].split('\t')
+    
+    for line in raw[1:]:  
+        formatted = line.split('\t') # [CALVER64, T_REC, QUALITY, FDRADIAL, CARSTRCH, DIFROT_A, DIFROT_B, DIFROT_C, CRVAL1, CRLN_OBS, CAR_ROT, MAPLGMAX, MAPLGMIN, I_DREC]
+
+        dict_tmp = {}
+
+        for i, key in enumerate(keys):
+            
+            if key == "magnetogram" or key == 'Ml':
+                key = "PATH"
+                
+            if formatted[i].strip() == "InvalidKeyname":
+                dict_tmp[key] = 0
+            else:
+                dict_tmp[key] = formatted[i]
+   
+        drms_param.append(dict_tmp)
+        nRecs += 1
+
+    return drms_param, nRecs
+
+#OBSOLETE
+def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
+    # Interpolate T_REC of PHI CRLN_OBS onto HMI CRLN_OBS
+    dt_hmi   = np.array([])
+    trec_hmi = np.array([])
+    crln_hmi = np.array([])
+
+    hmi_times = "%s-%s" %(t0.datetime.strftime("%Y.%m.%d_%H:%M:%S_TAI"), t1.datetime.strftime("%Y.%m.%d_%H:%M:%S_TAI"))
+    hmi_data, n = get_drms_keywords(hmi_times, "hmi.m_720s") #"mps_loeschl.Ml_remap_720s")
+    
+    #print('Mapping PHI to CR %s in HMI period %s...\n' %(car_rot, hmi_times))
+
+    for line in hmi_data:
+        # CRLN_OBS will be NaN if no observation is available for a timeslot -> nan filter required
+        if np.isnan(float(line['CRLN_OBS'])): continue 
+        
+        trec_hmi = np.append(trec_hmi, datetime.strptime(line['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI"))
+        dt_hmi   = np.append(dt_hmi, ((trec_hmi[-1] - t0.datetime).days +(trec_hmi[-1] - t0.datetime).seconds/(3600*24)))    
+        crln_hmi = np.append(crln_hmi, float(line['CRLN_OBS']))
+
+    # Interpolation fails if the HMI onto which I want to map is not complete yet!
+    # this will happen whenever we try to preview ongoing carrington rotations
+    # the timeslot interpolation must be based on an extrapolation for the remaining HMI time slots/clrn obs
+    
+    # extrapolation if trec_hmi[-1]-trec_hmi[0] < 1 month
+    crd = t1-t0 # carrington rotation duration
+    
+    hmi_end = datetime.strptime(hmi_data[-1]['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI")
+    dt = (hmi_end-t0.datetime).days +(hmi_end-t0.datetime).seconds/(3600*24)
+    tstep = timedelta(minutes=12)
+    
+    # Extrapolation of T_REC/CRLN_OBS in 12 minute steps
+    if dt < crd:
+        crln_fit = interpolate.interp1d(dt_hmi, crln_hmi, fill_value = "extrapolate")
+        nsteps = np.ceil(((crd-dt)*(24*3600)).value/720).astype(int) # difference in seconds
+        
+        for i in range(1, nsteps):
+            #hmi_data.append({'T_REC':(hmi_end+i*tstep).strftime("%Y.%m.%d_%H:%M:%S_TAI"), 'CRLN_OBS':crln_fit[i-1], 'CAR_ROT':hmi_data[0]['CAR_ROT']})
+            dt_hmi   = np.append(dt_hmi, (((hmi_end+i*tstep) - t0.datetime).days +((hmi_end+i*tstep) - t0.datetime).seconds/(3600*24)))    
+            trec_hmi = np.append(trec_hmi, (hmi_end+i*tstep).strftime("%Y.%m.%d_%H:%M:%S_TAI"))
+            
+            crln =  crln_fit(dt_hmi[-1])
+            if crln < 0: crln += 360
+            crln_hmi = np.append(crln_hmi, crln)
+    
+    t_interp = timedelta(days=np.interp(crln_obs, crln_hmi, dt_hmi, period=360))
+    trec_phi = t0.datetime+t_interp
+    trec_hmi = trec_phi.strftime("%Y.%m.%d_%H:%M:%S_TAI")
+    
+    if verbose: print('Mapping PHI observation of CRLN %.2f to HMI T_REC %s during CR%s...\n' %(crln_obs, trec_hmi, car_rot))
+    
+    return trec_hmi
+
+
+#OBSOLETE
+def calc_trec(crln_obs, car_rot, verbose=False):
+    # helper function to prepare hmi data for interp_phi2hmi() interpolation
+
+    # remap and >180 means that HMI_PAST is the previous CAR_ROT and HMI_FUTR is the current CAR_ROT
+    # remap and <180 means that HMI_FUTR is the current CAR_ROT and HMI_PAST is the previous CAR_ROT
+    
+    # TODO WHY IS THIS HARD CODED HERE?
+    car_rot = 2258
+    
+    # THIS IS LOGIC DOESN'T MAKE SENSE FOR THE BOTTOM LEFT QUARTER OF OBSERVATIONS (ORBIT_PLOTS)
+    if False:# crln_obs > 180:
+        # t defined by when HMI sees it (future/past)
+        #t0 = carrington_rotation_time(car_rot-1) # past / current
+        #t1 = carrington_rotation_time(car_rot)   # future
+        
+        t0 = carrington_rotation_time(car_rot-1) # past / current CAR_ROT
+        t1 = carrington_rotation_time(car_rot)   # future
+        t2 = carrington_rotation_time(car_rot+1) # future end point
+        
+        trec_hmi = interp_phi2hmi(crln_obs, t0, t1, verbose)
+        hmi_next = interp_phi2hmi(crln_obs, t1, t2)
+        hmi_prev = trec_hmi
+        car_rot -= 1
+        
+    else:
+        t0 = carrington_rotation_time(car_rot-1) # past  
+        t1 = carrington_rotation_time(car_rot)   # future / current
+        t2 = carrington_rotation_time(car_rot+1) # future end point
+
+        trec_hmi = interp_phi2hmi(crln_obs, t1, t2, verbose, car_rot)
+        hmi_prev = interp_phi2hmi(crln_obs, t0, t1)
+        hmi_next = trec_hmi
+        
+    #print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
+    return trec_hmi, hmi_prev, hmi_next, car_rot
 
 #if __name__ == "__main__":
     # Example usage
