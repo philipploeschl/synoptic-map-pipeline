@@ -740,7 +740,7 @@ def synoptic_map(config):#, hw_overwrite=None):
         imrec.append(imrec_tmp)
         idx += 1
 
-    ngood = idx;
+    ngood = idx
     
     config["ngood"] = ngood
     config["DIFROT_A"] = diffrotA
