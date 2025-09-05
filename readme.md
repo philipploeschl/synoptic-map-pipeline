@@ -1,5 +1,37 @@
 This is currently abused as a todo list
 test
+
+# TODO
+## Gherardo
+- what time should we use as T_REC? DATE-AVG? with or without TAI conversion?
+
+## HMI PHI Synoptic
+- how does CAR_ROT affect the map production?
+- DONE this probably needs a CAR_ROT override since we can't guarantee equal CAR_ROT for all PHI data
+
+## PHI DRMS Interface
+- phi duplicate filtering for single data series transition
+- TODO SET config.date_start AND config.date_end ACCORDING TO TIMESTRING_PHI 
+
+## M720 Processing
+- bind m720s_drms_pipe period to hmi_timestring
+
+
+## Data selection output
+- add CR start and end dates to the csv output
+- 2252	2022-01-04T10:55:49	25.79	0.934653	2022.01.11_22:56:26_TAI-2022.01.30_06:56:25_TAI,2022.01.04_10:56:26_TAI-2022.01.11_18:56:26_TAI	2022.01.29_02:56:25_TAI-2022.01.30_06:56:25_TAI
+- why is the 2nd HMI string before the first string?
+- 2254: why is htere no PHI data
+
+
+## Data selection 
+- add start time of phi obsevation and build the ET around that
+- add +- half cadence to the phi timestrings?
+- add data selection not depending on newest observation date but predetermined data set from config
+- change CRXXXX txt output to be usable for phi/hmi data selection like in the yt video to the output.pdf
+
+
+
 # FEATURES
 ## Updated session sandling
 The session handling now is now done directly from the main wrapper synop_pipeline.py instead of drms_prep.py. This replaces the previous handover via session_path.txt
