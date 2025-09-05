@@ -2,7 +2,6 @@ import yaml
 from pathlib import Path
 import warnings
 from datetime import datetime
-import numpy as np
 
 class Config:
     # Default values
@@ -170,25 +169,6 @@ class Config:
 
 
         ###########################################################
-        ############## Data Selection Configuration ###############
-        ###########################################################
-
-        # Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
-        # https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
-        "spice_mkpath": '/scratch/slam/loeschl/spice/solar-orbiter/kernels/mk/',  # path to meta kernel
-        "spice_mkname": 'solo_ANC_soc-flown-mk.tm', # meta kernel name
-
-        "et_resolution": 3600, # seconds between two ephemeris entries, default 3600s = 1h
-
-        "solo_cad":  14400, # Solo cadence in hours, default 4h
-        "earth_cad": 14400, # Earth cadence in hours, default 4h
-
-        # Requires valid ISO 8601 style date strings for numpy.datetime64 
-        "cr_date_start": "2021-11-26T00:00:00", # YYYY-MM-DDTHH:MM:SS
-        "cr_date_end":   "2030-12-30T23:59:59", # YYYY-MM-DDTHH:MM:SS
-
-
-        ###########################################################
         ############## DON'T CHANGE THESE PARAMETERS ##############
         ###########################################################
 
@@ -212,7 +192,6 @@ class Config:
         self._data = {}
         self._load()
         self._assemble_name_strings()
-        self._convert_dates()
 
     def _deep_update(self, defaults, overrides):
         """
@@ -310,17 +289,6 @@ class Config:
         self._data["synop_small_name"] = "synop%s_small.fits" % self._data["proj"]
 
 
-    def _convert_dates(self):
-        """Convert date strings to numpy.datetime64 objects."""
-        try:
-            self._data["cr_date_start"] = np.datetime64(self._data["cr_date_start"])
-            self._data["cr_date_end"]   = np.datetime64(self._data["cr_date_end"])
-        except Exception as e:
-            raise ValueError(f"Error converting date strings: {e}. Use valid ISO 8601 format e.g. YYYY-MM-DDTHH:MM:SS")
-
-        if self._data["cr_date_start"] > self._data["cr_date_end"]:
-            raise ValueError(f'cr_date_start {self._data["cr_date_start"]} must be before cr_date_end { self._data["cr_date_end"]}.')
-
     def __getattr__(self, name):
         """Allow attribute-style access (e.g., config.verbose)."""
         if name in self._data:
@@ -333,6 +301,21 @@ class Config:
     
 
     
+
+
+if __name__ == "__main__":
+
+    config = Config('testconfig.yaml')
+    #print(config.phi_datapath)
+    #print(config.synop_name)
+    print(config.data_series_phi)
+    print(config.data_series_jv2ts)
+    print(config.data_series_remap)
+    print(config.data_series_synop)
+    print(config.data_series_polfil)
+    print(config.synop_name)
+    print(config.synop_small_name)
+
 
 
 
