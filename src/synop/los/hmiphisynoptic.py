@@ -71,6 +71,18 @@ def get_drms_parameters(inRecs, input_ds):
     return drms_param, nRecs
 
 
+def common_carrot(drms_getkey):
+    
+    carrots = []
+    for inRec in drms_getkey:
+        carrots.append(float(inRec['CAR_ROT']))
+
+    most_common = max(carrots, key=carrots.count)
+
+    for inRec in drms_getkey:
+        inRec["CAR_ROT"] = most_common
+    
+    return drms_getkey
 
 # Misc functions
 
@@ -610,6 +622,8 @@ def synoptic_map(config):#, hw_overwrite=None):
 
     nRecs = nRecs_hmi + nRecs_phi
 
+    # select the most common CAR_ROT entry and set it for all data
+    drms_getkey = common_carrot(drms_getkey)
 
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
