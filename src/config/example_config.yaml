@@ -44,6 +44,7 @@ log_path   : 'logs/'    # path to log files, relative to synop/output/CR_NUMBER_
 data_path  : 'data/'    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
 jsd_path   : 'jsd/'     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
 synop_path : 'synop/'   # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
+config.obsplan_path: 'observation_plan' # path to data selection output
 
 # File structure created in misc.py: create_session_folder
 # - OUTPUT_PATH/
@@ -58,10 +59,6 @@ synop_path : 'synop/'   # path to synoptic maps, relative to synop/output/CR_NUM
 template_path: "data/drms/templates/" 
 
 
-# Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
-# https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
-spice_mkpath: '/scratch/slam/loeschl/spice/solar-orbiter/kernels/mk/'  # path to meta kernel
-spice_mkname: 'solo_ANC_soc-flown-mk.tm' # meta kernel name
 
 ###########################################################
 ################# Data series definition ##################
@@ -161,4 +158,23 @@ noiseS      : 3.0  # std dev of noise
 maxNoiseAdj : 3.0  # maximum adjustment due to increases with latitude of the noise level (radial data only) 
 minOutPts   : 4.0  # minimum number of points that must exist before outliers can be  discarded when calulating summary statistics
 
+
+###########################################################
+###################### Data selection## ###################
+###########################################################
+
+
+# Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
+# https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
+spice_mkpath: '/scratch/slam/loeschl/spice/solar-orbiter/kernels/mk/'  # path to meta kernel
+spice_mkname: 'solo_ANC_soc-flown-mk.tm' # meta kernel name
+
+et_resolution: 3600 # default: 3600 = 1h in seconds
+
+earth_cad: 14400  # defaut: 14400 = 4h in seconds
+solo_cad:  14400  # defaut: 14400 = 4h in seconds
+
+# Use ISO 8601 compatible format for numpy datetime: 'YYYY-MM-DDTHH:MM:SS'
+cr_date_start: '2022-01-01T00:00:00'
+cr_date_send:  '2026-12-31T00:00:00'
 
