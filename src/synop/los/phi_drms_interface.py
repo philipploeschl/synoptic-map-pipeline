@@ -1,181 +1,14 @@
 import os, sys, subprocess
-
 import numpy as np
-from scipy import interpolate
 from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
-from sunpy.coordinates.sun import carrington_rotation_time
-
-from utils.utils import add_script_header, add_check_continue, get_phi_filenames
-
-# Create DRMS compatible FITS header
-
-def calc_trec(crln_obs, car_rot, verbose=False):
-    # helper function to prepare hmi data for interp_phi2hmi() interpolation
-
-    # remap and >180 means that HMI_PAST is the previous CAR_ROT and HMI_FUTR is the current CAR_ROT
-    # remap and <180 means that HMI_FUTR is the current CAR_ROT and HMI_PAST is the previous CAR_ROT
-    
-    # TODO WHY IS THIS HARD CODED HERE?
-    car_rot = 2258
-    
-    # THIS IS LOGIC DOESN'T MAKE SENSE FOR THE BOTTOM LEFT QUARTER OF OBSERVATIONS (ORBIT_PLOTS)
-    if False:# crln_obs > 180:
-        # t defined by when HMI sees it (future/past)
-        #t0 = carrington_rotation_time(car_rot-1) # past / current
-        #t1 = carrington_rotation_time(car_rot)   # future
-        
-        t0 = carrington_rotation_time(car_rot-1) # past / current CAR_ROT
-        t1 = carrington_rotation_time(car_rot)   # future
-        t2 = carrington_rotation_time(car_rot+1) # future end point
-        
-        trec_hmi = interp_phi2hmi(crln_obs, t0, t1, verbose)
-        hmi_next = interp_phi2hmi(crln_obs, t1, t2)
-        hmi_prev = trec_hmi
-        car_rot -= 1
-        
-    else:
-        t0 = carrington_rotation_time(car_rot-1) # past  
-        t1 = carrington_rotation_time(car_rot)   # future / current
-        t2 = carrington_rotation_time(car_rot+1) # future end point
-
-        trec_hmi = interp_phi2hmi(crln_obs, t1, t2, verbose, car_rot)
-        hmi_prev = interp_phi2hmi(crln_obs, t0, t1)
-        hmi_next = trec_hmi
-        
-    #print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
-    return trec_hmi, hmi_prev, hmi_next, car_rot
-
-"""
-def calc_trec_rev(crln_obs, car_rot, verbose=False):
-    # helper function to prepare hmi data for interp_phi2hmi() interpolation
-
-    # remap and >180 means that HMI_PAST is the previous CAR_ROT and HMI_FUTR is the current CAR_ROT
-    # remap and <180 means that HMI_FUTR is the current CAR_ROT and HMI_PAST is the previous CAR_ROT
-    
-    t0 = carrington_rotation_time(car_rot-1) # past / current CAR_ROT
-    t1 = carrington_rotation_time(car_rot)   # future
-    t2 = carrington_rotation_time(car_rot+1) # future end point
-    
-    # THIS IS LOGIC DOESN'T MAKE SENSE FOR THE BOTTOM LEFT QUARTER OF OBSERVATIONS (ORBIT_PLOTS)
-    if crln_obs > 180:
-        # t defined by when HMI sees it (future/past)
-        #t0 = carrington_rotation_time(car_rot-1) # past / current
-        #t1 = carrington_rotation_time(car_rot)   # future
-    
-        trec_hmi = interp_phi2hmi(crln_obs, t0, t1, verbose)
-        hmi_next = interp_phi2hmi(crln_obs, t1, t2)
-        hmi_prev = trec_hmi
-        car_rot -= 1
-        
-    else:
-        
-        trec_hmi = interp_phi2hmi(crln_obs, t1, t2, verbose)
-        hmi_prev = interp_phi2hmi(crln_obs, t0, t1)
-        hmi_next = trec_hmi
-        
-    print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
-    return trec_hmi, hmi_prev, hmi_next, car_rot
-"""
+from utils.utils import add_script_header, add_check_continue, get_phi_filenames, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
 
 
-def interp_phi2hmi(crln_obs, t0, t1, verbose=False, car_rot=None):
-    # Interpolate T_REC of PHI CRLN_OBS onto HMI CRLN_OBS
-    dt_hmi   = np.array([])
-    trec_hmi = np.array([])
-    crln_hmi = np.array([])
-
-    hmi_times = "%s-%s" %(t0.datetime.strftime("%Y.%m.%d_%H:%M:%S_TAI"), t1.datetime.strftime("%Y.%m.%d_%H:%M:%S_TAI"))
-    hmi_data, n = get_drms_keywords(hmi_times, "hmi.m_720s") #"mps_loeschl.Ml_remap_720s")
-    
-    #print('Mapping PHI to CR %s in HMI period %s...\n' %(car_rot, hmi_times))
-
-    for line in hmi_data:
-        # CRLN_OBS will be NaN if no observation is available for a timeslot -> nan filter required
-        if np.isnan(float(line['CRLN_OBS'])): continue 
-        
-        trec_hmi = np.append(trec_hmi, datetime.strptime(line['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI"))
-        dt_hmi   = np.append(dt_hmi, ((trec_hmi[-1] - t0.datetime).days +(trec_hmi[-1] - t0.datetime).seconds/(3600*24)))    
-        crln_hmi = np.append(crln_hmi, float(line['CRLN_OBS']))
-
-    # Interpolation fails if the HMI onto which I want to map is not complete yet!
-    # this will happen whenever we try to preview ongoing carrington rotations
-    # the timeslot interpolation must be based on an extrapolation for the remaining HMI time slots/clrn obs
-    
-    # extrapolation if trec_hmi[-1]-trec_hmi[0] < 1 month
-    crd = t1-t0 # carrington rotation duration
-    
-    hmi_end = datetime.strptime(hmi_data[-1]['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI")
-    dt = (hmi_end-t0.datetime).days +(hmi_end-t0.datetime).seconds/(3600*24)
-    tstep = timedelta(minutes=12)
-    
-    # Extrapolation of T_REC/CRLN_OBS in 12 minute steps
-    if dt < crd:
-        crln_fit = interpolate.interp1d(dt_hmi, crln_hmi, fill_value = "extrapolate")
-        nsteps = np.ceil(((crd-dt)*(24*3600)).value/720).astype(int) # difference in seconds
-        
-        for i in range(1, nsteps):
-            #hmi_data.append({'T_REC':(hmi_end+i*tstep).strftime("%Y.%m.%d_%H:%M:%S_TAI"), 'CRLN_OBS':crln_fit[i-1], 'CAR_ROT':hmi_data[0]['CAR_ROT']})
-            dt_hmi   = np.append(dt_hmi, (((hmi_end+i*tstep) - t0.datetime).days +((hmi_end+i*tstep) - t0.datetime).seconds/(3600*24)))    
-            trec_hmi = np.append(trec_hmi, (hmi_end+i*tstep).strftime("%Y.%m.%d_%H:%M:%S_TAI"))
-            
-            crln =  crln_fit(dt_hmi[-1])
-            if crln < 0: crln += 360
-            crln_hmi = np.append(crln_hmi, crln)
-    
-    t_interp = timedelta(days=np.interp(crln_obs, crln_hmi, dt_hmi, period=360))
-    trec_phi = t0.datetime+t_interp
-    trec_hmi = trec_phi.strftime("%Y.%m.%d_%H:%M:%S_TAI")
-    
-    if verbose: print('Mapping PHI observation of CRLN %.2f to HMI T_REC %s during CR%s...\n' %(crln_obs, trec_hmi, car_rot))
-    
-    return trec_hmi
-    
-
-def get_drms_keywords(inRecs, input_ds):
-
-    #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
-    show_info = 'show_info %s["%s"] key="T_REC,CRLN_OBS,CAR_ROT"'
-    
-    #-P for path and -A for segment
-    si_out = subprocess.check_output(show_info %(input_ds, inRecs) , shell=True)[:-1].decode("utf-8")
-    raw = si_out.split('\n')
-
-    formatted = [] 
-    drms_param = []
-    
-    nRecs = 0
-    keys = raw[0].split('\t')
-    
-    for line in raw[1:]:  
-        formatted = line.split('\t') # [CALVER64, T_REC, QUALITY, FDRADIAL, CARSTRCH, DIFROT_A, DIFROT_B, DIFROT_C, CRVAL1, CRLN_OBS, CAR_ROT, MAPLGMAX, MAPLGMIN, I_DREC]
-
-        dict_tmp = {}
-
-        for i, key in enumerate(keys):
-            
-            if key == "magnetogram" or key == 'Ml':
-                key = "PATH"
-                
-            if formatted[i].strip() == "InvalidKeyname":
-                dict_tmp[key] = 0
-            else:
-                dict_tmp[key] = formatted[i]
-   
-        drms_param.append(dict_tmp)
-        nRecs += 1
-
-    return drms_param, nRecs
-
-
+  
 
 def main(config, session_folder):
-
-    #TODO 
-    # - clean up old code
-    # - why is car_rot hard coded in calc_trec()?
-
     #set cwd to file directory
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -183,11 +16,12 @@ def main(config, session_folder):
     outpath_data    = os.path.join(session_folder, config.data_path)
     #outpath_logs    = os.path.join(session_folder, config.log_path)
 
-    # old config.phi_datapath implementation
-    #files = os.listdir(config.phi_datapath)
-    #fitsfiles = [file for file in files if file.endswith(".fits") or file.endswith(".fits.gz")]
+    date_start, date_end = get_dates_from_timestring(config.timestring_phi)
 
-    fitsfiles = get_phi_filenames(config.phi_dbpath, config.date_start, config.date_end, config.key, config.verbose)
+    #times = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)  # list with all queued time stamps
+    existing_timestamps = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)
+
+    fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
 
     if fitsfiles[0].endswith(".fits"):
         n_end = 5
@@ -197,6 +31,7 @@ def main(config, session_folder):
     trecs = []
     clons = []
 
+    
     for file in fitsfiles:
         #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
         l2 = fits.open(os.path.join(config.phi_dbpath,file))
@@ -209,12 +44,13 @@ def main(config, session_folder):
         l2drms.header.append(('', '', ''), end=True)
         l2drms.header.append(('', '  / HMI Compatibility', ''), end=True)
         
+        # OBSOLETE
         # TODO TEMPORARY: Fix CAR_ROT bug, figure out what's going on for production version
-        if l2[0].header['CAR_ROT'] == 2239: 
-            l2[0].header['CAR_ROT'] = 2240
-        
-        if l2[0].header['CRLN_OBS'] == 358.80689 and l2[0].header['CAR_ROT'] == 2240:
-            l2[0].header['CAR_ROT'] = 2241
+        #if l2[0].header['CAR_ROT'] == 2239: 
+        #    l2[0].header['CAR_ROT'] = 2240
+        #
+        #if l2[0].header['CRLN_OBS'] == 358.80689 and l2[0].header['CAR_ROT'] == 2240:
+        #    l2[0].header['CAR_ROT'] = 2241
         
         # T_REC / T_OBS
         #DATE-AVG= '2021-02-05T20:00:45.616' / [UTC] Average time of observation     
@@ -224,17 +60,27 @@ def main(config, session_folder):
         #trec = datetime.strptime(l2[0].header['DATE-AVG'],   "%Y-%m-%dT%H:%M:%S.%f")
         tobs = datetime.strptime(l2[0].header['DATE-AVG'],   "%Y-%m-%dT%H:%M:%S.%f")
         
-        #utc2tai = timedelta(0, 37)                 # use for utc2tai conversion
-        #trec = trec + utc2tai                      # use for utc2tai conversion
-        #trec = trec.strftime("%Y.%m.%d_%H:%M:%S_TAI")
+        #TODO T_TOBS TAI CONVERSION?
+        utc2tai = timedelta(0, 37)                 # use for utc2tai conversion
+        #tobs = tobs + utc2tai                      # use for utc2tai conversion
         tobs = tobs.strftime("%Y.%m.%d_%H:%M:%S_TAI")
 
-        # T_REC Interpolation     
-        if config.verbose: print("True observation time during Carrington rotation %s: %s" %(l2[0].header['CAR_ROT'], tobs))  
-        trec, hmi_prev, hmi_next, car_rot = calc_trec(float(l2[0].header['CRLN_OBS']), int(l2[0].header['CAR_ROT']), verbose=config.verbose)
+        # skip file if tobs already exists in phi dataseries
+        if config.filter_duplicates_phi:
+            if tobs in existing_timestamps:
+                if config.verbose: print("Skipping %s (duplicate)" %tobs)
+                continue
 
-        if config.verbose: print(trec, car_rot, l2[0].header['CRLN_OBS'])
+
+        # T_REC Interpolation     
+        #if config.verbose: print("True observation time during Carrington rotation %s: %s" %(l2[0].header['CAR_ROT'], tobs))  
+        #trec, hmi_prev, hmi_next, car_rot = calc_trec(float(l2[0].header['CRLN_OBS']), int(l2[0].header['CAR_ROT']), verbose=config.verbose)
+
+        #if config.verbose: print(trec, car_rot, l2[0].header['CRLN_OBS'])
         
+        # Use T_OBS as T_REC 
+        trec = tobs
+
         trecs.append(trec)
         clons.append(l2[0].header['CRLN_OBS'])
         
@@ -244,9 +90,10 @@ def main(config, session_folder):
         l2drms.header.append(('TRECEPOC', '1993.01.01_00:00:00_TAI', 'Time of origin'), end=True)
         l2drms.header.append(('TRECSTEP', 720.0,  'ts_eq step'), end=True)
         
+        # OBSOLETE
         # these two keywords are redundant with T_REC and T_OBS
-        l2drms.header.append(('HMI_PREV', hmi_prev, 'Previous HMI T_REC for this CRLN_OBS'), end=True) # HMI interpolated T_REC
-        l2drms.header.append(('HMI_NEXT', hmi_next, 'Next HMI T_REC for this CRLN_OBS'), end=True) # real PHI observation date as backup
+        #l2drms.header.append(('HMI_PREV', hmi_prev, 'Previous HMI T_REC for this CRLN_OBS'), end=True) # HMI interpolated T_REC
+        #l2drms.header.append(('HMI_NEXT', hmi_next, 'Next HMI T_REC for this CRLN_OBS'), end=True) # real PHI observation date as backup
         
         # DATE
         l2drms.header.append(('DATE', l2[0].header['DATE'], "Date and time of FITS file creation, in UTC, in ISO-8601 format 'yyyy-mm-ddThh:mm:ss.sss'"), end=True)
@@ -341,9 +188,10 @@ def main(config, session_folder):
         #CRLT_OBS
         l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of HMI'), end=True)
         
+        # OBSOLETE
         #CAR_ROT        
-        l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
-        l2drms.header.append(('CAR_ROT2', car_rot, 'Carrington rotation number of synoptic map'), end=True)
+        #l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
+        #l2drms.header.append(('CAR_ROT2', car_rot, 'Carrington rotation number of synoptic map'), end=True)
         
         # OBS_VW
         # OBS_VR
@@ -385,7 +233,7 @@ def main(config, session_folder):
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
     set_info = 'setsid set_info -c ds="%s" T_REC="%s" magnetogram=%s\n'
     jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
-    set_keys = "setsid set_keys ds=%s[%s] %s=%s\n"
+    #set_keys = "setsid set_keys ds=%s[%s] %s=%s\n" #OBSOLETE
     rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
 
     trec_out = open(outpath_scripts+'trecs.txt', 'w')
@@ -429,8 +277,8 @@ def main(config, session_folder):
         file = fits.open(outpath_data+fname)[1]
         batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.phi_maprmax))
         batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.phi_maprmax))
-        batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
-        batch_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
+        #batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
+        #batch_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
 
         
         batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap))
