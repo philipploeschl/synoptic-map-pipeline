@@ -32,7 +32,14 @@ class Config:
         "session": None,
 
         # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
-        "id": "pipeline_test",
+        #"id": "pipeline_test", # OBSOLETE
+
+        "data_series_phi"  : "%s.phi_CR%s_%s",         #%(dataseries_owner, cr, id)
+        "data_series_jv2ts": "%s.%s_hiresmap_CR%s_%s", #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
+        "data_series_remap": "%s.%s_remap_CR%s_%s",    #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_remap_720s_test"
+        
+        "data_series_synop":  "%s.synoptic_%s_%s", #%(dataseries_owner, proj, id) # synoptic data series name
+        "data_series_polfil": "%s.synoptic_Mr_polfil_%s", #%(dataseries_owner, id) # synoptic Mr polfil data series name
 
         # Data path to PHI data for DRMS ingestion
         # direct path for old implementation NOT FUNCTIONAL
@@ -109,13 +116,13 @@ class Config:
         "dataseries_input": "hmi.M_720s", # "mps_production.hmi_m_720s_nrt"
 
         # HMI cadence for the M_720s data series - default/nothing: @12min, change HMI cadence for fast prototyping
-        "interval": "@12m",
+        "interval_hmi": "@12m",
 
         # HMI data period
         "period": "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI", # CR2258
 
         # Exclude already processed HMI datasets
-        "filter_duplicates": True,
+        "filter_duplicates_hmi": True,
 
         # split batch scripts after nsplit entries
         "nparallel_hmi": 15,  # number of parallel HMI DRMS shell scripts
@@ -129,6 +136,11 @@ class Config:
         "hmi_maprmax": 0.998,  # HMI default value
         "phi_maprmax": 0.9925, # maximum radius for the synoptic map
 
+        # PHI cadence for the mps_phi.XXXX data series - default/nothing: @12min (all)
+        "interval_phi": "@12m",
+
+        # Exclude already processed PHI datasets
+        "filter_duplicates_phi": True,
 
         ###########################################################
         ################### 3_hmiphisynoptic.py ###################
@@ -171,13 +183,6 @@ class Config:
         ###########################################################
         ############## DON'T CHANGE THESE PARAMETERS ##############
         ###########################################################
-
-        "data_series_phi"  : "%s.phi_CR%s_%s",         #%(dataseries_owner, cr, id)
-        "data_series_jv2ts": "%s.%s_hiresmap_CR%s_%s", #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
-        "data_series_remap": "%s.%s_remap_CR%s_%s",    #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_remap_720s_test"
-
-        "data_series_synop":  "%s.synoptic_%s_%s", #%(dataseries_owner, proj, id) # synoptic data series name
-        "data_series_polfil": "%s.synoptic_Mr_polfil_%s", #%(dataseries_owner, id) # synoptic Mr polfil data series name
 
         # Synoptic map output file name - JSD FILES NEED TO BE ALTERED IF THIS PARAMETERS IS CHANGED
         "synop_name"      : "synop%s.fits",      # proj
@@ -277,12 +282,23 @@ class Config:
             self._data["Btype"]   = "line-of-sight"
             self._data["mcorlev"] = 1 # option for magnetic correction: 0:none; 1:line of sight; 2:radial"
 
-        self._data["data_series_phi"]   = "%s.phi_CR%s_%s"         %(self._data["dataseries_owner"], self._data["cr"],   self._data["id"])
-        self._data["data_series_jv2ts"] = "%s.%s_hiresmap_CR%s_%s" %(self._data["dataseries_owner"], self._data["proj"], self._data["cr"], self._data["id"]) #"mps_loeschl.Ml_hiresmap_720s_test"
-        self._data["data_series_remap"] = "%s.%s_remap_CR%s_%s"    %(self._data["dataseries_owner"], self._data["proj"], self._data["cr"], self._data["id"])  #"mps_loeschl.Ml_remap_720s_test"
+        self._data["data_series_phi"]       = "mps_loeschl.phi_%s"          %self._data["proj"] # mps_phi.something
+        self._data["data_series_jv2ts_phi"] = "mps_loeschl.phi_%s_hiresmap" %self._data["proj"] # 
+        self._data["data_series_remap_phi"] = "mps_loeschl.phi_%s_remap"    %self._data["proj"] # 
 
-        self._data["data_series_synop"]  = "%s.synoptic_%s_%s"        %(self._data["dataseries_owner"], self._data["proj"], self._data["id"])  # synoptic data series name
-        self._data["data_series_polfil"] = "%s.synoptic_Mr_polfil_%s" %(self._data["dataseries_owner"], self._data["id"])  # synoptic Mr polfil data series name
+        self._data["data_series_hmi"]       = "hmi.M_720s"                  %self._data["proj"] # "mps_production.hmi_m_720s_nrt"
+        self._data["data_series_jv2ts_hmi"] = "mps_loeschl.hmi_%s_hiresmap" %self._data["proj"] # 
+        self._data["data_series_remap_hmi"] = "mps_loeschl.hmi_%s_remap"    %self._data["proj"] # 
+
+        self._data["data_series_synop"]     = "mps_loeschl.synoptic_%s"        %self._data["proj"] # synoptic data series name
+        self._data["data_series_polfil"]    = "mps_loeschl.synoptic_Mr_polfil" # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
+
+        #self._data["data_series_phi"]   = "%s.phi_CR%s_%s"         %(self._data["dataseries_owner"], self._data["cr"],   self._data["id"])
+        #self._data["data_series_jv2ts"] = "%s.%s_hiresmap_CR%s_%s" %(self._data["dataseries_owner"], self._data["proj"], self._data["cr"], self._data["id"]) #"mps_loeschl.Ml_hiresmap_720s_test"
+        #self._data["data_series_remap"] = "%s.%s_remap_CR%s_%s"    %(self._data["dataseries_owner"], self._data["proj"], self._data["cr"], self._data["id"])  #"mps_loeschl.Ml_remap_720s_test"
+
+        #self._data["data_series_synop"]  = "%s.synoptic_%s_%s"        %(self._data["dataseries_owner"], self._data["proj"], self._data["id"])  # synoptic data series name
+        #self._data["data_series_polfil"] = "%s.synoptic_Mr_polfil_%s" %(self._data["dataseries_owner"], self._data["id"])  # synoptic Mr polfil data series name
 
     # Synoptic map output file name - JSD FILES NEED TO BE ALTERED IF THIS PARAMETERS IS CHANGED
         self._data["synop_name"]       = "synop%s.fits"       % self._data["proj"]
