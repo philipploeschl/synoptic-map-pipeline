@@ -70,6 +70,8 @@ def get_drms_parameters(inRecs, input_ds):
 
     return drms_param, nRecs
 
+
+
 # Misc functions
 
 def CarringtonTime(crot, L):
@@ -574,7 +576,9 @@ def magStats(val, npts, sum_, outThreshold):
 # Synoptic map main function
 def synoptic_map(config):#, hw_overwrite=None):
     
-    inRecs = config["timestring"]
+    inRecs_hmi = config["timestring_hmi"]
+    inRecs_phi = config["timestring_phi"]
+
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
     
     #if hw_overwrite is not None:
@@ -595,7 +599,17 @@ def synoptic_map(config):#, hw_overwrite=None):
 
     sensAdj = 1 # unused and undefined in original code
 
-    drms_getkey, nRecs = get_drms_parameters(inRecs, config["input_ds"])
+    # query HMI and PHI remap data series separately
+    drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds"])
+    drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_hmi, config["input_ds"])
+
+    # combine into a single drms_getkey dictionary list for the remaining code
+    # sort by descending CRLN_OBS to emulate T_REC order
+    drms_getkey_tmp = drms_getkey_hmi + drms_getkey_phi
+    drms_getkey = sorted(drms_getkey_tmp, key=lambda x: float(x['CRLN_OBS']), reverse=True)
+
+    nRecs = nRecs_hmi + nRecs_phi
+
 
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
@@ -824,10 +838,11 @@ def synoptic_map(config):#, hw_overwrite=None):
             equivPts = 1.0
 
             # Read inArray from current frame
-            try:
-                inArray = fits.open(drms_getkey[inRec]["Ml"])
-            except KeyError:
-                inArray = fits.open(drms_getkey[inRec]["Mr"])
+            inArray = fits.open(drms_getkey[inRec][config["proj"]])
+            #try:
+            #    inArray = fits.open(drms_getkey[inRec]["Ml"])
+            #except KeyError:
+            #     inArray = fits.open(drms_getkey[inRec]["Mr"])
             
             # synoptic columns/segments are processed from RIGHT to LEFT
             # weights are allocated from LEFT to RIGHT for each magnetogram
