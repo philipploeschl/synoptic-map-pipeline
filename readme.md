@@ -21,7 +21,7 @@ test
 - add CR start and end dates to the csv output
 - 2252	2022-01-04T10:55:49	25.79	0.934653	2022.01.11_22:56:26_TAI-2022.01.30_06:56:25_TAI,2022.01.04_10:56:26_TAI-2022.01.11_18:56:26_TAI	2022.01.29_02:56:25_TAI-2022.01.30_06:56:25_TAI
 - why is the 2nd HMI string before the first string?
-- 2254: why is htere no PHI data
+- DONE 2254: why is htere no PHI data -> 4h cadence eats the bit of PHI data
 
 
 ## Data selection 
