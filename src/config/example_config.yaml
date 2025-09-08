@@ -101,6 +101,8 @@ polfil_template  : "synoptic_mr_polfil_template.jsd" # template for polfil data 
 # Toggle data series creation from above JSF files in DRMS
 create_series: False
 
+# Use temporary data series based on ID and CR number
+use_temp_series: False
 
 ###########################################################
 ################### 1_m720s_drms_pipe.py ##################

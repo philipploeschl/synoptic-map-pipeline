@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from utils.utils import add_script_header, add_check_continue, get_phi_filenames, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
 
 
-  
+
 
 def main(config, session_folder):
     #set cwd to file directory
