@@ -16,10 +16,10 @@ def main(config, session_folder):
 
     rsmapmag = 'setsid resizemappingmag in=%s["%s"] out=%s nbin=3\n' #in_ds, timestamp, out_ds, logfile
     
-    times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval)  # list with all queued time stamps
+    times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)  # list with all queued time stamps
     
     if config.filter_duplicates_hmi:
-        time_duplicates = get_dataseries_times(config.data_series_jv2ts, config.timestring_hmi, config.interval)
+        time_duplicates = get_dataseries_times(config.data_series_jv2ts_hmi, config.timestring_hmi, config.interval_hmi)
         
         for duplicate in time_duplicates:
             if duplicate in times:
@@ -27,7 +27,7 @@ def main(config, session_folder):
                 times.remove(duplicate)
 
     # looks like this is unsed and obsolete   
-    n_m720s = get_dataseries_count(config.data_series_hmi, config.timestring_hmi, config.interval)     # line count for time stamps
+    n_m720s = get_dataseries_count(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)     # line count for time stamps
 
     nsplit = int(np.ceil(n_m720s/config.nparallel_hmi))
 
@@ -55,11 +55,11 @@ def main(config, session_folder):
 
 
         # write the commands to the batch script
-        batch_out.write('\necho %s' %jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts, time, config.mcorlev, config.hmi_maprmax))
-        batch_out.write(jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts, time, config.mcorlev, config.hmi_maprmax))
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, config.mcorlev, config.hmi_maprmax))
+        batch_out.write(jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, config.mcorlev, config.hmi_maprmax))
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap))
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi))
         add_check_continue(batch_out)
         batch_out.write('\n')
 
