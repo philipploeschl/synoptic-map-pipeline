@@ -23,14 +23,14 @@ run_polefilling:         False # run all synoptic map pole filling
 verbose: True
 
 # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
-id: "pipeline_test"  
+id: "pipeline_test" # DEPCRECATED 
 
 # Data path to PHI data for DRMS ingestion
 # direct path for old implementation NOT FUNCTIONAL
 phi_datapath: '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
 
 # database path for new implementation
-phi_dbpath: "/data/slam/valori/test_l2_fmdb/FDT_test_release_jan-sep_2022_ghost_corr_update_defringed/l2/"
+phi_dbpath: "/data/solo/phi/data/fmdb/public/l2"
 date_start: "2022-06-03" # YYYY-MM-DD
 date_end  : "2022-06-18" # YYYY-MM-DD
 key       : "blos"       # data segment
@@ -73,7 +73,7 @@ cr: 2258
 # owner of temporary data series, used for output file names
 dataseries_owner: "mps_loeschl"
 
-data_series_phi:       "mps_loeschl.phi_Mr"           #  mps_phi.something
+data_series_phi:       "mps_loeschl.phi_M"           #  mps_phi.something
 data_series_jv2ts_phi: "mps_loeschl.phi_Mr_hiresmap"  # "mps_loeschl.Ml_hiresmap_720s_test"
 data_series_remap_phi: "mps_loeschl.phi_Mr_remap"     # "mps_loeschl.Ml_remap_720s_test"
 

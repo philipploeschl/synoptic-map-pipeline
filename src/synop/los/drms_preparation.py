@@ -4,7 +4,7 @@
 
 # This script prepares the necessary JSD files and creates the data series in DRMS.
 # JSD file and runs the create_series command to create the required data series in 
-# the local DRMS installatoin. 
+# the local DRMS installation. 
 # JSD file and data series creation can be indiviually toggled in config.py
 
 
