@@ -47,17 +47,17 @@ if __name__ == "__main__":
     config.save(output_path=session_folder)
 
     if config.run_drms_prep:
-        if config.verbose: print("Running 0_drms_prep.py ...")
+        if config.verbose: print("Running drms_preparation.py ...")
         #subprocess.call(['python', 'los/0_drms_prep.py'])
         drms_main(config, session_folder)
 
     if config.run_m720s_drms_pipe:
-        if config.verbose: print("Running 1_m720s_drms_pipe.py ...")
+        if config.verbose: print("Running m720s_drms_pipe.py ...")
         #subprocess.call(['python', 'los/1_m720s_drms_pipe.py'])
         hmi_data_main(config, session_folder)
 
     if config.run_phi_drms_interface:
-        if config.verbose: print("Running 2_phi_drms_interface.py ...")
+        if config.verbose: print("Running phi_drms_interface.py ...")
         #subprocess.call(['python', 'los/2_phi_drms_interface.py'])  
         phi_data_main(config, session_folder)
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         run_bash_scripts(config, session_folder, verbose=config.verbose, prefix='hmi')
 
     if config.run_hmiphisynoptic:
-        if config.verbose: print("Running 3_hmiphisynoptic.py ...")
+        if config.verbose: print("Running hmiphisynoptic.py ...")
         #subprocess.call(['python', 'los/3_hmiphisynoptic.py'])
         synop_main(config, session_folder)
 
