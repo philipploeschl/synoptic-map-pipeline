@@ -4,13 +4,13 @@
 ###########################################################
 
 run_drms_prep:           True # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe:     True  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface:  True # run 2_phi_drms_interface.py to create the phi data series
+run_m720s_drms_pipe:     False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface:  False # run 2_phi_drms_interface.py to create the phi data series
 
 run_hmi_scripts:         False # run all HMI scripts in the outpath_scripts directory 
 run_phi_scripts:         False # run all PHI scripts in the outpath_scripts directory 
 
-run_hmiphisynoptic:      True # run 3_hmisynoptic.py to create the synoptic maps
+run_hmiphisynoptic:      False # run 3_hmisynoptic.py to create the synoptic maps
 run_polefilling:         False # run all synoptic map pole filling
 
 
@@ -44,7 +44,7 @@ log_path   : 'logs/'    # path to log files, relative to synop/output/CR_NUMBER_
 data_path  : 'data/'    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
 jsd_path   : 'jsd/'     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
 synop_path : 'synop/'   # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
-config.obsplan_path: 'observation_plan' # path to data selection output
+obsplan_path: 'observation_plan' # path to data selection output
 
 # File structure created in misc.py: create_session_folder
 # - OUTPUT_PATH/
@@ -86,11 +86,16 @@ data_series_polfil:    "mps_loeschl.synoptic_Mr_polfil" # synoptic Mr polfil dat
 
 
 # toggle creation jsd files for data series
-create_jsd_phi     : True 
-create_jsd_hiresmap: True
-create_jsd_remap   : True
-create_jsd_synoptic: False 
-create_jsd_polfil  : False
+create_jsd_phi         : False 
+create_jsd_hiresmap_phi: False
+create_jsd_remap_phi   : False
+
+create_jsd_hiresmap_hmi: False
+create_jsd_remap_hmi   : False
+
+create_jsd_synoptic    : False 
+create_jsd_polfil      : False
+
 
 remap_template   : "remap_template.jsd"              # template for remap data series
 hiresmap_template: "hiresmap_template.jsd"           # template for hiresmap data series

@@ -54,11 +54,12 @@ class Config:
         # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
         "output_path": 'output/',
 
-        "script_path": 'scripts/', # path to bash scripts, relative to synop/output/CR_NUMBER_SESSION_ID/
-        "log_path"   : 'logs/',    # path to log files, relative to synop/output/CR_NUMBER_SESSION_ID/
-        "data_path"  : 'data/',    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
-        "jsd_path"   : 'jsd/',     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
-        "synop_path" : 'synop/',   # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
+        "script_path" : 'scripts/', # path to bash scripts, relative to synop/output/CR_NUMBER_SESSION_ID/
+        "log_path"    : 'logs/',    # path to log files, relative to synop/output/CR_NUMBER_SESSION_ID/
+        "data_path"   : 'data/',    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
+        "jsd_path"    : 'jsd/',     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
+        "synop_path"  : 'synop/',   # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
+        "obsplan_path": 'obsplan/', # path to observation plans, relative to synop/output/CR_NUMBER_SESSION_ID/
 
         # File structure created in misc.py: create_session_folder
         # - OUTPUT_PATH/
@@ -92,11 +93,13 @@ class Config:
         "cr": 2258,
 
         # toggle creation jsd files for data series
-        "create_jsd_phi"     : True, 
-        "create_jsd_hiresmap": True,
-        "create_jsd_remap"   : True,
-        "create_jsd_synoptic": False, 
-        "create_jsd_polfil"  : False,
+        "create_jsd_phi"         : False, 
+        "create_jsd_hiresmap_phi": False,
+        "create_jsd_hiresmap_hmi": False,
+        "create_jsd_remap_phi"   : False,
+        "create_jsd_remap_hmi"   : False,
+        "create_jsd_synoptic"    : False, 
+        "create_jsd_polfil"      : False,
 
         "remap_template"   : "remap_template.jsd",              # template for remap data series
         "hiresmap_template": "hiresmap_template.jsd",           # template for hiresmap data series
@@ -299,7 +302,7 @@ class Config:
             self._data["data_series_jv2ts_phi"] = "mps_loeschl.phi_%s_hiresmap" %self._data["proj"] # 
             self._data["data_series_remap_phi"] = "mps_loeschl.phi_%s_remap"    %self._data["proj"] # 
 
-            self._data["data_series_hmi"]       = "hmi.M_720s"                  %self._data["proj"] # "mps_production.hmi_m_720s_nrt"
+            self._data["data_series_hmi"]       = "hmi.M_720s"                  # "mps_production.hmi_m_720s_nrt"
             self._data["data_series_jv2ts_hmi"] = "mps_loeschl.hmi_%s_hiresmap" %self._data["proj"] # 
             self._data["data_series_remap_hmi"] = "mps_loeschl.hmi_%s_remap"    %self._data["proj"] # 
 
