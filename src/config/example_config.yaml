@@ -23,7 +23,7 @@ run_polefilling:         False # run all synoptic map pole filling
 verbose: True
 
 # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
-#id: "pipeline_test" # OBSOLOETE 
+id: "pipeline_test"  
 
 # Data path to PHI data for DRMS ingestion
 # direct path for old implementation NOT FUNCTIONAL

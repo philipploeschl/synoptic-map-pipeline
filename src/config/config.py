@@ -32,7 +32,7 @@ class Config:
         "session": None,
 
         # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
-        #"id": "pipeline_test", # OBSOLETE
+        "id": "pipeline_test", # DEPRECATED
 
         "data_series_phi"  : "%s.phi_CR%s_%s",         #%(dataseries_owner, cr, id)
         "data_series_jv2ts": "%s.%s_hiresmap_CR%s_%s", #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
