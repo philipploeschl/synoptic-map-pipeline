@@ -48,17 +48,14 @@ if __name__ == "__main__":
 
     if config.run_drms_prep:
         if config.verbose: print("Running drms_preparation.py ...")
-        #subprocess.call(['python', 'los/0_drms_prep.py'])
         drms_main(config, session_folder)
 
     if config.run_m720s_drms_pipe:
         if config.verbose: print("Running m720s_drms_pipe.py ...")
-        #subprocess.call(['python', 'los/1_m720s_drms_pipe.py'])
         hmi_data_main(config, session_folder)
 
     if config.run_phi_drms_interface:
         if config.verbose: print("Running phi_drms_interface.py ...")
-        #subprocess.call(['python', 'los/2_phi_drms_interface.py'])  
         phi_data_main(config, session_folder)
 
     # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
@@ -71,7 +68,6 @@ if __name__ == "__main__":
 
     if config.run_hmiphisynoptic:
         if config.verbose: print("Running hmiphisynoptic.py ...")
-        #subprocess.call(['python', 'los/3_hmiphisynoptic.py'])
         synop_main(config, session_folder)
 
     # Todo
