@@ -83,7 +83,7 @@ def update_common_carrot(drms_getkey):
     for inRec in drms_getkey:
         inRec["CAR_ROT"] = most_common
     
-    return drms_getkey
+    return drms_getkey, most_common
 
 # Misc functions
 
@@ -592,6 +592,21 @@ def synoptic_map(config):#, hw_overwrite=None):
     inRecs_hmi = config["timestring_hmi"]
     inRecs_phi = config["timestring_phi"]
 
+    # query HMI and PHI remap data series separately
+    drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds_hmi"])
+    drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_phi, config["input_ds_phi"])
+
+    # combine into a single drms_getkey dictionary list for the remaining code
+    # sort by descending CRLN_OBS to emulate T_REC order
+    drms_getkey_tmp = drms_getkey_hmi + drms_getkey_phi
+    drms_getkey = sorted(drms_getkey_tmp, key=lambda x: float(x['CRLN_OBS']), reverse=True)
+
+    nRecs = nRecs_hmi + nRecs_phi
+
+    # select the most common CAR_ROT entry and set it for all data
+    drms_getkey, common_carrot = update_common_carrot(drms_getkey)
+    config["cr"] = common_carrot
+
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
     
     #if hw_overwrite is not None:
@@ -612,19 +627,19 @@ def synoptic_map(config):#, hw_overwrite=None):
 
     sensAdj = 1 # unused and undefined in original code
 
-    # query HMI and PHI remap data series separately
-    drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds_hmi"])
-    drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_phi, config["input_ds_phi"])
+    ## query HMI and PHI remap data series separately
+    #drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds_hmi"])
+    #drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_phi, config["input_ds_phi"])
 
-    # combine into a single drms_getkey dictionary list for the remaining code
-    # sort by descending CRLN_OBS to emulate T_REC order
-    drms_getkey_tmp = drms_getkey_hmi + drms_getkey_phi
-    drms_getkey = sorted(drms_getkey_tmp, key=lambda x: float(x['CRLN_OBS']), reverse=True)
+    ## combine into a single drms_getkey dictionary list for the remaining code
+    ## sort by descending CRLN_OBS to emulate T_REC order
+    #drms_getkey_tmp = drms_getkey_hmi + drms_getkey_phi
+    #drms_getkey = sorted(drms_getkey_tmp, key=lambda x: float(x['CRLN_OBS']), reverse=True)
 
-    nRecs = nRecs_hmi + nRecs_phi
+    #nRecs = nRecs_hmi + nRecs_phi
 
-    # select the most common CAR_ROT entry and set it for all data
-    drms_getkey = update_common_carrot(drms_getkey)
+    ## select the most common CAR_ROT entry and set it for all data
+    #drms_getkey = update_common_carrot(drms_getkey)
 
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
@@ -853,11 +868,13 @@ def synoptic_map(config):#, hw_overwrite=None):
             equivPts = 1.0
 
             # Read inArray from current frame
-            inArray = fits.open(drms_getkey[inRec][config["proj"]])
-            #try:
-            #    inArray = fits.open(drms_getkey[inRec]["Ml"])
-            #except KeyError:
-            #     inArray = fits.open(drms_getkey[inRec]["Mr"])
+            # TODO this is the correct version
+            #inArray = fits.open(drms_getkey[inRec][config["proj"]])
+            # TODO TEMPORARY FIX UNTIL DRMS_PREPARATION.PY DEFINITION IS FIXED
+            try:
+                inArray = fits.open(drms_getkey[inRec]["Ml"])
+            except KeyError:
+                inArray = fits.open(drms_getkey[inRec]["Mr"])
             
             # synoptic columns/segments are processed from RIGHT to LEFT
             # weights are allocated from LEFT to RIGHT for each magnetogram
@@ -1328,7 +1345,8 @@ def get_arg_parameters(global_config):
     # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
     config = {
         
-        "cr": global_config.cr,
+        "cr":   global_config.cr,
+        "proj": global_config.proj,  # "Mr" or "Ml"
         "input_ds_hmi":     global_config.data_series_remap_hmi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
         "input_ds_phi":     global_config.data_series_remap_phi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
         "timestring_hmi":   global_config.timestring_hmi, 
