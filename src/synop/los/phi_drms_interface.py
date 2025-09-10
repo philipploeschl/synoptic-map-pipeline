@@ -19,7 +19,7 @@ def main(config, session_folder):
     date_start, date_end = get_dates_from_timestring(config.timestring_phi)
 
     #times = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)  # list with all queued time stamps
-    existing_timestamps = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)
+    existing_timestamps = get_dataseries_times(config.data_series_remap_phi, config.timestring_phi, config.interval_phi)
 
     fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
 
@@ -58,11 +58,11 @@ def main(config, session_folder):
         #T_REC   = '2021.02.28_07:12:00.000_TAI' / [TAI] Slot time    
         # Conversion for date format / UTC to TAI / round to the next 12 minute slot for T_REC
         #trec = datetime.strptime(l2[0].header['DATE-AVG'],   "%Y-%m-%dT%H:%M:%S.%f")
-        tobs = datetime.strptime(l2[0].header['DATE-AVG'],   "%Y-%m-%dT%H:%M:%S.%f")
+        tobs = datetime.strptime(l2[0].header['DATE-OBS'],   "%Y-%m-%dT%H:%M:%S.%f")
         
         #TODO T_TOBS TAI CONVERSION?
         utc2tai = timedelta(0, 37)                 # use for utc2tai conversion
-        #tobs = tobs + utc2tai                      # use for utc2tai conversion
+        tobs = tobs + utc2tai                      # use for utc2tai conversion
         tobs = tobs.strftime("%Y.%m.%d_%H:%M:%S_TAI")
 
         # skip file if tobs already exists in phi dataseries
@@ -269,20 +269,20 @@ def main(config, session_folder):
             batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
             add_script_header(batch_out, remap_str)
 
-
+        batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
         batch_out.write('\n#%s' %fname)
         batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
         batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
     
         file = fits.open(outpath_data+fname)[1]
-        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.phi_maprmax))
-        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts, trec, config.mcorlev, config.phi_maprmax))
-        #batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
-        #batch_out.write(set_keys %(config.data_series_jv2ts, trec, "CAR_ROT",  file.header['CAR_ROT2']))
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts_phi, trec, config.mcorlev, config.phi_maprmax))
+        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts_phi, trec, config.mcorlev, config.phi_maprmax))
+        #batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts_phi, trec, "CAR_ROT",  file.header['CAR_ROT2']))
+        #batch_out.write(set_keys %(config.data_series_jv2ts_phi, trec, "CAR_ROT",  file.header['CAR_ROT2']))
 
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts, trec, config.data_series_remap)) 
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts_phi, trec, config.data_series_remap_phi))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts_phi, trec, config.data_series_remap_phi)) 
         add_check_continue(batch_out)
         batch_out.write('\n')
 
