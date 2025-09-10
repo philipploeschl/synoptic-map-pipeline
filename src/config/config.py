@@ -34,19 +34,23 @@ class Config:
         # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
         "id": "pipeline_test", # DEPRECATED
 
-        "data_series_phi"  : "%s.phi_CR%s_%s",         #%(dataseries_owner, cr, id)
-        "data_series_jv2ts": "%s.%s_hiresmap_CR%s_%s", #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_hiresmap_720s_test"
-        "data_series_remap": "%s.%s_remap_CR%s_%s",    #%(dataseries_owner, proj, cr, id) #"mps_loeschl.Ml_remap_720s_test"
-        
-        "data_series_synop":  "%s.synoptic_%s_%s", #%(dataseries_owner, proj, id) # synoptic data series name
-        "data_series_polfil": "%s.synoptic_Mr_polfil_%s", #%(dataseries_owner, id) # synoptic Mr polfil data series name
+        "data_series_phi"      : "mps_loeschl.phi_M",            
+        "data_series_jv2ts_phi": "mps_loeschl.phi_%s_hiresmap", 
+        "data_series_remap_phi": "mps_loeschl.phi_%s_remap",    
+
+        "data_series_hmi"      : "hmi.M_720s",                  # "mps_production.hmi_m_720s_nrt"
+        "data_series_jv2ts_hmi": "mps_loeschl.hmi_%s_hiresmap", 
+        "data_series_remap_hmi": "mps_loeschl.hmi_%s_remap",     
+
+        "data_series_synop"    : "mps_loeschl.synoptic_%s",        # synoptic data series name
+        "data_series_polfil"   : "mps_loeschl.synoptic_Mr_polfil", # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
 
         # Data path to PHI data for DRMS ingestion
         # direct path for old implementation NOT FUNCTIONAL
-        "phi_datapath": '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/',
+        #"phi_datapath": '/data/solo/phi/data/fmdb/public/l2',
 
         # database path for new implementation
-        "phi_dbpath": "/data/slam/valori/test_l2_fmdb/FDT_test_release_jan-sep_2022_ghost_corr_update_defringed/l2/",
+        "phi_dbpath": "/data/solo/phi/data/fmdb/public/l2",
         "date_start": "2022-06-03", # YYYY-MM-DD
         "date_end"  : "2022-06-18", # YYYY-MM-DD
         "key"       : "blos",       # data segment
@@ -150,7 +154,9 @@ class Config:
         ###########################################################
 
         # timestring2258_phi_hmi12m
-        "timestring": "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI@12m,2022.06.17_22:54:23_TAI,2022.06.18_10:56:25_TAI,2022.06.18_23:03:13_TAI,2022.06.19_11:15:52_TAI,2022.06.19_23:22:58_TAI,2022.06.20_11:36:08_TAI,2022.06.20_23:53:39_TAI,2022.06.21_04:17:58_TAI,2022.06.22_00:04:49_TAI,2022.06.22_12:18:51_TAI,2022.06.22_18:23:04_TAI,2022.06.23_00:26:52_TAI,2022.06.23_06:33:54_TAI,2022.06.23_12:41:16_TAI,2022.06.23_18:45:28_TAI,2022.06.24_00:49:36_TAI,2022.06.24_06:56:58_TAI,2022.05.28_08:15:44_TAI,2022.05.28_14:22:55_TAI,2022.05.28_20:26:46_TAI,2022.05.29_02:31:46_TAI,2022.05.29_08:40:07_TAI,2022.05.29_14:47:11_TAI,2022.05.29_20:51:05_TAI,2022.05.30_02:56:29_TAI,2022.05.30_09:05:03_TAI,2022.05.30_15:12:00_TAI,2022.05.30_21:15:56_TAI,2022.05.31_03:21:44_TAI,2022.05.31_09:30:30_TAI,2022.06.01_09:56:24_TAI,2022.06.01_16:03:02_TAI,2022.06.01_22:07:09_TAI,2022.06.02_04:13:44_TAI,2022.06.02_10:22:46_TAI,2022.06.02_16:29:13_TAI,2022.06.02_22:33:28_TAI,2022.06.03_04:40:26_TAI,2022.06.03_10:49:32_TAI,2022.06.03_16:55:48_TAI,2022.06.03_23:00:11_TAI,2022.06.04_05:07:33_TAI,2022.06.04_11:16:41_TAI,2022.06.04_17:22:45_TAI,2022.06.04_23:27:20_TAI,2022.06.05_05:35:04_TAI,2022.06.05_11:44:11_TAI,2022.06.05_17:50:04_TAI,2022.06.05_23:54:52_TAI,2022.06.06_06:02:58_TAI,2022.06.06_12:12:00_TAI,2022.06.06_18:17:43_TAI",
+        "timestring_hmi": "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI",
+        "timestring_phi": "2024.05.19_10:56:26_TAI-2024.05.20_14:56:26_TAI,2024.05.06_06:56:26_TAI-2024.05.19_06:56:26_TAI",
+        
         # todo this timestring has to be created from the above hmi timestring. timestring: hmi_period+phi_period
 
         # Adjacent Meridian Contribution for Weight Function Shape
@@ -298,16 +304,20 @@ class Config:
             self._data["data_series_polfil"]    = "%s.synoptic_Mr_polfil_%s"    %(self._data["dataseries_owner"], self._data["id"]) # synoptic Mr polfil data series name
         
         else:    
-            self._data["data_series_phi"]       = "mps_loeschl.phi_%s"          %self._data["proj"] # mps_phi.something
-            self._data["data_series_jv2ts_phi"] = "mps_loeschl.phi_%s_hiresmap" %self._data["proj"] # 
-            self._data["data_series_remap_phi"] = "mps_loeschl.phi_%s_remap"    %self._data["proj"] # 
+            try:
+                #Execute if no dataseries definitions were provided and default parameters are used instead
+                #self._data["data_series_phi"]       = "mps_loeschl.phi_M"                # mps_phi.something
+                self._data["data_series_jv2ts_phi"] = self._data["data_series_jv2ts_phi"] %self._data["proj"] # 
+                self._data["data_series_remap_phi"] = self._data["data_series_remap_phi"] %self._data["proj"] # 
 
-            self._data["data_series_hmi"]       = "hmi.M_720s"                  # "mps_production.hmi_m_720s_nrt"
-            self._data["data_series_jv2ts_hmi"] = "mps_loeschl.hmi_%s_hiresmap" %self._data["proj"] # 
-            self._data["data_series_remap_hmi"] = "mps_loeschl.hmi_%s_remap"    %self._data["proj"] # 
+                #self._data["data_series_hmi"]       = "hmi.M_720s"                       # "mps_production.hmi_m_720s_nrt"
+                self._data["data_series_jv2ts_hmi"] = self._data["data_series_jv2ts_hmi"] %self._data["proj"] # 
+                self._data["data_series_remap_hmi"] = self._data["data_series_remap_hmi"] %self._data["proj"] # 
 
-            self._data["data_series_synop"]     = "mps_loeschl.synoptic_%s"        %self._data["proj"] # synoptic data series name
-            self._data["data_series_polfil"]    = "mps_loeschl.synoptic_Mr_polfil" # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
+                self._data["data_series_synop"]     = self._data["data_series_synop"]     %self._data["proj"] # synoptic data series name
+                self._data["data_series_polfil"]    = "mps_loeschl.synoptic_Mr_polfil" # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
+            except:
+                pass
 
         # Synoptic map output file name - JSD FILES NEED TO BE ALTERED IF THIS PARAMETERS IS CHANGED
         self._data["synop_name"]       = "synop%s.fits"       % self._data["proj"]
