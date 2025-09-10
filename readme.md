@@ -2,6 +2,12 @@ This is currently abused as a todo list
 test
 
 # TODO
+
+## Keywords
+- date_start, date_end probably obsolete
+- cr should maybe be handled via the timestring too
+
+
 ## Gherardo
 - what time should we use as T_REC? DATE-AVG? with or without TAI conversion?
 
@@ -10,7 +16,8 @@ test
 - DONE this probably needs a CAR_ROT override since we can't guarantee equal CAR_ROT for all PHI data
 
 ## PHI DRMS Interface
-- phi duplicate filtering for single data series transition
+- phi duplicate filtering needs to delete the _drms.fits output folder!
+
 - TODO SET config.date_start AND config.date_end ACCORDING TO TIMESTRING_PHI 
 
 ## M720 Processing
