@@ -68,7 +68,7 @@ template_path: "data/drms/templates/"
 Mr: True 
 
 # Carrington rotation number (primary key for synoptic maps)
-cr: 2258
+cr: 2284 # POSSIBLY OBSOLETE, NOW USING MOST COMMON CR FROM TIMESTRING_HMI/PHIs
 
 # owner of temporary data series, used for output file names
 dataseries_owner: "mps_loeschl"
