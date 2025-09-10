@@ -742,16 +742,21 @@ if __name__ == "__main__":
  
     
     # get Ephemeris Time (et) range for SolO mission
-    et_bounds=get_solo_coverage(config.spice_mkpath) # ET timestamps over entire SolO mission
+    et_bounds=list(get_solo_coverage(config.spice_mkpath)) # ET timestamps over entire SolO mission
+    
+    if et_bounds[0] > datetime642et(np.datetime64(config.cr_date_start))[0]:
+        raise ValueError("Start date is before start of SolO mission.")
+    else:
+        et_bounds[0] = datetime642et(np.datetime64(config.cr_date_start))[0]
+    
+    if et_bounds[1] < datetime642et(np.datetime64(config.cr_date_end))[0]:
+        raise ValueError("End date is after end of SolO mission.")
+    else:
+        et_bounds[1] = datetime642et(np.datetime64(config.cr_date_end))[0]
+
+    
     ets = np.arange(et_bounds[0],et_bounds[1], config.et_resolution)
     ets[len(ets)-1]=et_bounds[1]
-
-    if et_bounds[0] > datetime642et(config.cr_date_start)[0]:
-        raise ValueError("Start date is before start of SolO mission.")
-    
-    if et_bounds[1] < datetime642et(config.cr_date_end)[0]:
-        raise ValueError("End date is after end of SolO mission.")
-    
 
     # get spacecraft state vector with spkezr, returns (position [km] and velocity [km/s]) and light time (one-way light time in seconds)
     #[solo_GSE_pos, ltime]    = sp.spkpos("SOLO", ets,"SOLO_GSE","NONE","EARTH")  
@@ -848,8 +853,8 @@ if __name__ == "__main__":
 
 
     # Write overview plan
-    crobs_opt["obs_time"] = pd.to_numeric(crobs_opt["obs_time"], errors="coerce")  # converts strings to floats, NaN if not possible
-    crobs_opt["avg_hdis"] = pd.to_numeric(crobs_opt["avg_hdis"], errors="coerce")  # converts strings to floats, NaN if not possible
+    crobs_opt["obs_time"] = pd.to_numeric(crobs_opt["obs_time"], errors="coerce")
+    crobs_opt["avg_hdis"] = pd.to_numeric(crobs_opt["avg_hdis"], errors="coerce") 
     crobs_opt["obs_time"] = crobs_opt["obs_time"].map(lambda x: f"{x:.2f}")
     crobs_opt["avg_hdis"] = crobs_opt["avg_hdis"].map(lambda x: f"{x:.6f}")
     crobs_opt.to_csv(os.path.join(output_path,'carrington_observation_plan_' + str(config.cr_date_start).replace(' ', '_') + '_' + str(config.cr_date_end).replace(' ', '_') + '.csv'), sep="\t", index=True)  
