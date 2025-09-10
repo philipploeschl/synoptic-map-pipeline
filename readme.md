@@ -3,6 +3,11 @@ test
 
 # TODO
 
+- hiresmap and remap template need %s for Ml/Mr.fits filename!
+- this means that I have to reprocess all Mr dataseries again
+- temporary fix in hmiphisynoptic.py
+- check if the data selection does a correct +360 only for negative crln obs
+
 ## Keywords
 - date_start, date_end probably obsolete
 - cr should maybe be handled via the timestring too
