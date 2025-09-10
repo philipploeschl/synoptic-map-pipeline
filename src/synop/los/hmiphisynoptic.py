@@ -71,13 +71,14 @@ def get_drms_parameters(inRecs, input_ds):
     return drms_param, nRecs
 
 
-def common_carrot(drms_getkey):
+def update_common_carrot(drms_getkey):
     
     carrots = []
     for inRec in drms_getkey:
         carrots.append(float(inRec['CAR_ROT']))
 
     most_common = max(carrots, key=carrots.count)
+    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)   } records")
 
     for inRec in drms_getkey:
         inRec["CAR_ROT"] = most_common
@@ -612,8 +613,8 @@ def synoptic_map(config):#, hw_overwrite=None):
     sensAdj = 1 # unused and undefined in original code
 
     # query HMI and PHI remap data series separately
-    drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds"])
-    drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_hmi, config["input_ds"])
+    drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds_hmi"])
+    drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_phi, config["input_ds_phi"])
 
     # combine into a single drms_getkey dictionary list for the remaining code
     # sort by descending CRLN_OBS to emulate T_REC order
@@ -623,7 +624,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     nRecs = nRecs_hmi + nRecs_phi
 
     # select the most common CAR_ROT entry and set it for all data
-    drms_getkey = common_carrot(drms_getkey)
+    drms_getkey = update_common_carrot(drms_getkey)
 
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
@@ -768,7 +769,7 @@ def synoptic_map(config):#, hw_overwrite=None):
         imrec.append(imrec_tmp)
         idx += 1
 
-    ngood = idx;
+    ngood = idx
     
     config["ngood"] = ngood
     config["DIFROT_A"] = diffrotA
@@ -795,7 +796,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     # Longitude range in degree in synoptic chart;
     # divide the synoptic chart into pieces to avoid reading too much data
     nsynop = rint(360.0 / synRange)
-
+    
     for ds in range (0, nsynop): #(ds = 0; ds < nsynop; ds++)
 
         subSynopStart = synstart + ds * synRange
@@ -1327,11 +1328,12 @@ def get_arg_parameters(global_config):
     # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
     config = {
         
-        
         "cr": global_config.cr,
-        "input_ds":    global_config.data_series_remap, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
-        "timestring":  global_config.timestring, 
-        "synop_name":  global_config.synop_name,
+        "input_ds_hmi":     global_config.data_series_remap_hmi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        "input_ds_phi":     global_config.data_series_remap_phi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        "timestring_hmi":   global_config.timestring_hmi, 
+        "timestring_phi":   global_config.timestring_phi,
+        "synop_name":       global_config.synop_name,
         "synop_small_name": global_config.synop_small_name,
 
         "synop_path": global_config.synop_path,
@@ -1419,5 +1421,76 @@ def main(global_config, session_folder):
 
 
 
+
 if __name__ == "__main__":
-    main()
+    from config import Config
+    import argparse
+    from utils import create_session_folder, create_session_structure
+    
+    def parse_args():
+        parser = argparse.ArgumentParser(
+            description="Run the synoptic pipeline with optional config and session paths."
+        )
+        parser.add_argument(
+            "--config",
+            type=str,
+            help="Path to config.yaml (uses default parameters if no config is provided)."
+        )
+        parser.add_argument(
+            "--session",
+            type=str,
+            help="Path to an existing session folder (creates new session if no folder is provided)."
+        )
+        return parser.parse_args()
+
+    #set cwd to file directory
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    args = parse_args()
+
+    # Load config from YAML
+    global_config = Config(config_path=args.config) if args.config else Config()
+
+    # Determine session folder
+    if args.session:
+        session_folder = os.path.abspath(args.session)
+        create_session_structure(global_config, session_folder)
+    else:
+        session_folder = create_session_folder(global_config) 
+
+    config = get_arg_parameters(global_config)    
+    synop_outpath = os.path.join(session_folder, config["synop_path"])
+
+    synop, epts, length, imrec =  synoptic_map(config)
+
+    synop_img = np.zeros([length[1], length[0]])
+    #convert_image_array(synop, synop_img, length[0], length[1])    
+    synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    
+    stats = fstats(length[1]*length[0], synop, small=False)
+    
+    hdu  = fits.PrimaryHDU(synop_img)
+    create_header(hdu.header, config, stats, imrec)
+    hdul = fits.HDUList([hdu])
+    hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
+    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
+    
+    if config["bin"]:
+
+        xbin = config["xbin"]
+        ybin = config["ybin"] 
+
+        smallSynop = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+
+        frebinbox(synop, smallSynop, length[0], length[1], xbin, ybin)
+        smallSynop_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+        smallSynop_img = np.reshape(smallSynop, (int(length[1]/ybin), int(length[0]/xbin)))
+        
+        stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynop)
+        hdu_small = fits.PrimaryHDU(smallSynop_img)
+        create_header(hdu_small.header, config, stats_small, imrec, True)
+        hdul_small = fits.HDUList([hdu_small])
+        hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
+        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
+
+    print('%s complete' %__file__)
