@@ -183,10 +183,11 @@ def main(config, session_folder):
         l2drms.header.append(('RSUN_REF', l2[0].header['RSUN_REF'], 'Reference radius of the Sun: 696,000,000.0 m'), end=True)
         
         #CRLN_OBS
-        l2drms.header.append(('CRLN_OBS', l2[0].header['CRLN_OBS'], 'Carrington longitude of HMI'), end=True)
+        crln_obs = l2[0].header['CRLN_OBS'] if l2[0].header['CRLN_OBS'] >= 0 else l2[0].header['CRLN_OBS'] + 360.0
+        l2drms.header.append(('CRLN_OBS', crln_obs, 'Carrington longitude of PHI'), end=True)
         
         #CRLT_OBS
-        l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of HMI'), end=True)
+        l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of PHI'), end=True)
         
         # OBSOLETE
         #CAR_ROT        
