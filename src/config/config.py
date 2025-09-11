@@ -28,9 +28,6 @@ class Config:
         # Enable verbose output
         "verbose": True,
 
-        # Stores current session for documentation
-        "session": None,
-
         # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
         "id": "pipeline_test", # DEPRECATED
 
@@ -51,8 +48,8 @@ class Config:
 
         # database path for new implementation
         "phi_dbpath": "/data/solo/phi/data/fmdb/public/l2",
-        "date_start": "2022-06-03", # YYYY-MM-DD
-        "date_end"  : "2022-06-18", # YYYY-MM-DD
+        #"date_start": "2022-06-03", # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
+        #"date_end"  : "2022-06-18", # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
         "key"       : "blos",       # data segment
 
         # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
@@ -116,38 +113,30 @@ class Config:
 
 
         ###########################################################
-        ################### 1_m720s_drms_pipe.py ##################
+        ################### HMI & PHI Processing ##################
         ###########################################################
 
-        # HMI source data series 
-        "dataseries_input": "hmi.M_720s", # "mps_production.hmi_m_720s_nrt"
+        # HMI source data series # OBSOLETE MOVED TO data_series_hmi  
+        #"dataseries_input": "hmi.M_720s", # "mps_production.hmi_m_720s_nrt"
 
         # HMI cadence for the M_720s data series - default/nothing: @12min, change HMI cadence for fast prototyping
         "interval_hmi": "@12m",
+        "interval_phi": "@12m",
 
-        # Exclude already processed HMI datasets
+        # Exclude already processed datasets
         "filter_duplicates_hmi": True,
+        "filter_duplicates_phi": True,
 
         # split batch scripts after nsplit entries
-        "nparallel_hmi": 15,  # number of parallel HMI DRMS shell scripts
+        "nparallel_hmi": 5,  # number of parallel HMI DRMS shell scripts
         "nparallel_phi": 1,   # number of parallel PHI DRMS shell scripts
-
-
-        ###########################################################
-        ################# 2_phi_drms_interface.py #################
-        ###########################################################
 
         "hmi_maprmax": 0.998,  # HMI default value
         "phi_maprmax": 0.9925, # maximum radius for the synoptic map
-
-        # PHI cadence for the mps_phi.XXXX data series - default/nothing: @12min (all)
-        "interval_phi": "@12m",
-
-        # Exclude already processed PHI datasets
-        "filter_duplicates_phi": True,
+        
 
         ###########################################################
-        ################### 3_hmiphisynoptic.py ###################
+        ################# Synoptic Map Processing #################
         ###########################################################
 
         # timestring2258_phi_hmi12m
@@ -338,15 +327,7 @@ class Config:
 if __name__ == "__main__":
 
     config = Config('testconfig.yaml')
-    #print(config.phi_datapath)
-    #print(config.synop_name)
-    print(config.data_series_phi)
-    print(config.data_series_jv2ts)
-    print(config.data_series_remap)
-    print(config.data_series_synop)
-    print(config.data_series_polfil)
-    print(config.synop_name)
-    print(config.synop_small_name)
+  
 
 
 
