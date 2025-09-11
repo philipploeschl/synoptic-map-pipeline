@@ -125,9 +125,6 @@ class Config:
         # HMI cadence for the M_720s data series - default/nothing: @12min, change HMI cadence for fast prototyping
         "interval_hmi": "@12m",
 
-        # HMI data period
-        "period": "2022.06.06_23:00:00_TAI-2022.06.17_23:00:00_TAI", # CR2258
-
         # Exclude already processed HMI datasets
         "filter_duplicates_hmi": True,
 
