@@ -4,7 +4,7 @@ Author:          	%s
 Owner:           	%s
 Unitsize:        	1
 Archive:         	0
-Retention:       	1
+Retention:       	60
 PrimeKeys:       	T_REC
 DBIndex:         	T_REC
 Description:     	"HMI & PHI B %s Magnetograms remapped to grid in longitude, sin latitude, in full-resolution"

@@ -4,7 +4,7 @@ Author:          	%s
 Owner:           	%s
 Unitsize:        	1
 Archive:         	0
-Retention:       	10
+Retention:       	60
 PrimeKeys:       	CAR_ROT
 Description:     	"PHI & HMI combined synoptic chart of %s magnetic field"
 

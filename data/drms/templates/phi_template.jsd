@@ -4,7 +4,7 @@ Author:      %s
 Owner:       %s
 Unitsize:    1
 Archive:     0
-Retention:   10
+Retention:   60
 Tapegroup:   0
 PrimeKeys:   T_REC
 DBIndex:     T_REC

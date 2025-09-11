@@ -4,7 +4,7 @@ Author:          	%s
 Owner:           	%s
 Unitsize:        	1
 Archive:         	1
-Retention:       	10
+Retention:       	60
 PrimeKeys:       	CAR_ROT
 Description:     	"PHI/HMI combined synoptic chart of radial (Mr) with polar field correction"
 
