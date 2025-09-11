@@ -1,57 +1,8 @@
 import subprocess
 import os
 import numpy as np
-from utils.utils import add_script_header, add_check_continue
+from utils.utils import add_script_header, add_check_continue, get_dataseries_count, get_dataseries_times
 
-
-def get_M_720s_count(data_series, period, interval):
-    
-    si_string = "show_info -iP %s[%s%s]" %(data_series, period, interval)
-    wc_string = "%s | wc -l" % si_string
-    
-    wc_out = int(subprocess.check_output(wc_string, shell=True)[:-1].decode("utf-8"))
-    
-    return wc_out 
-
-def get_M_720s_times(data_series, period, interval):
-    
-    times = []
-    si_string = "show_info -iP %s[%s%s]" %(data_series, period, interval)
-    
-    si_out = subprocess.check_output(si_string, shell=True)[:-1].decode("utf-8")
-    
-    raw = si_out.split('\n') #separate data series from SUMS path
-    
-    for line in raw[1:]:
-        i = line.find('[')
-        j = line.find(']')
-        times.append(line[i+1:j]) # [clong, cmLong]
-
-    return times 
-
-"""
-def cmd_args(argv):
-    
-    inputfile = ''
-    outputfile = ''
-    
-    try:
-        opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
-    except getopt.GetoptError:
-        print('test.py -i <inputfile> -o <outputfile>')
-        sys.exit(2)
-    
-    for opt, arg in opts:
-        if opt == '-h':
-            print('test.py -i <inputfile> -o <outputfile>')
-            sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):
-            outputfile = arg
-    
-    return inputfile, outputfile
-"""
 
 def main(config, session_folder):
 
@@ -65,10 +16,10 @@ def main(config, session_folder):
 
     rsmapmag = 'setsid resizemappingmag in=%s["%s"] out=%s nbin=3\n' #in_ds, timestamp, out_ds, logfile
     
-    times = get_M_720s_times(config.dataseries_input, config.period, config.interval)  # list with all queued time stamps
+    times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)  # list with all queued time stamps
     
-    if config.filter_duplicates:
-        time_duplicates = get_M_720s_times(config.data_series_jv2ts, config.period, config.interval)
+    if config.filter_duplicates_hmi:
+        time_duplicates = get_dataseries_times(config.data_series_remap_hmi, config.timestring_hmi, config.interval_hmi)
         
         for duplicate in time_duplicates:
             if duplicate in times:
@@ -76,7 +27,8 @@ def main(config, session_folder):
                 times.remove(duplicate)
 
     # looks like this is unsed and obsolete   
-    n_m720s = get_M_720s_count(config.dataseries_input, config.period, config.interval)     # line count for time stamps
+    #n_m720s = get_dataseries_count(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)     # line count for time stamps
+    n_m720s = len(times)
 
     nsplit = int(np.ceil(n_m720s/config.nparallel_hmi))
 
@@ -104,11 +56,12 @@ def main(config, session_folder):
 
 
         # write the commands to the batch script
-        batch_out.write('\necho %s' %jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, config.hmi_maprmax))
-        batch_out.write(jv2ts %(config.dataseries_input, time, config.data_series_jv2ts, time, config.mcorlev, config.hmi_maprmax))
+        batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, config.mcorlev, config.hmi_maprmax))
+        batch_out.write(jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, config.mcorlev, config.hmi_maprmax))
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts, time, config.data_series_remap))
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi))
         add_check_continue(batch_out)
         batch_out.write('\n')
 
