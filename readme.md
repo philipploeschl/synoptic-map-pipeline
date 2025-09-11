@@ -3,30 +3,27 @@ test
 
 # TODO
 
-- hiresmap and remap template need %s for Ml/Mr.fits filename!
-- this means that I have to reprocess all Mr dataseries again
 - temporary fix in hmiphisynoptic.py
 - check if the data selection does a correct +360 only for negative crln obs
 
 ## Keywords
 - date_start, date_end probably obsolete
+- CRLN_OBS now [-180,+180]
 - cr should maybe be handled via the timestring too
+  - process timestring_hmi and check where the majority lands?
 
 
 ## Gherardo
-- what time should we use as T_REC? DATE-AVG? with or without TAI conversion?
 
 ## HMI PHI Synoptic
-- how does CAR_ROT affect the map production?
-- DONE this probably needs a CAR_ROT override since we can't guarantee equal CAR_ROT for all PHI data
+- try forcing start from half carrington rotation eg 2283.5 and check if it works
+  - this will probably need a custom plot to get the x axis right
 
 ## PHI DRMS Interface
 - phi duplicate filtering needs to delete the _drms.fits output folder!
 
-- TODO SET config.date_start AND config.date_end ACCORDING TO TIMESTRING_PHI 
 
 ## M720 Processing
-- bind m720s_drms_pipe period to hmi_timestring
 
 
 ## Data selection output
@@ -38,7 +35,7 @@ test
 
 ## Data selection 
 - add start time of phi obsevation and build the ET around that
-- add +- half cadence to the phi timestrings?
+- DONT THINK I NEED THAT SINCE DRMS TAKES CLOSEST FILE add +- half cadence to the phi timestrings?
 - add data selection not depending on newest observation date but predetermined data set from config
 - change CRXXXX txt output to be usable for phi/hmi data selection like in the yt video to the output.pdf
 
@@ -60,23 +57,27 @@ Full command:
 
 SYNOPTIC-MAP-PIPELINE
 ├─ DATA/
-│  └─ DRMS/                 # JSD file templates
-├─ OUTPUT/                  # set via config.output_path
-│  └─ CR_NUMBER_YYYYMMDD_HHMMSS/
-│     ├─ DATA/              # PHI data with updated headers for DRMS ingestion
-│     ├─ JSD/               # JSD files for DRMS data series creation
-│     ├─ LOGS/              # DRMS bash script log files
-│     ├─ SCRIPTS/           # DRMS bash scripts
-│     ├─ SYNOP/             # synoptic map output in .fits and .pdf
-│     └─ config.yaml        # copy of config file of the last session rerun
+│  └─ DRMS/                  # JSD file templates
+├─ OUTPUT/                   # set via config.output_path
+│  └─ SESSION_FOLDER_NAME/
+│     ├─ DATA/               # PHI data with updated headers for DRMS ingestion
+│     ├─ JSD/                # JSD files for DRMS data series creation
+│     ├─ LOGS/               # DRMS bash script log files
+│     ├─ SCRIPTS/            # DRMS bash scripts
+│     ├─ SYNOP/              # synoptic map output in .fits and .pdf
+│     └─ config.yaml         # copy of config file of the last session rerun
 └─ SRC/
    ├─ synop_pipeline.py
    ├─ data_selection.py
    ├─ CONFIG/
-   │  ├─ config.py          # config parser class
-   │  └─ example_config.yaml# example config, not read for defaults
+   │  ├─ config.py           # config parser class
+   │  └─ example_config.yaml # example config, not read for defaults
    ├─ SYNOP/
-   │  ├─ LOS/               # line-of-sight code
+   │  ├─ LOS/                # line-of-sight code
+   │  │  ├─ drms_preparation.py
+   │  │  ├─ m720s_drms_pipe.py
+   │  │  ├─ phi_drms_interface.py
+   │  │  └─ hmiphisynoptic.py
    │  └─ VECT/              # vector code (todo)
    └─ UTILS/
       ├─ solepehm.py        # ephemeris functions for hmiphisynoptic.py
