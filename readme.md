@@ -11,9 +11,15 @@ test
 - CRLN_OBS now [-180,+180]
 - cr should maybe be handled via the timestring too
   - process timestring_hmi and check where the majority lands?
-
+s
 
 ## Gherardo
+
+## Pipeline 
+- change --session argument to --output
+- check if automatic session creation still uses config.cr
+- check how session creation works vs output_path
+
 
 ## HMI PHI Synoptic
 - try forcing start from half carrington rotation eg 2283.5 and check if it works
