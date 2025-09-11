@@ -108,4 +108,4 @@ Keyword:DIFROT_C, float, variable, record, nan, "%f", "none", "C coefficient (to
 Keyword:CALVER64, longlong, variable, record, 0x0000000000000000, "0x%016llX", "none", "Calibration Version"
 
 #=====Segments=====
-Data: Ml, vardim, float, 2, 5402, 4320, "gauss", fits, "", "0.000000"
+Data: %s, vardim, float, 2, 5402, 4320, "gauss", fits, "", "0.000000"
