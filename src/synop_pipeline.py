@@ -74,3 +74,4 @@ if __name__ == "__main__":
     #if config.run_polefilling:
         #subprocess.call(['los/4_polfil.sh'])
     
+# python src/synop_pipeline.py --config=config.yaml --session=/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/multi-source-test/
