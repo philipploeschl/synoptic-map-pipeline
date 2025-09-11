@@ -87,7 +87,7 @@ SYNOPTIC-MAP-PIPELINE
 
 
 ## Known issues:
-- phi_drms_interface.py:20 hardcodes car_rot = 2258 inside calc_trec() since the logic for the allocation to the  CR doesn't work properly 
+- WARNING: hmisynoptic.py needs data at the same Carrington rotation number which will not always be the case for arbitrary combinations of PHI and HMI. There a common number is forced based on the majority of data. As a result nonsensical combinations like HMI from one year and PHI from another will currently work and not raise any errors! 
 - UNTESTED: changing output_path to something outside of the project folder - try that at your own risk if necessary.
 - awf_nlim = True has an issue that introduces NaNs into the synoptic map. I already have a lead but it's fairly low on the list since we can just use it without the limiter (set to False)
 - python  path/synop_pipeline.py --config=/path/to/config.yaml
