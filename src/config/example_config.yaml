@@ -25,10 +25,6 @@ verbose: True
 # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
 id: "pipeline_test" # DEPCRECATED 
 
-# Data path to PHI data for DRMS ingestion
-# direct path for old implementation NOT FUNCTIONAL
-phi_datapath: '/scratch/slam/loeschl/dev/python/synop_old/LoS/output/data/phi/FDT_test_release_june_2022_defringed/'
-
 # database path for new implementation
 phi_dbpath: "/data/solo/phi/data/fmdb/public/l2"
 #date_start: "2022-06-03" # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--

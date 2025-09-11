@@ -42,10 +42,6 @@ class Config:
         "data_series_synop"    : "mps_loeschl.synoptic_%s",        # synoptic data series name
         "data_series_polfil"   : "mps_loeschl.synoptic_Mr_polfil", # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
 
-        # Data path to PHI data for DRMS ingestion
-        # direct path for old implementation NOT FUNCTIONAL
-        #"phi_datapath": '/data/solo/phi/data/fmdb/public/l2',
-
         # database path for new implementation
         "phi_dbpath": "/data/solo/phi/data/fmdb/public/l2",
         #"date_start": "2022-06-03", # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
