@@ -36,6 +36,11 @@ kNOISE_EQ = 10.0 # redefined in CalcSynopCol but unused
 # DRMS Interface
 def get_drms_parameters(inRecs, input_ds):
 
+    formatted = [] 
+    drms_param = []
+    nRecs = 0
+
+    if input_ds == "": return drms_param, nRecs
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
     
     #nRecs = len(inRecs.split(','))
@@ -47,10 +52,6 @@ def get_drms_parameters(inRecs, input_ds):
     si_out = subprocess.check_output(show_info %(input_ds, inRecs) , shell=True)[:-1].decode("utf-8")
     raw = si_out.split('\n')
     
-    formatted = [] 
-    drms_param = []
-    
-    nRecs = 0
     keys = raw[0].split('\t')
     
     for line in raw[1:]:  
