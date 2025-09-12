@@ -140,18 +140,12 @@ def run_bash_scripts(config, session_folder, verbose=False, prefix=''):
         # Cleanup
         if os.path.exists(os.path.join(outpath_scripts, "stop_signal")):
             os.remove(os.path.join(outpath_scripts, "stop_signal"))
+
+        # Restore default behavior for Ctrl+C
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
         os.chdir(cwd)
         print("[Python] Done.")
-
-    """
-    # old exception handling
-    except KeyboardInterrupt:
-        print("Caught Ctrl+C! Terminating subprocesses...")
-        for p in processes:
-            p.terminate()  # Or p.kill() if needed
-            
-        print("All subprocesses terminated.")
-    """
 
 
 def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
