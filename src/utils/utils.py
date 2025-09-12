@@ -190,8 +190,9 @@ def get_dataseries_count(data_series, period, interval):
 def get_dataseries_times(data_series, period, interval):
     
     times = []
+    if period == "": return times
+
     si_string = "show_info -iP %s[%s%s]" %(data_series, period, interval)
-    
     si_out = subprocess.check_output(si_string, shell=True)[:-1].decode("utf-8")
     
     raw = si_out.split('\n') #separate data series from SUMS path
@@ -206,6 +207,11 @@ def get_dataseries_times(data_series, period, interval):
 
 def get_dates_from_timestring(timestring, drms=False):
     
+
+    # return dates well before PHI or HMI mission start if no timestring is provided
+    # this will return empty data lists with any database queries that can't handle None or ""
+    if timestring == "": return '2000-01-01', '2000-01-01'
+
     # Split into all timestamps
     parts = timestring.replace("-", ",").split(",")
 
