@@ -16,6 +16,13 @@ def main(config, session_folder):
     outpath_data    = os.path.join(session_folder, config.data_path)
     #outpath_logs    = os.path.join(session_folder, config.log_path)
 
+    # clean up temporary _drms.fits files from previous runs
+    for filename in os.listdir(outpath_data):
+        if filename.endswith(".fits"):
+            file_path = os.path.join(outpath_data, filename)
+            if os.path.isfile(file_path):  # make sure it's a file
+                os.remove(file_path)
+
     date_start, date_end = get_dates_from_timestring(config.timestring_phi)
 
     #times = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)  # list with all queued time stamps
