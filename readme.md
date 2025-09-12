@@ -2,6 +2,9 @@ This is currently abused as a todo list
 test
 
 # TODO
+- EMPTY TIMESTRING FAILSAFE EVERYWHERE TIMESTINGS ARE USED!
+- prepare working example for scripts
+- check what's going on with the key
 - delete PHI_drms.fits before writing new files in phi_drms_interface.py
 - fix CR assignment in the data selection and run until 2030 for gherardo
 - check if the data selection does a correct +360 only for negative crln obs
