@@ -1,20 +1,16 @@
 This is currently abused as a todo list
-test
 
 # TODO
-- EMPTY TIMESTRING FAILSAFE EVERYWHERE TIMESTINGS ARE USED!
-- prepare working example for scripts
+- prepare working example scripts for DB stress test
 - check what's going on with the key
-- delete PHI_drms.fits before writing new files in phi_drms_interface.py
-- fix CR assignment in the data selection and run until 2030 for gherardo
-- check if the data selection does a correct +360 only for negative crln obs
+- DATA SELECTION: 
+  - fix CR assignment in the data selection and run until 2030 for gherardo
+  - check if the data selection does a correct +360 only for negative crln obs
 
 ## Keywords
-- date_start, date_end probably obsolete
-- CRLN_OBS now [-180,+180]
-- cr should maybe be handled via the timestring too
-  - process timestring_hmi and check where the majority lands?
-s
+- CRLN_OBS now [-180,+180] -> BUG in header, but pipeline handles both now
+
+
 
 ## Gherardo
 
