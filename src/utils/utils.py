@@ -228,6 +228,13 @@ def get_dates_from_timestring(timestring, drms=False):
 
     return earliest, latest
 
+def clean_temporary_fits(outpath_data):
+    # clean up temporary _drms.fits files from previous runs
+    for filename in os.listdir(outpath_data):
+        if filename.endswith(".fits"):
+            file_path = os.path.join(outpath_data, filename)
+            if os.path.isfile(file_path):  # make sure it's a file
+                os.remove(file_path)
 
 #OBSOLETE
 def get_drms_keywords(inRecs, input_ds):

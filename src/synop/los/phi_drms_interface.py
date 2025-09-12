@@ -3,9 +3,7 @@ import numpy as np
 from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
-from utils.utils import add_script_header, add_check_continue, get_phi_filenames, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
-
-
+from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
 
 
 def main(config, session_folder):
@@ -16,12 +14,7 @@ def main(config, session_folder):
     outpath_data    = os.path.join(session_folder, config.data_path)
     #outpath_logs    = os.path.join(session_folder, config.log_path)
 
-    # clean up temporary _drms.fits files from previous runs
-    for filename in os.listdir(outpath_data):
-        if filename.endswith(".fits"):
-            file_path = os.path.join(outpath_data, filename)
-            if os.path.isfile(file_path):  # make sure it's a file
-                os.remove(file_path)
+    clean_temporary_fits(outpath_data)
 
     date_start, date_end = get_dates_from_timestring(config.timestring_phi)
 
