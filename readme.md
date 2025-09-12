@@ -2,8 +2,8 @@ This is currently abused as a todo list
 test
 
 # TODO
-
-- temporary fix in hmiphisynoptic.py
+- delete PHI_drms.fits before writing new files in phi_drms_interface.py
+- fix CR assignment in the data selection and run until 2030 for gherardo
 - check if the data selection does a correct +360 only for negative crln obs
 
 ## Keywords
@@ -15,11 +15,20 @@ s
 
 ## Gherardo
 
+## Frank
+- 5 cores does seem to take twice as long as 10 cores even though the wall times are a bit less
+- compare runtimes to rerun tomrorrow
+- SAVE LOG FILES AND SCRIPTS BEFORE RERUN
+- jv2ts and resizemappingmag scripts mix read write access to jv2ts at the same time
+
 ## Pipeline 
 - change --session argument to --output
 - check if automatic session creation still uses config.cr
 - check how session creation works vs output_path
+- sigterm handling can be deactivated after run_bash_scripts() again. Currently it's not possible to abort the synoptic map process if everything was launched together
 
+## DRMS prep
+- add retention file parameters for each template to config
 
 ## HMI PHI Synoptic
 - try forcing start from half carrington rotation eg 2283.5 and check if it works
@@ -93,6 +102,7 @@ SYNOPTIC-MAP-PIPELINE
 
 
 ## Known issues:
+- Synoptic map processing cannot be aborted if launched together with run_bash_scripts()
 - WARNING: hmisynoptic.py needs data at the same Carrington rotation number which will not always be the case for arbitrary combinations of PHI and HMI. There a common number is forced based on the majority of data. As a result nonsensical combinations like HMI from one year and PHI from another will currently work and not raise any errors! 
 - UNTESTED: changing output_path to something outside of the project folder - try that at your own risk if necessary.
 - awf_nlim = True has an issue that introduces NaNs into the synoptic map. I already have a lead but it's fairly low on the list since we can just use it without the limiter (set to False)
