@@ -361,7 +361,7 @@ def carrington_observation_coverage(solo_obs, earth_obs):
     solo_src  = np.full(len(earth_utc), "PHI", dtype='<U3')  
 
     utc   = np.concatenate([solo_utc,  earth_utc])
-    ets   = np.concatenate([solo_ets,   earth_ets])
+    ets   = np.concatenate([solo_ets,  earth_ets])
     clons = np.concatenate([solo_clon, earth_clon])
     hdis  = np.concatenate([solo_hdis, earth_hdis])
     src   = np.concatenate([solo_src,  earth_src])
@@ -511,7 +511,7 @@ def carrington_observation_coverage(solo_obs, earth_obs):
 
         if np.all(coverage) == True:
             dt = (et - ets[0])/86400 # days
-            print('FSM Creation Time: %s days'% np.round(dt,2))
+            print(f'Start {et2datetime64(ets[0])[0]}, FSM Creation Time: {np.round(dt, 2)} days')
 
             # resolve duplicates by selecting the most recent observation
             # find indices where both spacecraft have coverage
@@ -537,7 +537,6 @@ def carrington_observation_coverage(solo_obs, earth_obs):
             return coverage_time, coverage_clon, coverage_src
     
     raise ValueError("Coverage not complete within given observation times.")
-
 
 def calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets):
 
@@ -608,6 +607,244 @@ def calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets):
                 dt_hdis = np.append(dt_hdis, np.round(np.average(hdis), 6))
                 break # leave inner for and continue with outer for
 
+
+    return dt, dt_date, dt_hdis
+
+
+
+def calc_observation_durations_WIP(solo_clons, earth_clons, solo_hdis, ets):
+
+    # TODO POSSIBLY INTRODUCE ETS PRESELECTION DEPENDENT ON SOLO AND EARTH CADENCE
+    # AND CONCATENATE LISTS IN HERE LIKE IN OBSERVATION_COVERAGE
+
+    dt = np.array([])
+    dt_date = np.array([], dtype='datetime64[s]')
+    dt_hdis = np.array([])
+    
+    coverage_times = np.array([])
+    coverage_clons = np.array([])
+    coverage_srcs  = np.array([])
+
+    earth_src = np.full(len(earth_clons), "HMI", dtype='<U3')  
+    solo_src  = np.full(len(solo_clons),  "PHI", dtype='<U3')  
+
+    ets   = np.concatenate([ets, ets])
+    clons = np.concatenate([solo_clons, earth_clons])
+    src   = np.concatenate([earth_src, solo_src])
+
+    order = np.argsort(ets)
+
+    clons = clons[order]
+    src   = src[order]
+
+
+    for t0_index, t0 in enumerate(ets):
+
+        # TODO INTRODUCE SIMULATION CADENCE SOMEWHERE HERE
+        hdis = np.array([])
+    
+        coverage       = np.zeros(360, dtype=bool)
+
+        coverage_phi   = np.zeros(360, dtype=bool)
+        coverage_hmi   = np.zeros(360, dtype=bool)
+
+        coverage_time_phi  = np.empty(360, dtype="datetime64[s]")
+        coverage_time_hmi  = np.empty(360, dtype="datetime64[s]")
+
+        coverage_clon_phi = np.zeros(360, dtype=float)
+        coverage_clon_hmi = np.zeros(360, dtype=float)
+
+        coverage_src   = np.empty(360, dtype='<U3')
+        coverage_clon  = np.zeros(360, dtype=float)
+        coverage_time  = np.empty(360, dtype="datetime64[s]")
+
+        prev_eclon = None # tracks the last observed carrington longitude from earth
+        prev_sclon = None # tracks the last observed carrington longitude from solo
+
+        for i, et in enumerate(ets[t0_index:]):
+            
+            i = t0_index + i #offset i by t0_index
+
+            clon = int(clons[i])
+            if clon < 0: clon += 360
+            
+            if src[i] == "PHI": prev_clon = prev_sclon
+            if src[i] == "HMI": prev_clon = prev_eclon
+
+            if prev_clon is None: # first iteration for each spacecraft
+                coverage[clon] = True
+
+                if src[i] == "PHI": 
+                    coverage_phi[clon] = True
+                    coverage_time_phi[clon] = et2datetime64(et)[0]
+                    coverage_clon_phi[clon] = clons[i]
+                    prev_sclon = clon
+
+                elif src[i] == "HMI": 
+                    coverage_hmi[clon] = True
+                    coverage_time_hmi[clon] = et2datetime64(et)[0]
+                    coverage_clon_hmi[clon] = clons[i]
+                    prev_eclon = clon
+
+
+            else:
+                # observation in decreasing clon. prev_clon > clon
+                # prev_clon - clon < 0 indicates a jump from low to high longitudes
+                # hmiphisynoptic.py does not wrap from left to right end!
+                # remove this case for now and find a workaround
+                if False:#prev_clon - clon < 0:
+                    # with wrap around: jump over zero fill in both sides of the coverage array
+                    coverage[0:prev_clon] = True    # fill up the lower longitudes since previous clon
+                    coverage[clon:] = True          # fill up the high lontitudes from the current clon to the end
+                                                    # this can probably be converage[clon:] instead of :361
+
+                    if src[i] == "PHI": 
+                        coverage_phi[0:prev_clon] = True
+                        coverage_phi[clon:] = True
+
+                        coverage_time_phi[0:prev_clon] = et2datetime64(et)[0]
+                        coverage_time_phi[clon:]       = et2datetime64(et)[0]
+
+                        coverage_clon_phi[0:prev_clon] = clons[i]
+                        coverage_clon_phi[clon:]       = clons[i]
+                        prev_sclon = clon
+
+                    elif src[i] == "HMI": 
+                        coverage_hmi[0:prev_clon] = True
+                        coverage_hmi[clon:] = True
+
+                        coverage_time_hmi[0:prev_clon] = et2datetime64(et)[0]
+                        coverage_time_hmi[clon:]       = et2datetime64(et)[0]
+
+                        coverage_clon_hmi[0:prev_clon] = clons[i]
+                        coverage_clon_hmi[clon:]       = clons[i]
+                        prev_eclon = clon
+                elif prev_clon - clon < 0:
+                    # wrap around disabled
+                    # use previous clon to fill until zero
+                    # use current clon to fill 360 to current clon
+                    # TODO
+                    coverage[0:prev_clon] = True    # fill up the lower longitudes since previous clon
+                    coverage[clon:] = True          # fill up the high lontitudes from the current clon to the end
+                                                    # this can probably be converage[clon:] instead of :361
+
+                    if src[i] == "PHI": 
+                        coverage_phi[0:prev_clon] = coverage_phi[prev_clon]
+                        coverage_phi[clon:] = True
+                        
+                        coverage_time_phi[0:prev_clon] = coverage_time_phi[prev_clon] # fill with the previous clon
+                        coverage_time_phi[clon:]       = et2datetime64(et)[0]
+
+                        coverage_clon_phi[0:prev_clon] = coverage_clon_phi[prev_clon] 
+                        coverage_clon_phi[clon:]       = clons[i]
+                        prev_sclon = clon
+
+                    elif src[i] == "HMI": 
+                        coverage_hmi[0:prev_clon] = coverage_hmi[prev_clon]
+                        coverage_hmi[clon:] = True
+
+                        coverage_time_hmi[0:prev_clon] = coverage_time_hmi[prev_clon]
+                        coverage_time_hmi[clon:]       = et2datetime64(et)[0]
+
+                        coverage_clon_hmi[0:prev_clon] = coverage_clon_hmi[prev_clon]
+                        coverage_clon_hmi[clon:]       = clons[i]
+                        prev_eclon = clon
+                else:
+                    coverage[clon:prev_clon] = True                
+
+                    if src[i] == "PHI": 
+                        coverage_phi[clon:prev_clon] = True
+                        coverage_time_phi[clon:prev_clon] = et2datetime64(et)[0]
+                        coverage_clon_phi[clon:prev_clon] = clons[i]
+                        prev_sclon = clon
+
+                    elif src[i] == "HMI": 
+                        coverage_hmi[clon:prev_clon] = True
+                        coverage_time_hmi[clon:prev_clon] = et2datetime64(et)[0]
+                        coverage_clon_hmi[clon:prev_clon] = clons[i]
+                        prev_eclon = clon
+            
+            # TODO ADD HDIS TRACKING
+            # TODO APPEND EVERYTHING TRACKING FOR eACH SIMULATION
+
+            """
+            if i > 0:
+                if prev_eclon - eclon < 0:
+                    # if we jump over zero fill in both sides of the coverage array
+                    # 3xx:360 and 0:xx
+                    coverage[0:prev_eclon] = 1
+                    coverage[eclon:] = 1
+                    prev_eclon = eclon
+                    
+                else:
+                    coverage[eclon:prev_eclon] = 1
+                    prev_eclon = eclon
+                
+                if prev_sclon - sclon < 0:
+                    coverage[0:prev_sclon] = 1
+                    coverage[sclon:] = 1
+                    prev_sclon = sclon
+                    hdis = np.append(hdis, solo_hdis[t0_index+i])
+
+                else:
+                    coverage[sclon:prev_sclon] = 1
+                    prev_sclon = sclon
+                    hdis = np.append(hdis, solo_hdis[t0_index+i])
+                
+            else:
+                coverage[eclon] = 1
+                coverage[sclon] = 1
+
+                prev_eclon = eclon
+                prev_sclon = sclon
+                hdis = np.append(hdis, solo_hdis[t0_index+i])
+
+            #print(i, et2datetime64(et), eclon, prev_eclon, sclon, prev_sclon, np.sum(coverage))
+            
+
+            if np.sum(coverage) == 360:
+                t = ets[t0_index+i]
+                dt = np.append(dt, (t - t0)/86400) # days
+                dt_date = np.append(dt_date, et2datetime64(t0)[0]) #sp.et2utc(t0, 'C', 3))
+                dt_hdis = np.append(dt_hdis, np.round(np.average(hdis), 6))
+                break # leave inner for and continue with outer for
+            """
+
+            if np.all(coverage) == True:
+                dt = (ets[t0_index+i] - ets[t0_index])/86400 #(et - ets[0])/86400 # days
+                print(f'Start {et2datetime64(ets[0])[0]}, FSM Creation Time: {np.round(dt, 2)} days')
+
+                # resolve duplicates by selecting the most recent observation
+                # find indices where both spacecraft have coverage
+                for j in np.argwhere(coverage_phi & coverage_hmi).flatten():
+                    if coverage_time_phi[j] > coverage_time_hmi[j]:
+                        coverage_phi[j] = True
+                        coverage_hmi[j] = False
+                    else:
+                        coverage_phi[j] = False
+                        coverage_hmi[j] = True
+
+                # prepare return arrays
+                coverage_src[coverage_phi] = "PHI"
+                coverage_src[coverage_hmi] = "HMI"
+
+                coverage_clon[coverage_phi] = coverage_clon_phi[coverage_phi]
+                coverage_clon[coverage_hmi] = coverage_clon_hmi[coverage_hmi]
+
+                coverage_time[coverage_phi] = coverage_time_phi[coverage_phi]
+                coverage_time[coverage_hmi] = coverage_time_hmi[coverage_hmi]
+
+                #break
+                coverage_times = np.append(coverage_times, coverage_time)
+                coverage_clons = np.append(coverage_clons, coverage_time)
+                coverage_srcs  = np.append(coverage_srcs, coverage_time)
+
+                coverage_duration = np.append(coverage_duration, dt)
+                #coverage_obsstart = np.append(coverage_obsstart, TODO)
+                #coverage_srcdis   = np.append(coverage_srcdis, TODO)
+                # TODO OLD DT DTDATE DTHDIS STILL NEEDS TRACKING
+    
+    #return coverage_time, coverage_clon, coverage_src
 
     return dt, dt_date, dt_hdis
 
@@ -725,18 +962,9 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_clons(config):
 
-if __name__ == "__main__":
-
-    # Set cwd to file directory
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    AU = 149598000.0 #km
-
-    # Load config from YAML
-    #args = parse_args()
-    #config = Config(config_path=args.config) if args.config else Config()
-    config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
-
+    
     # Load meta kernel
     loaded=loadkernel(config.spice_mkpath, config.spice_mkname)
  
@@ -790,75 +1018,99 @@ if __name__ == "__main__":
 
 
     # Calculate carrington longitudes as seen from Earth and SolO
-    solo_clon  = simple_carrington(solo_hlon, ets)
+    solo_clon  = simple_carrington(solo_hlon,  ets)
     earth_clon = simple_carrington(earth_hlon, ets)
 
-    # calculate observation durations for all possible start times
-    crobs_duration, crobs_start, crobs_hdis = calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets)  
-    
-
-    # save output here to file to speed up future processing
-
-    # find the optimal start time for each carrington rotation for the fastest synoptic map creation
-    crobs_opt = optimise_carringtion_rotation(config.cr_date_start, config.cr_date_end, ets, crobs_start, crobs_duration, crobs_hdis)
+    return solo_clon, earth_clon, ets, solo_hdis, earth_hdis
 
 
-    # produce output list with optimised observation start date for each carrington rotation
+if __name__ == "__main__":
 
-    # pick a specific carrington rotation for further processing
-    # load output from optimise_carringtion_observation and pick a specific CR
-    if os.path.isabs(config.output_path):
-        output_path = os.join(config.output_path, config.obsplan_path)
-    else:   
-        root_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
-        output_path = os.path.join(root_path, config.output_path, config.obsplan_path)
-    
-    os.makedirs(output_path, exist_ok=True)
+    # Set cwd to file directory
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    AU = 149598000.0 #km
 
-    tstr_hmi = []
-    tstr_phi = []
-    for cr, obs in crobs_opt.iterrows():
-        earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, obs["start_date"], config.earth_cad)
-        solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, obs["start_date"], config.solo_cad)
+    # Load config from YAML
+    #args = parse_args()
+    #config = Config(config_path=args.config) if args.config else Config()
+    #config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml')
+    config = Config(config_path='/home/loeschl/code/synoptic-map-pipeline/src/config.yaml')
 
-        coverage_time, coverage_clon, coverage_src = carrington_observation_coverage(solo_obs, earth_obs)
 
-        clons_obs, idx = np.unique(coverage_clon, return_index=True)
-        obs_utc = coverage_time[idx]
-        obs_src = coverage_src[idx]
+    solo_clon, earth_clon, ets, solo_hdis, earth_hdis = get_clons(config)
 
-        drms_tai = obs2drms_times(obs_utc)
+
+    if config.single_carrington:
+        pass
+
+    else:
+
+        # calculate observation durations for all possible start times
+        crobs_duration, crobs_start, crobs_hdis = calc_observation_durations(solo_clon, earth_clon, solo_hdis, ets)  
         
-        timestring_hmi, timestring_phi = create_drms_timestring(drms_tai, obs_src, config.earth_cad, config.solo_cad)
+
+        # save output here to file to speed up future processing
+
+        # find the optimal start time for each carrington rotation for the fastest synoptic map creation
+        crobs_opt = optimise_carringtion_rotation(config.cr_date_start, config.cr_date_end, ets, crobs_start, crobs_duration, crobs_hdis)
+
+
+        # produce output list with optimised observation start date for each carrington rotation
+
+        # pick a specific carrington rotation for further processing
+        # load output from optimise_carringtion_observation and pick a specific CR
+        if os.path.isabs(config.output_path):
+            output_path = os.join(config.output_path, config.obsplan_path)
+        else:   
+            root_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
+            output_path = os.path.join(root_path, config.output_path, config.obsplan_path)
         
-        tstr_hmi.append(timestring_hmi)
-        tstr_phi.append(timestring_phi) 
+        os.makedirs(output_path, exist_ok=True)
+
+        tstr_hmi = []
+        tstr_phi = []
+        for cr, obs in crobs_opt.iterrows():
+            earth_obs = carrington_observation_times(earth_clon, earth_hdis, ets, obs["start_date"], config.earth_cad)
+            solo_obs  = carrington_observation_times(solo_clon,   solo_hdis, ets, obs["start_date"], config.solo_cad)
+
+            coverage_time, coverage_clon, coverage_src = carrington_observation_coverage(solo_obs, earth_obs)
+
+            clons_obs, idx = np.unique(coverage_clon, return_index=True)
+            obs_utc = coverage_time[idx]
+            obs_src = coverage_src[idx]
+
+            drms_tai = obs2drms_times(obs_utc)
+            
+            timestring_hmi, timestring_phi = create_drms_timestring(drms_tai, obs_src, config.earth_cad, config.solo_cad)
+            
+            tstr_hmi.append(timestring_hmi)
+            tstr_phi.append(timestring_phi) 
+            
+            os.makedirs(os.path.join(output_path, f'CR{cr}'), exist_ok=True)
+            with open(os.path.join(output_path, f'CR{cr}', f'carrington_observation_times_CR{cr}.txt'), 'w') as f:
+                f.write('DRMS_TAI_TIMESTRING_HMI\n')
+                f.write(f'{timestring_hmi}\n')
+                f.write('\n')
+                f.write('DRMS_TAI_TIMESTRING_PHI\n')
+                f.write(f'{timestring_phi}\n')
+                f.write('\n')
+                f.write('UTC\tCARRINGTON_LONGITUDE\tSOURCE\n')
+                for u, c, s in zip(obs_utc, clons_obs, obs_src):
+                    f.write(f'{u}\t{c:.6f}\t{s}\n')
+                f.write('\n')
+
+
+        crobs_opt['timestr_hmi'] = tstr_hmi
+        crobs_opt['timestr_phi'] = tstr_phi
+
+
+        # Write overview plan
+        crobs_opt["obs_time"] = pd.to_numeric(crobs_opt["obs_time"], errors="coerce")
+        crobs_opt["avg_hdis"] = pd.to_numeric(crobs_opt["avg_hdis"], errors="coerce") 
+        crobs_opt["obs_time"] = crobs_opt["obs_time"].map(lambda x: f"{x:.2f}")
+        crobs_opt["avg_hdis"] = crobs_opt["avg_hdis"].map(lambda x: f"{x:.6f}")
+        crobs_opt.to_csv(os.path.join(output_path,'carrington_observation_plan_' + str(config.cr_date_start).replace(' ', '_') + '_' + str(config.cr_date_end).replace(' ', '_') + '.csv'), sep="\t", index=True)  
         
-        os.makedirs(os.path.join(output_path, f'CR{cr}'), exist_ok=True)
-        with open(os.path.join(output_path, f'CR{cr}', f'carrington_observation_times_CR{cr}.txt'), 'w') as f:
-            f.write('DRMS_TAI_TIMESTRING_HMI\n')
-            f.write(f'{timestring_hmi}\n')
-            f.write('\n')
-            f.write('DRMS_TAI_TIMESTRING_PHI\n')
-            f.write(f'{timestring_phi}\n')
-            f.write('\n')
-            f.write('UTC\tCARRINGTON_LONGITUDE\tSOURCE\n')
-            for u, c, s in zip(obs_utc, clons_obs, obs_src):
-                f.write(f'{u}\t{c:.6f}\t{s}\n')
-            f.write('\n')
-
-
-    crobs_opt['timestr_hmi'] = tstr_hmi
-    crobs_opt['timestr_phi'] = tstr_phi
-
-
-    # Write overview plan
-    crobs_opt["obs_time"] = pd.to_numeric(crobs_opt["obs_time"], errors="coerce")
-    crobs_opt["avg_hdis"] = pd.to_numeric(crobs_opt["avg_hdis"], errors="coerce") 
-    crobs_opt["obs_time"] = crobs_opt["obs_time"].map(lambda x: f"{x:.2f}")
-    crobs_opt["avg_hdis"] = crobs_opt["avg_hdis"].map(lambda x: f"{x:.6f}")
-    crobs_opt.to_csv(os.path.join(output_path,'carrington_observation_plan_' + str(config.cr_date_start).replace(' ', '_') + '_' + str(config.cr_date_end).replace(' ', '_') + '.csv'), sep="\t", index=True)  
-       
             # add phi and hmi timestrings to crobs_opt and save to file in output_path/planning
     # save full coverage and timestrings to dedicated files in dedicated folders
     #sp.kclear()
