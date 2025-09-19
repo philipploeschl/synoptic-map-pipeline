@@ -1,30 +1,33 @@
 This is currently abused as a todo list
 
+## Notes
+- link to drms installation
+- link to synotpic map c code
+- header excel sheet
+- epxlain bash script drms commands and default parameters
+
+
 # TODO
-- prepare working example scripts for DB stress test
 - check what's going on with the key
 - DATA SELECTION: 
   - fix CR assignment in the data selection and run until 2030 for gherardo
   - check if the data selection does a correct +360 only for negative crln obs
+- maybe throw out CR check in hmiphisynoptic instead of overwriting it
+- or just give it +-1 CR as margin
+
 
 ## Keywords
 - CRLN_OBS now [-180,+180] -> BUG in header, but pipeline handles both now
 
 
-
 ## Gherardo
 
 ## Frank
-- 5 cores does seem to take twice as long as 10 cores even though the wall times are a bit less
-- compare runtimes to rerun tomrorrow
-- SAVE LOG FILES AND SCRIPTS BEFORE RERUN
-- jv2ts and resizemappingmag scripts mix read write access to jv2ts at the same time
 
 ## Pipeline 
 - change --session argument to --output
 - check if automatic session creation still uses config.cr
 - check how session creation works vs output_path
-- sigterm handling can be deactivated after run_bash_scripts() again. Currently it's not possible to abort the synoptic map process if everything was launched together
 
 ## DRMS prep
 - add retention file parameters for each template to config
@@ -42,17 +45,29 @@ This is currently abused as a todo list
 
 ## Data selection output
 - add CR start and end dates to the csv output
-- 2252	2022-01-04T10:55:49	25.79	0.934653	2022.01.11_22:56:26_TAI-2022.01.30_06:56:25_TAI,2022.01.04_10:56:26_TAI-2022.01.11_18:56:26_TAI	2022.01.29_02:56:25_TAI-2022.01.30_06:56:25_TAI
-- why is the 2nd HMI string before the first string?
+- DONE 2252	2022-01-04T10:55:49	25.79	0.934653	2022.01.11_22:56:26_TAI-2022.01.30_06:56:25_TAI,2022.01.04_10:56:26_TAI-2022.01.11_18:56:26_TAI	2022.01.29_02:56:25_TAI-2022.01.30_06:56:25_TAI
+  - DONE why is the 2nd HMI string before the first string? -> ordered by clon not time
 - DONE 2254: why is htere no PHI data -> 4h cadence eats the bit of PHI data
 
 
 ## Data selection 
-- add start time of phi obsevation and build the ET around that
-- DONT THINK I NEED THAT SINCE DRMS TAKES CLOSEST FILE add +- half cadence to the phi timestrings?
+- DONE add start time of phi obsevation and build the ET around that
 - add data selection not depending on newest observation date but predetermined data set from config
 - change CRXXXX txt output to be usable for phi/hmi data selection like in the yt video to the output.pdf
 
+- plan for refactor:
+  - CR determination depends on majority of HMI data
+  - input
+    - star date 
+    - end date
+    - cadence of new observation duration simulation to keep time reasonable (e.g. every 12h = 2 per day)
+    - PHI observation cadence
+    - HMI observation cadence
+  - output
+    - CR, CR start date, CR end date, observation start date, observation duration, solo distance, timestrings
+    - CRXXX archive with detailed data selection in text files (current implementation)
+      - one file for each simulated carrington observation
+       
 
 
 # FEATURES
