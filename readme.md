@@ -1,9 +1,100 @@
 # The SO/PHI & SDO/HMI Synoptic Map Pipeline
 
-asfd
-## File Structure
 
-```text
+This project is based on the [SDO/HMI synoptic map pipeline](http://jsoc.stanford.edu/doxygen_html/main.html) and [NetDRMS](http://jsoc.stanford.edu/jsocwiki/DRMSSetup)
+
+## Table of Contents
+
+- [The SO/PHI \& SDO/HMI Synoptic Map Pipeline](#the-sophi--sdohmi-synoptic-map-pipeline)
+  - [Table of Contents](#table-of-contents)
+  - [Installation (WIP)](#installation-wip)
+    - [1. Clone the Repository](#1-clone-the-repository)
+    - [2. Set Up a Virtual Environment (Optional but Recommended)](#2-set-up-a-virtual-environment-optional-but-recommended)
+    - [3. Install Dependencies](#3-install-dependencies)
+  - [Usage](#usage)
+  - [Directory Structure](#directory-structure)
+  - [Code Structure](#code-structure)
+    - [Pipeline Main Function](#pipeline-main-function)
+    - [DRMS Data Series Setup](#drms-data-series-setup)
+    - [Data Processing](#data-processing)
+      - [SDO/HMI Data Processing](#sdohmi-data-processing)
+      - [SO/PHI Data Processing](#sophi-data-processing)
+    - [Synoptic Map Processing](#synoptic-map-processing)
+    - [Data Selection](#data-selection)
+  - [Known issues](#known-issues)
+  - [Citations / References](#citations--references)
+  - [Acknowledgements](#acknowledgements)
+  - [License](#license)
+  
+
+
+## Installation (WIP)
+TODO: confirm that this section works (ChatGPT output)
+
+To get started with the **synoptic-map-pipeline**, follow these steps:
+
+### 1. Clone the Repository
+Use Git to clone the repository to your local machine:
+
+```bash
+git clone https://gitlab.gwdg.de/philipp.loeschl/synoptic-map-pipeline.git
+cd synoptic-map-pipeline
+```
+
+### 2. Set Up a Virtual Environment (Optional but Recommended)
+Creating a virtual environment helps manage dependencies and avoid conflicts with other projects:
+
+```bash
+python -m venv venv
+```
+
+Activate the virtual environment:
+
+- Windows:
+
+```bash
+.\venv\Scripts\activate
+```
+
+- macOS/Linux:
+
+```
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+TODO: actually provide requirements.txt file
+
+Install the required Python packages:
+```bash
+pip install -r requirements.txt
+```
+
+Note: If you encounter issues with pip, ensure it's up to date:
+```
+python -m pip install --upgrade pip
+```
+
+## Usage
+  Direct lauch from terminal with compatible active python environment:
+
+   _python synop_pipeline.py --config /path/to/config.yaml --session /path/to/previous/or/current/session_folder (optional)_
+
+  - config (required)
+    - accepts absolute path to config.yaml or relative path wrt to synop_pipeline.py
+    - uses default values (defined in config.py) for missing parameters or in case no config file is provided 
+
+  - session (optional)
+    - functions as output path and works as either
+      - path to a previous session/simulation with existing output folder structure
+      - path to a new session/simulation for which the output folder structure is created
+    - recommended use:
+      - provide --session /absolute/path/to/output/directory/
+
+
+## Directory Structure
+
+```yaml
 SYNOPTIC-MAP-PIPELINE
 ├─ DATA/
 │  └─ DRMS/                  # JSD file templates
@@ -36,30 +127,16 @@ SYNOPTIC-MAP-PIPELINE
 
 
 
-## Example command
-  Direct lauch from terminal with compatible active python environment:
 
-   _python synop_pipeline.py --config /path/to/config.yaml --session /path/to/previous/or/current/session_folder (optional)_
-
-  - config (required)
-    - accepts absolute path to config.yaml or relative path wrt to synop_pipeline.py
-    - uses default values (defined in config.py) for missing parameters or in case no config file is provided 
-
-  - session (optional)
-    - functions as output path and works as either
-      - path to a previous session/simulation with existing output folder structure
-      - path to a new session/simulation for which the output folder structure is created
-    - recommended use:
-      - provide --session /absolute/path/to/output/directory/
-
-
-## Pipeline Master File (src/los/synop_pipeline.py)
+## Code Structure
+### Pipeline Main Function
+_src/los/synop_pipeline.py_
 
 
 TODO DESCRIPTION
 
 
-```text
+```yaml
 ###########################################################
 ################# Pipeline Configuration ##################
 ###########################################################
@@ -118,9 +195,10 @@ template_path: "data/drms/templates/"
 
 ```
 
-## DRMS Data Series Setup (src/los/drms_preparation.py)
+### DRMS Data Series Setup 
+_src/los/drms_preparation.py_
 
-```
+```yaml
 ###########################################################
 ################# Data series definition ##################
 ###########################################################
@@ -171,11 +249,10 @@ use_temp_series: False
 ```
 
 
-## Data Processing
+### Data Processing
 
 
-```
-
+```yaml
 ###########################################################
 ################### HMI & PHI Processing ##################
 ###########################################################
@@ -199,16 +276,20 @@ hmi_maprmax: 0.998  # HMI default value
 phi_maprmax: 0.9925 # maximum radius for the synoptic map
 ```
 
-### SDO/HMI Data Processing (src/los/m720s_drms_pipe.py)
-
-### SO/PHI Data Processing (src/los/phi_drms_interface.py)
-
+#### SDO/HMI Data Processing 
+_src/los/m720s_drms_pipe.py_
 
 
+#### SO/PHI Data Processing 
+_src/los/phi_drms_interface.py_
 
-## Synoptic Map Processing src/los/hmiphisynoptic.py
 
-```
+
+
+### Synoptic Map Processing 
+_src/los/hmiphisynoptic.py_
+
+```yaml
 ###########################################################
 ################# Synoptic Map Processing #################
 ###########################################################
@@ -252,9 +333,10 @@ minOutPts   : 4.0  # minimum number of points that must exist before outliers ca
 ```
 
 
-# Data Selection (src/data_selection.py)
+### Data Selection 
+_src/data_selection.py_s
 
-```
+```yaml
 ###########################################################
 ###################### Data selection #####################
 ###########################################################
@@ -293,7 +375,7 @@ priority_hmi: 'YYYY-MM-DDTHH:MM:SS' # timestring
 
 
 
-## Known issues:
+## Known issues
 - Synoptic map processing cannot be aborted if launched together with run_bash_scripts()
 - WARNING: hmisynoptic.py needs data at the same Carrington rotation number which will not always be the case for arbitrary combinations of PHI and HMI. There a common number is forced based on the majority of data. As a result nonsensical combinations like HMI from one year and PHI from another will currently work and not raise any errors! 
 - UNTESTED: changing output_path to something outside of the project folder - try that at your own risk if necessary.
@@ -304,4 +386,22 @@ priority_hmi: 'YYYY-MM-DDTHH:MM:SS' # timestring
 
 
 
+## Citations / References
+- Liu, Y., Hoeksema, J. T., Sun, X., Hayashi, K., & Hayashi, T. (2017). Vector Magnetic Field Synoptic Charts from the Helioseismic and Magnetic Imager (HMI). *Solar Physics*, 292(1), 29. https://doi.org/10.1007/s11207-017-1056-9
 
+- Loeschl, P., Hirzberger, J., Solanki, S. K., Schou, J., & Valori, G. (2024). Synoptic maps from two viewpoints. Preparing for maps from SDO/HMI and SO/PHI data. *Astronomy & Astrophysics*, 682, A108. [https://doi.org/10.1051/0004-6361/202346044](https://doi.org/10.1051/0004-6361/202346044)
+
+- Scherrer, P. H., Schou, J., Bush, R. I., Kosovichev, A. G., Bogart, R. S., Hoeksema, J. T., Liu, Y., Duvall, T. L., Zhao, J., Title, A. M., Schrijver, C. J., Tarbell, T. D., & Tomczyk, S. (2012). The Helioseismic and Magnetic Imager (HMI) Investigation for the Solar Dynamics Observatory (SDO). *Solar Physics*, 275(1–2), 207–227. [https://doi.org/10.1007/s11207-011-9834-2](https://doi.org/10.1007/s11207-011-9834-2)
+
+- Schou, J., Scherrer, P. H., Bush, R. I., Wachter, R., Couvidat, S., Rabello-Soares, M. C., Bogart, R. S., Hoeksema, J. T., Liu, Y., Duvall, T. L., Akin, D. J., Allard, B. A., Miles, J. W., Rairden, R., Shine, R. A., Tarbell, T. D., Title, A. M., Wolfson, C. J., Elmore, D. F., Norton, A. A., & Tomczyk, S. (2012). Design and Ground Calibration of the Helioseismic and Magnetic Imager (HMI) Instrument on the Solar Dynamics Observatory (SDO). *Solar Physics*, 275(1–2), 229–259. [https://doi.org/10.1007/s11207-011-9842-2](https://doi.org/10.1007/s11207-011-9842-2)
+
+- Solanki, S. K., del Toro Iniesta, J. C., Woch, J., et al. (2020). The Polarimetric and Helioseismic Imager on Solar Orbiter. *Astronomy & Astrophysics*, 642, A11. [https://doi.org/10.1051/0004-6361/201935325](https://doi.org/10.1051/0004-6361/201935325)
+
+
+
+## Acknowledgements 
+We would like to thank Yang Liu, Art Amezcua and Zhi-Chao Liang for their endless patience and guidance on the \HMI\ pipeline and DRMS. This work was carried out in the framework of the International Max Planck Research School (IMPRS) for Solar System Science at the University of Göttingen. Solar Orbiter is a space mission of international collaboration between ESA and NASA, operated by ESA. We are grateful to the ESA SOC and MOC teams for their support. The German contribution to SO/PHI is funded by the BMWi through DLR and by MPG central funds. The HMI data are courtesy of NASA/SDO and the HMI science team. The data were processed at the German Data Center for SDO (GDC-SDO), funded by the German Aerospace Center (DLR).
+
+## License
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)**.  
+You can view the full license text here: [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.txt)
