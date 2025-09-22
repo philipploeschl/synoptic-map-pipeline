@@ -637,7 +637,9 @@ def simulate_carrington_observations(solo_clons, earth_clons, solo_hdis, ets, co
     solo_src  = np.full(len(solo_clons),  "PHI", dtype='<U3')  
     
     #offset one source ets by eps to maintain order in the combined arrays
-    eps = 0.1
+    # negative offset to make HMI data "newer" in case PHI is in front of Earth
+    # and observes the same longitudes
+    eps = -0.1
     ets   = np.concatenate([ets[::solo_cad]+eps,    ets[::earth_cad]])
     clons = np.concatenate([solo_clons[::solo_cad], earth_clons[::earth_cad]])
     src   = np.concatenate([solo_src[::solo_cad],   earth_src[::earth_cad]])
@@ -1237,7 +1239,7 @@ if __name__ == "__main__":
 
         carrington_opt, idx_opt = optimise_carringtion_rotation(config.cr_date_start, config.cr_date_end, carrington_obs)
 
-        
+         
         if os.path.isabs(config.output_path):
             output_path = os.join(config.output_path, config.obsplan_path)
         else:   
