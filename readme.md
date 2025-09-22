@@ -1,6 +1,7 @@
 # The SO/PHI & SDO/HMI Synoptic Map Pipeline
 
 
+
 This project is based on the [SDO/HMI synoptic map pipeline](http://jsoc.stanford.edu/doxygen_html/main.html) and [NetDRMS](http://jsoc.stanford.edu/jsocwiki/DRMSSetup)
 
 ## Table of Contents
@@ -13,7 +14,7 @@ This project is based on the [SDO/HMI synoptic map pipeline](http://jsoc.stanfor
     - [3. Install Dependencies](#3-install-dependencies)
   - [Usage](#usage)
   - [Directory Structure](#directory-structure)
-  - [Code Structure](#code-structure)
+  - [Configuration](#configuration)
     - [Pipeline Main Function](#pipeline-main-function)
     - [DRMS Data Series Setup](#drms-data-series-setup)
     - [Data Processing](#data-processing)
@@ -128,7 +129,7 @@ SYNOPTIC-MAP-PIPELINE
 
 
 
-## Code Structure
+## Configuration
 ### Pipeline Main Function
 _src/los/synop_pipeline.py_
 
