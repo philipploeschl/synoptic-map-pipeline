@@ -959,7 +959,8 @@ def optimise_carringtion_rotation(start_date, end_date, carrington_obs):
 
     for t0, t1, crot in zip(crot_ets[:-1], crot_ets[1:], crots):
         # Boolean mask for values between t0 and t1      
-        mask = (hmi_start >= t0) & (hmi_end <= t1)
+        # mask = (hmi_start >= t0) & (hmi_end <= t1) # OLD CASE TO PRODUCE 2295 EDGE CASE
+        mask = (hmi_start >= t0) & (hmi_start < t1) & (hmi_end > t0) & (hmi_end <= t1)
 
         # Extract indices of current crot
         indices = np.where(mask)[0]
