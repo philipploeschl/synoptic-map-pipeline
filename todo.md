@@ -11,11 +11,13 @@ This is currently abused as a todo list
 # TODO
 - check what's going on with the key
 - DATA SELECTION: 
-  - fix CR assignment in the data selection and run until 2030 for gherardo
-  - check if the data selection does a correct +360 only for negative crln obs
-- maybe throw out CR check in hmiphisynoptic instead of overwriting it
-- or just give it +-1 CR as margin
-
+  - maybe throw out CR check in hmiphisynoptic instead of overwriting it
+  - or just give it +-1 CR as margin  
+    - this won't work with overlapping HMI timestamps, as they will just be sorted next to each other and averaged together
+    - sort by real CR and CRLN?
+    - use accurate decimal CR?
+  - DRMS_TIMESTRING: The problem is triggered by HMI wrapping around from 0 to 360, so essentially cases between two Carrington Rotations, where the high HMI longitudes are already from the next CR. The routines that select the fastest combinations for a given CR and create the timestring are affected by this as I currently only look for jumps between instruments. This will need an additional check for time jumps within HMI.
+  
 - Something's wrong with the instrument selection, causing the single instrument cases
 - CR 2295 edge case
   -  PHI crosses in front of HMI giving the HMI/PHI/HMI/PHI transition in the middle
