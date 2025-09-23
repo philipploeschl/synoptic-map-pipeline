@@ -605,6 +605,10 @@ def synoptic_map(config):#, hw_overwrite=None):
     nRecs = nRecs_hmi + nRecs_phi
 
     # select the most common CAR_ROT entry and set it for all data
+    # WARNING, this requires
+    # - all data to be from the same map, as months offset would be overwritten by this
+    # - the HMI dataset not to overlap with itself!
+    # TODO this might need a decimal carrington number based on the first and last HMI date
     drms_getkey, common_carrot = update_common_carrot(drms_getkey)
     config["cr"] = common_carrot
 
