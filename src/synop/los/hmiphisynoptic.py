@@ -16,6 +16,7 @@ from copy import copy
 from astropy.io import fits
 import os, sys
 from datetime import date
+from itertools import groupby
 
 from utils.plots import plot_synoptic
 
@@ -45,7 +46,7 @@ def get_drms_parameters(inRecs, input_ds):
     
     #nRecs = len(inRecs.split(','))
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
-    show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA' 
+    show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
     
     #-P for path and -A for segment
     
@@ -604,6 +605,9 @@ def synoptic_map(config):#, hw_overwrite=None):
 
     nRecs = nRecs_hmi + nRecs_phi
 
+    synop=[]
+    epts=[]
+
     # select the most common CAR_ROT entry and set it for all data
     # WARNING, this requires
     # - all data to be from the same map, as months offset would be overwritten by this
@@ -649,7 +653,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
 
-    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
+    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs","src"]
     imrec = [] # list to hold dictionary
 
     idx = 0
@@ -772,6 +776,7 @@ def synoptic_map(config):#, hw_overwrite=None):
         config["halfWindow"] = np.round(((width-1) * synstep)/2., 5)
         
         imrec_tmp = {}
+        imrec_tmp["src"] = drms_getkey[inRec]["INSTRUME"]
         imrec_tmp["mapdev"] = (remapLgmax - remapLgmin) / 2.0
         imrec_tmp["recno"]  = int(drms_getkey[inRec]["I_DREC"])
         imrec_tmp["mapct"]  = mapct
@@ -785,10 +790,11 @@ def synoptic_map(config):#, hw_overwrite=None):
         # temporary, remove after debugging:
         imrec_tmp["cadence"] = cadences[ds] #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
         imrec_tmp["crln_obs"] = cmLong #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
+   
         
         imrec.append(imrec_tmp)
         idx += 1
-
+    '''
     ngood = idx
     
     config["ngood"] = ngood
@@ -954,7 +960,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     #frebinbox(epts,  smallEpts,  length[0], length[1], config["nbin"], config["nbin"] - 1)
     
     
-    # TODO HEADER
+    # TODO HEADER'''
     
     return synop, epts, length, imrec
 
@@ -1397,6 +1403,33 @@ def get_arg_parameters(global_config):
     
     return config    
 
+def create_src_fits_table(imrec):
+    merged_intervals = []
+
+    for src, group in groupby(imrec, key=lambda x: x["src"]):
+        group_list = list(group)
+
+        # Find maximum and minimum crln_obs in this group
+        max_lon = max(e["crln_obs"] for e in group_list)
+        min_lon = min(e["crln_obs"] for e in group_list)
+    
+        # Append the interval dictionary
+        merged_intervals.append({"src": src,"inter_long": (min_lon, max_lon)})
+        merged_intervals = sorted(merged_intervals, key=lambda x: x["inter_long"][0])
+    
+    
+    #for item in merged_intervals:
+    #    print(f"Source: {item['src']}, crln_obs interval: {item['inter_long']}")
+
+    intervals_col = np.array([f"{i['inter_long'][0]}-{i['inter_long'][1]}" for i in merged_intervals])
+    src_col = np.array([i["src"] for i in merged_intervals])
+
+    col1 = fits.Column(name='Longitude Interval', format='20A', array=intervals_col)
+    col2 = fits.Column(name='Data source', format='10A', array=src_col)
+
+    table_hdu = fits.BinTableHDU.from_columns([col1, col2])
+
+    return table_hdu
 
 def main(global_config, session_folder):
     config = get_arg_parameters(global_config)    
@@ -1404,6 +1437,11 @@ def main(global_config, session_folder):
 
     synop, epts, length, imrec =  synoptic_map(config)
 
+    table_hdu=create_src_fits_table(imrec)
+
+    print(table_hdu.data)
+
+    '''
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
     synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
@@ -1412,7 +1450,7 @@ def main(global_config, session_folder):
     
     hdu  = fits.PrimaryHDU(synop_img)
     create_header(hdu.header, config, stats, imrec)
-    hdul = fits.HDUList([hdu])
+    hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
     plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
     
@@ -1439,7 +1477,7 @@ def main(global_config, session_folder):
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
         plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
 
-    print('%s complete' %__file__)
+    print('%s complete' %__file__)'''
 
 
 
@@ -1485,6 +1523,8 @@ if __name__ == "__main__":
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
     synop, epts, length, imrec =  synoptic_map(config)
+
+    print()
 
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
