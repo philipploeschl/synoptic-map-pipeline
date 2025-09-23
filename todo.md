@@ -9,7 +9,14 @@ This is currently abused as a todo list
 
 
 # TODO
-- check what's going on with the key
+
+- phi_drms_interface.py
+  - figure out why some files are leftover in the duplicate filtering. possibly first and last
+
+- hmiphisynopitc.py
+  - gherardo crash at the weight function
+
+
 - DATA SELECTION: 
   - maybe throw out CR check in hmiphisynoptic instead of overwriting it
   - or just give it +-1 CR as margin  
