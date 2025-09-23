@@ -12,7 +12,7 @@ This project is based on the [SDO/HMI synoptic map pipeline](http://jsoc.stanfor
     - [1. Clone the Repository](#1-clone-the-repository)
     - [2. Set Up a Virtual Environment (Optional but Recommended)](#2-set-up-a-virtual-environment-optional-but-recommended)
     - [3. Install Dependencies](#3-install-dependencies)
-    - [4. Activate NetDRMS](#4-activate-netdrms)
+    - [4. Activate NetDRMS (MPS specific)](#4-activate-netdrms-mps-specific)
   - [Usage](#usage)
   - [Directory Structure](#directory-structure)
   - [Configuration](#configuration)
@@ -76,7 +76,8 @@ Note: If you encounter issues with pip, ensure it's up to date:
 ```
 python -m pip install --upgrade pip
 ```
-### 4. Activate NetDRMS
+
+### 4. Activate NetDRMS (MPS specific)
 
 ```
 module load intel-compilers/2023.1.0
@@ -84,7 +85,7 @@ module load impi/2021.9.0
 module load NetDRMS/2024.02.1-1
 ```
 
-NetDRMS path and relevant directories at MPS
+NetDRMS path and relevant directories
 ```
 /sw/eb/NetDRMS/2024.02.1-1-intel-2023.03/
 
