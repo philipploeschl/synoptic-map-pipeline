@@ -203,12 +203,12 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     weights  = np.array([])
 
     multi = nimg     # total width of magnetogram slices, must be UNEVEN
-    delta_min = 4 # hours for HMI averaging
+    delta_min = 4  # hours for HMI averaging
     delta_max = 80 # hours: about 45° halfWidth. only used with data gaps
     
     nrows = len(mrd_cont)
     pph = (2.2/4)/synstep # pix per hour approximated from HMI cadence
-    
+
     # convert time strings into datetime objects
     for key in drms_getkey:
         time = np.append(time, datetime.datetime.strptime(key['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI"))
@@ -253,7 +253,6 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         if not widths[-1] % 2: widths[-1] += 1 # make widths uneven to have a central column
         
         mids = np.append(mids, (np.round(cad_max*pph*multi/2)).astype(int)) # floor for array[0] element
-        
     #weights = [np.zeros(int(w)) for w in widths]
 
     # np.floor to avoid going into the neighbour frame!
@@ -272,7 +271,6 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     
     # loop over weight of each magnetogram
     for i in range(len(weights)):
-
         # polynomial version
         # measured from current CM:
         # 1x chwidth reaches image border to the next record 
@@ -290,18 +288,24 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         
         n1 = np.ceil((multi-1)*chwidth[i][0]).astype(int) # needs to be >1.0 to work without NaNs 
         n2 = np.ceil((multi-1)*chwidth[i][1]).astype(int) # needs to be >1.0 to work without NaNs
-
+        
         if lim:
             # nlim = 25 # this gives 2*25*0.1 = 5° wide overlap region
             # now set in config.py
             if n1 > nlim: n1 = nlim
             if n2 > nlim: n2 = nlim
-        
+
         for j, exp in enumerate(exps):
 
-            slope1 = np.arange(0, 1, 1/n1)**exp       # **5/2 for < 20% contribution at adjCM
-            slope2 = np.arange(0, 1, 1/n2)[::-1]**exp #reverse for decreasing order
-            
+            # rounding issues in len(np.arange(0, 1, 1/n)) can return len(n)+1
+            # use np.linespace without endpoint instead
+            #slope1 = np.arange(0, 1, 1/n1)**exp       # **5/2 for < 20% contribution at adjCM
+            #slope2 = np.arange(0, 1, 1/n2)[::-1]**exp #reverse for decreasing order
+            slope1 = np.linspace(0, 1, n1, endpoint=False)**exp # exclude endpoint to avoid the slope reaching weight=1
+            slope2 = np.linspace(0, 1, n2, endpoint=False)[::-1]**exp #reverse for decreasing order
+
+            #if j==0: print(i, j, len(slope1), len(weights[i][j][mids[i]-chwidth[i][0]:mids[i]+chwidth[i][1]+1]), len(slope2), len(weights[i][j][mids[i]-chwidth[i][0]:mids[i]+chwidth[i][1]+1])+len(slope1)+len(slope2), len(weights[i][j]))
+
             weights[i][j][mids[i]-(chwidth[i][0]+n1):mids[i]-(chwidth[i][0])] = slope1
             weights[i][j][mids[i]-chwidth[i][0]:mids[i]+chwidth[i][1]+1] = 1
             weights[i][j][mids[i]+(chwidth[i][1]+1):mids[i]+(chwidth[i][1]+1+n2)] = slope2
