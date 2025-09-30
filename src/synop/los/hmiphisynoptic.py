@@ -16,9 +16,10 @@ from copy import copy
 from astropy.io import fits
 import os, sys
 from datetime import date
-from itertools import groupby
 
 from utils.plots import plot_synoptic
+from utils.plots import plot_synoptic_sources
+from utils.utils import create_src_fits_table
 
 
 # DEFINES
@@ -605,9 +606,6 @@ def synoptic_map(config):#, hw_overwrite=None):
 
     nRecs = nRecs_hmi + nRecs_phi
 
-    synop=[]
-    epts=[]
-
     # select the most common CAR_ROT entry and set it for all data
     # WARNING, this requires
     # - all data to be from the same map, as months offset would be overwritten by this
@@ -794,7 +792,7 @@ def synoptic_map(config):#, hw_overwrite=None):
         
         imrec.append(imrec_tmp)
         idx += 1
-    '''
+    
     ngood = idx
     
     config["ngood"] = ngood
@@ -910,7 +908,7 @@ def synoptic_map(config):#, hw_overwrite=None):
                 mMagCol = init_MagCol(length)  # MagCol_t mMagCol;
 
                 mMagCol["dist"]     = ((col - mapmidcol) * synstep + imrec[idx]["mapct"]) - imrec[idx]["mapCM"]
-                mMagCol["datacol"]  = inArray[0].data[:, col] # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacol"]  = inArray[0].data[:, col].copy()  # (float *)malloc(sizeof(float) * length[1])
                 mMagCol["equivPts"] = equivPts
                 mMagCol["ds"]       = imrec[idx]["ds"]
                 mMagCol["col"]      = col
@@ -950,7 +948,6 @@ def synoptic_map(config):#, hw_overwrite=None):
                                  config["dlog"],
                                  kNOISE_EQ)
 
-
         #FreeMagColsData(SyncolStart, SyncolEnd, -1, wt, sortedMagCol, length)
 
     #smallSynop = np.zeros([int(length[1]/config["nbin"]), int(length[0]/config["nbin"])])
@@ -960,8 +957,8 @@ def synoptic_map(config):#, hw_overwrite=None):
     #frebinbox(epts,  smallEpts,  length[0], length[1], config["nbin"], config["nbin"] - 1)
     
     
-    # TODO HEADER'''
-    
+    # TODO HEADER
+    #synop = np.zeros([3600,1440])
     return synop, epts, length, imrec
 
     # data ready in synop/epts and smallSynop/smallEpts
@@ -1403,34 +1400,6 @@ def get_arg_parameters(global_config):
     
     return config    
 
-def create_src_fits_table(imrec):
-    merged_intervals = []
-
-    for src, group in groupby(imrec, key=lambda x: x["src"]):
-        group_list = list(group)
-
-        # Find maximum and minimum crln_obs in this group
-        max_lon = max(e["crln_obs"] for e in group_list)
-        min_lon = min(e["crln_obs"] for e in group_list)
-    
-        # Append the interval dictionary
-        merged_intervals.append({"src": src,"inter_long": (min_lon, max_lon)})
-        merged_intervals = sorted(merged_intervals, key=lambda x: x["inter_long"][0])
-    
-    
-    #for item in merged_intervals:
-    #    print(f"Source: {item['src']}, crln_obs interval: {item['inter_long']}")
-
-    intervals_col = np.array([f"{i['inter_long'][0]}-{i['inter_long'][1]}" for i in merged_intervals])
-    src_col = np.array([i["src"] for i in merged_intervals])
-
-    col1 = fits.Column(name='Longitude Interval', format='20A', array=intervals_col)
-    col2 = fits.Column(name='Data source', format='10A', array=src_col)
-
-    table_hdu = fits.BinTableHDU.from_columns([col1, col2])
-
-    return table_hdu
-
 def main(global_config, session_folder):
     config = get_arg_parameters(global_config)    
     synop_outpath = os.path.join(session_folder, config["synop_path"])
@@ -1439,9 +1408,6 @@ def main(global_config, session_folder):
 
     table_hdu=create_src_fits_table(imrec)
 
-    print(table_hdu.data)
-
-    '''
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
     synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
@@ -1452,7 +1418,7 @@ def main(global_config, session_folder):
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
+    plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     
     if config["bin"]:
         # create small synoptic map
@@ -1475,11 +1441,8 @@ def main(global_config, session_folder):
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
-
-    print('%s complete' %__file__)'''
-
-
+        plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
+    print('%s complete' %__file__)
 
 
 
@@ -1554,6 +1517,6 @@ if __name__ == "__main__":
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
+        plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
 
     print('%s complete' %__file__)
