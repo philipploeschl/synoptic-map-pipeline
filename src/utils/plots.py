@@ -77,6 +77,8 @@ def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
 
         # add vertical black lines as boundaries
         ax.vlines(row["CRLN_END"]*deg2px, 0, bar_height, color='black', linewidth=0.7)
+    
+    ax.hlines(y=bar_height, xmin=0, xmax=360*deg2px, color='black',linewidth=0.7)
 
     phi_patch = mpatches.Patch(color='orange', label='PHI')
     hmi_patch = mpatches.Patch(color='steelblue', label='HMI')
