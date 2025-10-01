@@ -21,8 +21,12 @@ def main(config, session_folder):
     #times = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)  # list with all queued time stamps
     existing_timestamps = get_dataseries_times(config.data_series_remap_phi, config.timestring_phi, config.interval_phi)
 
-    fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
+    #fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
 
+    fitsfiles = []
+    for key in config.key:
+        fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
+    
     if fitsfiles[0].endswith(".fits"):
         n_end = 5
     else:
