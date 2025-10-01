@@ -263,6 +263,9 @@ class Config:
 
 
     def _assemble_name_strings(self):
+        # TODO VECT
+        # - add conntrol structure for vector Btype
+        # - add vecot proj
 
         if self._data["Mr"]:
             self._data["proj"]    = "Mr"
