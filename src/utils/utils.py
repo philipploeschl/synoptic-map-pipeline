@@ -279,6 +279,7 @@ def get_dates_from_timestring(timestring, drms=False):
 
     return earliest, latest
 
+
 def clean_temporary_fits(outpath_data):
     # clean up temporary _drms.fits files from previous runs
     for filename in os.listdir(outpath_data):
