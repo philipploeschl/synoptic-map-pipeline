@@ -64,8 +64,8 @@ def main(config, session_folder):
             if "Seriesname"  in line: remap_template[i] = remap_template[i] %config.data_series_remap_phi
             if "Author"      in line: remap_template[i] = remap_template[i] %config.dataseries_owner
             if "Owner"       in line: remap_template[i] = remap_template[i] %config.dataseries_owner
-            if "Description" in line: remap_template[i] = remap_template[i] %config.Btype 
-            if "Data:"       in line: remap_template[i] = remap_template[i] %config.proj 
+            #if "Description" in line: remap_template[i] = remap_template[i] %config.Btype 
+            #if "Data:"       in line: remap_template[i] = remap_template[i] %config.proj 
         
         outname = config.data_series_remap_phi + ".jsd"
 
@@ -84,8 +84,8 @@ def main(config, session_folder):
             if "Seriesname"  in line: remap_template[i] = remap_template[i] %config.data_series_remap_hmi
             if "Author"      in line: remap_template[i] = remap_template[i] %config.dataseries_owner
             if "Owner"       in line: remap_template[i] = remap_template[i] %config.dataseries_owner
-            if "Description" in line: remap_template[i] = remap_template[i] %config.Btype 
-            if "Data:"       in line: remap_template[i] = remap_template[i] %config.proj 
+            #if "Description" in line: remap_template[i] = remap_template[i] %config.Btype 
+            #if "Data:"       in line: remap_template[i] = remap_template[i] %config.proj 
     
         outname = config.data_series_remap_hmi + ".jsd"
         with open (path_output + '/' + outname, 'w') as f:
@@ -103,8 +103,8 @@ def main(config, session_folder):
             if "Seriesname"  in line: synoptic_template[i] = synoptic_template[i] %config.data_series_synop
             if "Author"      in line: synoptic_template[i] = synoptic_template[i] %config.dataseries_owner
             if "Owner"       in line: synoptic_template[i] = synoptic_template[i] %config.dataseries_owner
-            if "Description" in line: synoptic_template[i] = synoptic_template[i] %config.Btype 
-            if "Data: synop" in line: synoptic_template[i] = synoptic_template[i] %config.proj 
+            #if "Description" in line: synoptic_template[i] = synoptic_template[i] %config.Btype 
+            #if "Data: synop" in line: synoptic_template[i] = synoptic_template[i] %config.proj 
 
         outname = config.data_series_synop + ".jsd"
         with open (path_output + '/' + outname, 'w') as f:
@@ -112,7 +112,7 @@ def main(config, session_folder):
 
         create_series(config, path_output + '/', outname)
 
-
+    '''
     # Synoptic Mr polfil data series template
     if config.proj == "Mr" and config.create_jsd_polfil:
         with open(path_templates+'/'+config.polfil_template) as f:
@@ -129,7 +129,7 @@ def main(config, session_folder):
             f.writelines(synoptic_mr_polfil_template)
 
         create_series(config, path_output + '/', outname)
-
+    '''
 
 if __name__ == "__main__":
     main()
