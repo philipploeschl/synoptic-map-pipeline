@@ -29,7 +29,7 @@ def main(config, session_folder):
     for key in config.key:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
 
-    if fitsfiles[0].endswith(".fits"):
+    if fitsfiles[0][0].endswith(".fits"):
         n_end = 5
     else:
         n_end = 8
@@ -38,7 +38,7 @@ def main(config, session_folder):
     clons = []
 
     
-    for file in fitsfiles:
+    for file in [file for sublist in fitsfiles for file in sublist]:
         #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
         l2 = fits.open(os.path.join(config.phi_dbpath,file))
         if config.verbose: print("Processing %s ..." %file)
@@ -236,13 +236,16 @@ def main(config, session_folder):
     files = os.listdir(outpath_data)
     fitsfiles = [file for file in files if file.endswith(".fits")]
 
-    # TODO VECTOR
-    # - update fitsfile for loop to handle multiple components
-
+    bmag_fitsfiles = [f for f in fitsfiles if "bmag" in f]
+    binc_fitsfiles = [f for f in fitsfiles if "binc" in f]
+    bazi_fitsfiles = [f for f in fitsfiles if "bazi" in f]
 
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
-    set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
+
+    #when disambig data avail
+    #set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
+    set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s\n'
     #jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
     vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
     vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
@@ -262,16 +265,11 @@ def main(config, session_folder):
 
     trec_out = open(outpath_scripts+'trecs.txt', 'w')
 
-    # TODO
-    # GET FITSFILES SEPARATELY IN 
-    bmag_fitsfiles = []
-    binc_fitsfiles = []
-    bazi_fitsfiles = []
-    disambig_fitsfiles = []
-
     j = 0 # nsplit counter
-    for i, fname_bmag, fname_binc, fname_bazi, fname_disambig in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disambig_fitsfiles)):
+    #for i, fname_bmag, fname_binc, fname_bazi, fname_disambig in enumerate(zip(fbmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disambig_fitsfiles)):#, disambig_fitsfiles)):
+    for i, (fname_bmag, fname_binc, fname_bazi) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles)):
         
+        print(fname_bmag)
         if config.verbose: print('Processing %s...' %fname_bmag)
         
         # load with scaling to recognize blank cells -> necessary to prevent artifacts after resize
@@ -303,8 +301,13 @@ def main(config, session_folder):
         batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
         batch_out.write('\n#%s' %fname_bmag)
         # set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
-        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disambig)))
-        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disambig)))
+        
+        #when disambig data avail
+        #batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disambig)))
+        #batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disambig)))
+
+        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
+        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
         
         batch_out.write('\necho %s' %vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
         batch_out.write(vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
