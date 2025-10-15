@@ -26,7 +26,7 @@ def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
     fig, ax = plt.subplots(figsize=(14,6))
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
-    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,bar_height,1440+bar_height])
+    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,bar_height,1440+bar_height] , interpolation=None)
     ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
@@ -112,7 +112,7 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
     im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,0,1440])
-    ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize, interpolation=False)
+    ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize, interpolation=None)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
