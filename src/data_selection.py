@@ -1236,11 +1236,12 @@ if __name__ == "__main__":
     solo_clons, earth_clons, ets, solo_hdis, earth_hdis = get_clons(config)
 
     if not config.single_carrington:
+        # simulate carrington map for all possible start dates in the provided range 
         carrington_obs, coverage_times, coverage_clons, coverage_srcs = simulate_carrington_observations(solo_clons, earth_clons, solo_hdis, ets, config)
 
+        # find fastest carrington map for each predefined carrington rotation period
         carrington_opt, idx_opt = optimise_carringtion_rotation(config.cr_date_start, config.cr_date_end, carrington_obs)
 
-         
         if os.path.isabs(config.output_path):
             output_path = os.join(config.output_path, config.obsplan_path)
         else:   
