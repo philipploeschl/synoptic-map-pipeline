@@ -35,6 +35,9 @@ SHRT_MIN = -SHRT_MAX -1
 DRMS_MISSING_FLOAT = np.nan    
 kNOISE_EQ = 10.0 # redefined in CalcSynopCol but unused
 
+STATUS_OK = 0
+STATUS_ERROR = 1
+
 # DRMS Interface
 def get_drms_parameters(inRecs, input_ds):
 
@@ -1449,7 +1452,7 @@ def main(global_config, session_folder):
         plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     print('%s complete' %__file__)
 
-
+    return STATUS_OK
 
 if __name__ == "__main__":
     from config import Config
