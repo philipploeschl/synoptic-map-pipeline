@@ -432,7 +432,7 @@ def get_fits_extension_name(filename):
     if filename.endswith(".fits-gz"):
         n_end = len(".fits-gz")
     else:
-        raise("Unsupported file format: %s" %filename)
+        raise ValueError(f"Unsupported file format: {filename}")
 
     return n_end
 
