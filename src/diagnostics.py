@@ -25,7 +25,7 @@ def magnetic_flux(data, thld=0):
     return int(sum_pos), int(sum_neg)
 
 
-def latitude_magnetic_flux(data, lats, x1=2460, x2=3600, thld_low=0, thld_high=5000, norm=True, mean=False, med=False):
+def latitude_magnetic_flux(data, lats, x1, x2, thld_low=0, thld_high=25, norm=True, mean=False, med=False):
     #latwidth = 10  #px
     #lats = np.arange(0,1440, latwidth)
     #flux_hmi   = latitude_magnetic_flux(hmiMr_polfil.data, lats, x1=2000, x2=3600, thld_low=0, thld_high=25, norm=True, mean=False, med=False)
@@ -168,7 +168,7 @@ lats = np.arange(0,1440, latwidth)
 
 hmi_x1, hmi_x2 = 0,    2460
 phi_x1, phi_x2 = 2460, 3600
-
+e
 thld_low  = 0
 thld_high = 25
 
@@ -177,17 +177,44 @@ flux_hmi   = latitude_magnetic_flux(phi_img, lats, x1=hmi_x1, x2=hmi_x2, thld_lo
 
 latitude_magnetic_flux_plot(flux_phi, flux_hmi, latwidth=10, pdf=False)
 
+def get_phi_hmi_windows(fits_table, deg2px=10):
+    # find start and end of PHI and HMI data coverage in synoptic map
+
+    phi = []
+    hmi = []
+
+    for row in fits_table:
+        # make the colored boxes for each fits table line
+        if row['SRC'] == 'HMI': 
+            hmi.append([int(row["CRLN_END"]*deg2px), int(row["CRLN_START"]*deg2px)])
+
+        width = row["CRLN_START"] - row["CRLN_END"]
+
+        if width > 0:
+            windows.append()
+            ax.barh(bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
+        else:
+            # interval wraps around 0°
+            ax.barh(bar_height/2, (360-row["CRLN_END"])*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
+            ax.barh(bar_height/2, row["CRLN_START"]*deg2px, left=0, height=bar_height, color=color)
+
+    return windows
+
+
 
 def get_cadence_windows(fits_table, deg2px=10):
     # make the horizontal bar with color coded data sources
+
+    windows = []
     for row in fits_table:
         # make the colored boxes for each fits table line
         if row['SRC'] == 'HMI': 
             continue
-        
+
         width = row["CRLN_START"] - row["CRLN_END"]
 
         if width > 0:
+            windows.append()
             ax.barh(bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
         else:
             # interval wraps around 0°
