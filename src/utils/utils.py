@@ -419,23 +419,22 @@ def get_fits_extension_name(filename):
 
     if filename.endswith(".fits"):
         n_end = len(".fits")
-    if filename.endswith(".fits.gz"):
+    elif filename.endswith(".fits.gz"):
         n_end = len(".fits.gz")
-    if filename.endswith(".fits.Z"):
+    elif filename.endswith(".fits.Z"):
         n_end = len(".fits.Z")
-    if filename.endswith(".fits.z"):
+    elif filename.endswith(".fits.z"):
         n_end = len(".fits.z")
-    if filename.endswith(".fits.zip"):
+    elif filename.endswith(".fits.zip"):
         n_end = len(".fits.zip")
-    if filename.endswith(".fits-z"):
+    elif filename.endswith(".fits-z"):
         n_end = len(".fits-z")
-    if filename.endswith(".fits-gz"):
+    elif filename.endswith(".fits-gz"):
         n_end = len(".fits-gz")
     else:
         raise ValueError(f"Unsupported file format: {filename}")
 
     return n_end
-
 
 
 #if __name__ == "__main__":
