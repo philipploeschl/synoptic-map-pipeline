@@ -3,8 +3,10 @@ import numpy as np
 from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
-from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
+from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring, get_fits_extension_name
 
+STATUS_OK = 0
+STATUS_NODATA = 1
 
 def main(config, session_folder):
     #set cwd to file directory
@@ -23,16 +25,17 @@ def main(config, session_folder):
 
     fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
 
-    if fitsfiles[0].endswith(".fits"):
-        n_end = 5
-    else:
-        n_end = 8
+    if len(fitsfiles) == 0:
+        print(f"No PHI files found for the given time range {date_start}-{date_end}. Aborting run...")
+        return STATUS_NODATA
 
     trecs = []
     clons = []
-
     
     for file in fitsfiles:
+
+        n_end = get_fits_extension_name(file)
+
         #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
         l2 = fits.open(os.path.join(config.phi_dbpath,file))
         if config.verbose: print("Processing %s ..." %file)
@@ -296,6 +299,7 @@ def main(config, session_folder):
     if config.verbose: 
         print('\nDRMS ingestion script creation complete.\n')
 
+    return STATUS_OK
 
 if __name__ == "__main__":
     #main(sys.argv[1:])
