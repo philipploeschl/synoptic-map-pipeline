@@ -414,6 +414,30 @@ def calc_trec(crln_obs, car_rot, verbose=False):
     #print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
     return trec_hmi, hmi_prev, hmi_next, car_rot
 
+
+def get_fits_extension_name(filename):
+
+    if filename.endswith(".fits"):
+        n_end = len(".fits")
+    if filename.endswith(".fits.gz"):
+        n_end = len(".fits.gz")
+    if filename.endswith(".fits.Z"):
+        n_end = len(".fits.Z")
+    if filename.endswith(".fits.z"):
+        n_end = len(".fits.z")
+    if filename.endswith(".fits.zip"):
+        n_end = len(".fits.zip")
+    if filename.endswith(".fits-z"):
+        n_end = len(".fits-z")
+    if filename.endswith(".fits-gz"):
+        n_end = len(".fits-gz")
+    else:
+        raise("Unsupported file format: %s" %filename)
+
+    return n_end
+
+
+
 #if __name__ == "__main__":
     # Example usage
     #create_cr_session_folder()
