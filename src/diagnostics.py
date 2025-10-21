@@ -13,6 +13,9 @@ import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from scipy import optimize
+import bisect
+
 ##############################################
 ####### FUNCTION DEFINITIONS FOR UTILS #######
 ##############################################
@@ -56,6 +59,7 @@ def magnetic_flux_latitudes(data, lats, x1, x2, thld_low=0, thld_high=25, mean=F
         flux = pd.concat([flux, flux_row])
 
     return flux
+
 
 def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, pdf=False):
 
@@ -125,31 +129,22 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
 
 
 
-def noise_plot_longitudes(flux_phi, flux_hmi, thld_low, thld_high, fits_table, latwidth=10, pdf=False):
+def noise_plot_longitudes(data, thld_low, thld_high, fits_table, latwidth=10, pdf=False):
 
-    bar_height = 40
+    bar_height = -0.25
     labelsize = 12
     suptitlesize=16
-
-    ytick_latitude = []
-    ytick_normalize = []
-    for i in range(19):
-        calculation = np.sin((np.pi/18)*(i-9.0))
-        ytick_latitude.append(calculation)
-        ytick_normalize.append((calculation+1)*720.)
 
     # make the plot
     fig, ax = plt.subplots(figsize=(14,6))
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
-    
-    
-    # TODO    
-    #im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,bar_height,1440+bar_height] , interpolation=None)
-    #ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
 
+    pos, noise = noise_cadence_windows(data, fits_table)
+    #colors = ["orange" if src == "PHI" else "steelblue" for src in phi_table["SRC"]][::-1]
+    #if len(pos) > len(colors): colors.insert(0, 'orange')
 
-
+    ax.scatter(pos, noise, s=7.5, label='Gaussian Noise')             
 
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
@@ -160,23 +155,11 @@ def noise_plot_longitudes(flux_phi, flux_hmi, thld_low, thld_high, fits_table, l
     ax.set_xticklabels(xlabels)
     ax.set_xlabel('Carrington Longitude [°]', fontsize=labelsize)
 
-    # Create the latitude labels on the right-hand side of the plot
-    ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ',' 20',' ',' 40',' ',' 60',' ',' 80',' ']
-    ylocations_r = [y + bar_height for y in ytick_normalize]
-    ax.set_ylim(0, 1440 + bar_height)
-    ax.set_yticks(ylocations_r)
-    ax.set_yticklabels(ylabels_r)
-    ax.set_ylabel('Latitude [°]', fontsize=labelsize)
-    ax.yaxis.labelpad=0
     ax.tick_params(labelsize=labelsize, axis='both', which='both', bottom=True, top=True, left=True, right=True, labelbottom=True, labeltop=False, labelleft=True, labelright=False)
 
+    ymax = 5
     ax.set_xlim(0, 3600)
-
-    # After `ax.imshow(...)` or similar:
-    #divider = make_axes_locatable(ax)
-    #cax = divider.append_axes("right", size="3%", pad=0.25)
-
-    fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
+    ax.set_ylim(bar_height, ymax)
 
     # make the horizontal bar with color coded data sources
     deg2px = 10  
@@ -193,8 +176,8 @@ def noise_plot_longitudes(flux_phi, flux_hmi, thld_low, thld_high, fits_table, l
             ax.barh(bar_height/2, row["CRLN_START"]*deg2px, left=0, height=bar_height, color=color)
 
         # add vertical black lines as boundaries
-        ax.vlines(row["CRLN_END"]*deg2px, 0, bar_height, color='black', linewidth=0.7)
-    
+        ax.vlines(row["CRLN_END"]*deg2px, bar_height, -bar_height+ymax, color='black', linewidth=0.7)
+
     ax.hlines(y=bar_height, xmin=0, xmax=360*deg2px, color='black',linewidth=0.7)
 
     phi_patch = mpatches.Patch(color='orange', label='PHI')
@@ -202,7 +185,8 @@ def noise_plot_longitudes(flux_phi, flux_hmi, thld_low, thld_high, fits_table, l
     boundary_line = mlines.Line2D([], [], color='black', linewidth=0.7, label='Boundary')
 
     ax.legend(handles=[phi_patch, hmi_patch, boundary_line],loc='upper center',bbox_to_anchor=(0.12, -0.045), ncol=3, frameon=False)
-    
+
+
     if pdf:
         pass
         #plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
@@ -210,6 +194,221 @@ def noise_plot_longitudes(flux_phi, flux_hmi, thld_low, thld_high, fits_table, l
         plt.show()
 
 
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin() 
+    return idx
+
+def gauss(x,a,x0,sigma):
+    return a*np.exp(-(x-x0)**2/(2*sigma**2))
+
+def gaussian_fit(a, show=True):
+    #a=np.histogram(data.flat,density=True,bins=100)
+    xx = a[1][:-1] + (a[1][1]-a[1][0])/2
+    y  = a[0][:]
+    p0 = [0.,sum(xx*y)/sum(y),np.sqrt(sum(y * (xx - sum(xx*y)/sum(y))**2) / sum(y))]
+    p0[0] = y[find_nearest(xx,p0[1])-5:find_nearest(xx,p0[1])+5].mean()
+    p,cov = optimize.curve_fit(gauss,xx,y,p0=p0, maxfev=5000)
+    if show:
+        lbl = '{:.2e} $\pm$ {:.2e}'.format(p[1],p[2])
+        plt.plot(xx,gauss(xx,*p),'r--', label=lbl)
+        plt.legend(fontsize=9)
+    return p
+
+
+    
+def noise_cadence_windows(data, fits_table, deg2px=10):
+    # cadence_window_noise_plot
+    noise = np.array([])
+    mid   = np.array([])
+
+    for row in fits_table:
+        # make the colored boxes for each fits table line
+        
+        x1 = int(row["CRLN_END"]   * deg2px) # lower boundary
+        x2 = int(row["CRLN_START"] * deg2px) # upper boundary
+        width = x2 - x1
+        #width =  (row["CRLN_START"] - row["CRLN_END"]) * deg2px
+
+        if width > 0:
+            #windows.append()    
+            slice = data[:, x1:x2]
+            center = x1+(x2-x1)/2
+
+            bins = np.linspace(-1e2, 1e2, 200)
+            counts, bin_edges = np.histogram(slice.ravel(), bins=bins, density=False)
+            sigma = gaussian_fit([counts, bin_edges], show=False)[2]
+
+            noise = np.append(noise, sigma)
+            mid   = np.append(mid, center)
+        
+        else:
+            # interval wraps around 0°
+            #slice = np.hstack((data[:,:x1], data[:,x2:]))
+
+            slice1 = data[:,:x2]
+            slice2 = data[:,x1:]
+
+            center1 = x2/2
+            center2 = x1+(3600-x1)/2
+
+            bins = np.linspace(-1e2, 1e2, 200)
+            counts1, bin_edges1 = np.histogram(slice1.ravel(), bins=bins, density=False)
+            sigma1 = gaussian_fit([counts1, bin_edges1], show=False)[2]
+
+            counts2, bin_edges2 = np.histogram(slice2.ravel(), bins=bins, density=False)
+            sigma2 = gaussian_fit([counts2, bin_edges2], show=False)[2]
+
+            noise = np.append(noise, sigma1)
+            noise = np.append(noise, sigma2)
+            mid   = np.append(mid, center1)
+            mid   = np.append(mid, center2)
+
+    order = np.argsort(mid)
+
+    mid = mid[order]
+    noise = noise[order]
+        
+    return mid, noise
+
+
+def combined_synoptic_noise_plot(data, fits_table, config, outpath, name, pdf=False):
+    """
+    Two-panel plot:
+    Top: Synoptic map
+    Bottom: Noise scatter
+    PHI/HMI horizontal bars perfectly aligned between plots
+    Colorbar only for top plot
+    Legend in the empty bottom-right axis
+    """
+
+    fig = plt.figure(figsize=(14, 10.5))
+    gs = GridSpec(2, 2, figure=fig, width_ratios=[30, 1], height_ratios=[1.5, 1],
+                  hspace=0.05, wspace=0.05)
+
+    # Main axes
+    ax_synop = fig.add_subplot(gs[0, 0])
+    ax_noise = fig.add_subplot(gs[1, 0], sharex=ax_synop)
+    # Colorbar for top plot
+    cax = fig.add_subplot(gs[0, 1])
+    # Empty axis for legend
+    ax_legend = fig.add_subplot(gs[1, 1])
+    ax_legend.axis('off')  # hide axis
+
+    labelsize = 12
+    deg2px = 10
+    bar_height = 40
+    noise_bar_height = 0.15
+
+    # -------------------------
+    # (1) Synoptic Map
+    # -------------------------
+    im = ax_synop.imshow(
+        data, cmap="hmimag", vmin=-1500, vmax=1500,
+        origin="lower", extent=[0, 3600, bar_height, 1440 + bar_height],
+        interpolation=None
+    )
+
+    ax_synop.set_title(
+        f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}',
+        y=1.02, fontsize=14
+    )
+
+    # Add x-label on top plot
+    #ax_synop.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
+
+    # Longitude ticks
+    xlabels = [0,30,60,90,120,150,180,210,240,270,300,330,360]
+    xlocations = [i * 10 for i in xlabels]
+    ax_synop.set_xticks(xlocations)
+    ax_synop.set_xticklabels(xlabels)
+    ax_synop.set_ylabel('Latitude [°]', fontsize=labelsize)
+    ax_synop.tick_params(labelsize=labelsize)
+
+    # Latitude ticks
+    ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ','20',' ','40',' ','60',' ','80',' ']
+    ytick_latitude = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
+    ytick_normalize = [(y+1)*720. + bar_height for y in ytick_latitude]
+    ax_synop.set_yticks(ytick_normalize)
+    ax_synop.set_yticklabels(ylabels_r)
+    ax_synop.set_ylim(0, 1440+bar_height)
+
+    # PHI/HMI horizontal bars (top)
+    for row in fits_table:
+        color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
+        width = row["CRLN_START"] - row["CRLN_END"]
+        if width > 0:
+            ax_synop.barh(bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px,
+                          height=bar_height, color=color)
+        else:
+            ax_synop.barh(bar_height/2, (360-row["CRLN_END"])*deg2px,
+                          left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
+            ax_synop.barh(bar_height/2, row["CRLN_START"]*deg2px,
+                          left=0, height=bar_height, color=color)
+        ax_synop.vlines(row["CRLN_END"]*deg2px, 0, bar_height, color='black', linewidth=0.7)
+    ax_synop.hlines(y=bar_height, xmin=0, xmax=360*deg2px, color='black', linewidth=0.7)
+
+    # Colorbar
+    cbar = fig.colorbar(im, cax=cax, orientation='vertical')
+    label = '$B_r$ [Gauss]' if config.Mr else '$B_{LoS}$ [Gauss]'
+    cbar.set_label(label=label, size=labelsize, labelpad=-15)
+
+    # Make colorbar height match the synoptic map axis exactly and reduce width by 30%
+    cax_pos = ax_synop.get_position()  # get synoptic axis position (Bbox)
+    cax_width = 0.03 * 0.7  # 30% thinner than original width
+    cax.set_position([cax_pos.x1 + 0.01, cax_pos.y0, cax_width, cax_pos.height])
+
+
+    # -------------------------
+    # (2) Noise Plot
+    # -------------------------
+    pos, noise = noise_cadence_windows(data, fits_table)
+    ax_noise.scatter(pos, noise, s=7.5, color="black", label="Gaussian Noise")
+    ax_noise.set_xlim(0, 3600)
+    ylim_noise = 4
+    ax_noise.set_ylim(-noise_bar_height, ylim_noise)
+    ax_noise.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
+    ax_noise.set_ylabel("Noise [σ]", fontsize=labelsize)
+    ax_noise.tick_params(labelsize=labelsize)
+    ax_noise.set_xticks(xlocations)
+    ax_noise.set_xticklabels(xlabels)
+    
+    # PHI/HMI horizontal bars (bottom) aligned with top
+    for row in fits_table:
+        color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
+        width = row["CRLN_START"] - row["CRLN_END"]
+        left_positions = []
+        widths = []
+        if width > 0:
+            left_positions = [row["CRLN_END"]*deg2px]
+            widths = [width*deg2px]
+        else:
+            left_positions = [row["CRLN_END"]*deg2px, 0]
+            widths = [(360-row["CRLN_END"])*deg2px, row["CRLN_START"]*deg2px]
+        for left, w in zip(left_positions, widths):
+            ax_noise.barh(-noise_bar_height/2, w, left=left,
+                          height=noise_bar_height, color=color)
+            ax_noise.vlines(left, -noise_bar_height, noise_bar_height+ylim_noise, color='black', linewidth=0.7)
+    ax_noise.hlines(y=0, xmin=0, xmax=360*deg2px, color='black', linewidth=0.7)
+
+    # -------------------------
+    # Legend in empty axis
+    # -------------------------
+    phi_patch = mpatches.Patch(color='orange', label='PHI')
+    hmi_patch = mpatches.Patch(color='steelblue', label='HMI')
+    boundary_line = mlines.Line2D([], [], color='black', linewidth=0.7, label='Boundary')
+
+    ax_noise.legend(handles=[phi_patch, hmi_patch, boundary_line],
+                    loc='upper center',bbox_to_anchor=(0.15, -0.05), 
+                    ncol=3, frameon=False)
+    
+    # --- Save or show ---
+    fig.tight_layout()
+    if pdf:
+        os.makedirs(outpath, exist_ok=True)
+        fig.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+    else:
+        plt.show()
 
 
 ############################
@@ -231,9 +430,6 @@ synop_phi  = fits.open(os.path.join(path, fname))
 
 phi_img   = synop_phi[0].data
 phi_table = synop_phi[1].data
-
-plot_synoptic_sources(phi_img, path, outname, config, phi_table, pdf=False)
-
 
 
 ############################
@@ -307,38 +503,4 @@ flux_phi = sum(flux_phi)/len(flux_phi)
 
 magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, pdf=False)
 
-
-noise_plot_longitudes(flux_phi, flux_hmi, thld_low, thld_high, phi_table, latwidth=10, pdf=False)
- 
-# AVERAGE OVER VERTICAL CADENCE WINDOWS
-
-
-
-
-
-def get_cadence_windows(fits_table, deg2px=10):
-    # make the horizontal bar with color coded data sources
-    # TODO Cadence spaced slices for PHI, regular slices of similar width for HMI
-
-    windows = []
-    for row in fits_table:
-        # make the colored boxes for each fits table line
-        if row['SRC'] == 'HMI': 
-            continue
-
-        width = row["CRLN_START"] - row["CRLN_END"]
-
-        if width > 0:
-            windows.append()
-            pass
-            #ax.barh(bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
-        else:
-            # interval wraps around 0°
-            #ax.barh(bar_height/2, (360-row["CRLN_END"])*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
-            #ax.barh(bar_height/2, row["CRLN_START"]*deg2px, left=0, height=bar_height, color=color)
-            pass
-
-
-
-
-
+combined_synoptic_noise_plot(phi_img, phi_table, config, path, outname, pdf=False)
