@@ -4,13 +4,13 @@ Author:                 %s
 Owner:                  %s
 Unitsize:               1
 Archive:                0
-Retention:              32767
+Retention:              30
 PrimeKeys:              T_REC
 DBIndex:                T_REC
 Description:            "Full-disk Milne-Eddington inversion with the azimuth disambiguation information contained in DISAMBIG to be applied to AZIMUTH as described in http://jsoc.stanford.edu/jsocwiki/FullDiskDisamb"
 
 #=====Links=====
-Link: MDATA, hmi.ME_720s_fd10, dynamic, "ME"
+#Link: MDATA, hmi.ME_720s_fd10, dynamic, "ME"
 
 #=====Keywords=====
 Keyword:T_OBS, time, variable, record, -4712.01.01_11:59:28_TAI, "0", "TAI", "Nominal time"
@@ -18,7 +18,7 @@ Keyword:T_REC, time, ts_eq, record, -4712.01.01_11:59:28_TAI, "0", "TAI", "Slot 
 Keyword:T_REC_epoch, time, constant, record, 1993.01.01_00:00:00_TAI, "0", "TAI", "Time of origin"
 Keyword:T_REC_step, float, constant, record, 720.0, "%.1f", "seconds", "ts_eq step"
 Keyword:T_REC_unit, string, constant, record, "secs", "%s", "none", "ts_eq unit"
-Keyword:DATE, time, variable, record, -4712.01.01_11:59:28Z, "0", "ISO", "Date_time of processing to disambiguate of ME VFISV magnetic field azimuth"
+Keyword:DATE, time, variable, segment, -4712.01.01_11:59:28Z, "0", "ISO", "Date_time of processing to disambiguate of ME VFISV magnetic field azimuth"
 Keyword:DATE_S, time, variable, record, -4712.01.01_11:59:28Z, "0", "ISO", "Date_time of generating Stokes data"
 Keyword:DATE_ME, time, variable, record, -4712.01.01_11:59:28Z, "0", "ISO", "Date_time of generating ME inversion data"
 Keyword:DATE__OBS, time, variable, record, -4712.01.01_11:59:28.00Z, "2", "ISO", "[DATE-OBS] DATE_OBS = T_OBS - EXPTIME/2.0"
@@ -34,7 +34,7 @@ Keyword:QUALLEV1, int, variable, record, 0x80000000, "0x%08x", "none", "Logical 
 Keyword:BUNIT, string, variable, segment, "", "%s", "none", "BUNIT: physical units of each data segment"
 Keyword:ORIGIN, string, constant, record, "SDO/JSOC-SDP", "%s", "none", "ORIGIN: location where file made"
 Keyword:CONTENT, string, constant, record, "HMI observable", "%s", "none", "CONTENT"
-Keyword:HISTORY, string, variable, record, " ", "%s", "none", "History of data"
+Keyword:HISTORY, string, variable, segment, " ", "%s", "none", "History of data"
 Keyword:COMMENT, string, variable, record, " ", "%s", "none", "Commentary on the data"
 Keyword:BLD_VERS, string, variable, record, " ", "%s", "none", "JSOC-build version number"
 Keyword:CALVER64, longlong, variable, record, 0x0000000000000000, "0x%016llX", "none", "Calibration Version"
@@ -157,33 +157,35 @@ Keyword:BKEYD2, double, variable, record, nan, "%e", "none", "For future use"
 Keyword:BKEYD3, double, variable, record, nan, "%e", "none", "For future use"
 
 #=====Segments=====
-Data: inclination, link, MDATA, inclination, 2, 4096, 4096, "Inclination"
-Data: azimuth, link, MDATA, azimuth, 2, 4096, 4096, "Azimuth before disambiguation"
-Data: disambig, variable, char, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Flag for 180 degree change in azimuth"
-Data: field, link, MDATA, field, 2, 4096, 4096, "Field Strength"
+Data: inclination, vardim, int, 2, 4096, 4096, "gauss", fits, "compress Rice", 0.000000, 1.000000, "Inclination"
+Data: azimuth, vardim, int, 2, 4096, 4096, "deg", fits, "compress Rice", 0.000000, 1.000000, "Azimuth before disambiguation"
+Data: field, vardim, int, 2, 4096, 4096, "deg", fits, "compress Rice", 0.000000, 1.000000, "Field Strength"
+Data: disambig, vardim, char, 2, 4096, 4096, "bytestring", fits, "compress Rice", 0.000000, 1.000000, "Flag for 180 degree change in azimuth"
+Data: conf_disambig, vardim, char, 2, 4096, 4096, "bytestring", fits, "compress Rice", 0.000000, 1.000000, "Confidence indicator for disambiguation"
+Data: confid_map, vardim, int, 2, 4096, 4096, "tbd", fits, "compress Rice", 0.000000, 1.000000, "Qauntitative estimate of data quality"
 
 
-# probably don't need this
-Data: vlos_mag, link, MDATA, vlos_mag, 2, 4096, 4096, "LOS Velocity with Field"
-Data: dop_width, link, MDATA, dop_width, 2, 4096, 4096, "Doppler Width"
-Data: eta_0, link, MDATA, eta_0, 2, 4096, 4096, "Eta_0"
-Data: damping, link, MDATA, damping, 2, 4096, 4096, "Damping"
-Data: src_continuum, link, MDATA, src_continuum, 2, 4096, 4096, "Continuum"
-Data: src_grad, link, MDATA, src_grad, 2, 4096, 4096, "Gradient"
-Data: alpha_mag, link, MDATA, alpha_mag, 2, 4096, 4096, "Filling Factor with Field"
-Data: chisq, link, MDATA, chisq, 2, 4096, 4096, "Chi square"
-Data: conv_flag, link, MDATA, conv_flag, 2, 4096, 4096, "Convergence flag and index"
-Data: inclination_err, link, MDATA, inclination_err, 2, 4096, 4096, "Inclination_Err"
-Data: azimuth_err, link, MDATA, azimuth_err, 2, 4096, 4096, "Azimuth_Err"
-Data: field_err, link, MDATA, field_err, 2, 4096, 4096, "Field_Err"
-Data: vlos_err, link, MDATA, vlos_err, 2, 4096, 4096, "VLos_Err"
-Data: alpha_err, link, MDATA, alpha_err, 2, 4096, 4096, " Alpha_Err"
-Data: field_inclination_err, link, MDATA, field_inclination_err, 2, 4096, 4096, "Field_Inclination_Err"
-Data: field_az_err, link, MDATA, field_az_err, 2, 4096, 4096, "Field_azimuth_Err"
-Data: inclin_azimuth_err, link, MDATA, inclin_azimuth_err, 2, 4096, 4096, "Inclination_Azimuth_Err"
-Data: field_alpha_err, link, MDATA, field_alpha_err, 2, 4096, 4096, "Field_Alpha_Err"
-Data: inclination_alpha_err, link, MDATA, inclination_alpha_err, 2, 4096, 4096, "Inclination_Alpha_Err"
-Data: azimuth_alpha_err, link, MDATA, azimuth_alpha_err, 2, 4096, 4096, "Azimuth_Alpha_Err"
-Data: conf_disambig, variable, char, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Confidence index for disambiguation result"
-Data: info_map, variable, int, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Updated quality map"
-Data: confid_map, variable, char, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Updated confidence index"
+#probably don't need this
+#Data: vlos_mag, link, MDATA, vlos_mag, 2, 4096, 4096, "LOS Velocity with Field"
+#Data: dop_width, link, MDATA, dop_width, 2, 4096, 4096, "Doppler Width"
+#Data: eta_0, link, MDATA, eta_0, 2, 4096, 4096, "Eta_0"
+#Data: damping, link, MDATA, damping, 2, 4096, 4096, "Damping"
+#Data: src_continuum, link, MDATA, src_continuum, 2, 4096, 4096, "Continuum"
+#Data: src_grad, link, MDATA, src_grad, 2, 4096, 4096, "Gradient"
+#Data: alpha_mag, link, MDATA, alpha_mag, 2, 4096, 4096, "Filling Factor with Field"
+#Data: chisq, link, MDATA, chisq, 2, 4096, 4096, "Chi square"
+#Data: conv_flag, link, MDATA, conv_flag, 2, 4096, 4096, "Convergence flag and index"
+#Data: inclination_err, link, MDATA, inclination_err, 2, 4096, 4096, "Inclination_Err"
+#Data: azimuth_err, link, MDATA, azimuth_err, 2, 4096, 4096, "Azimuth_Err"
+#Data: field_err, link, MDATA, field_err, 2, 4096, 4096, "Field_Err"
+#Data: vlos_err, link, MDATA, vlos_err, 2, 4096, 4096, "VLos_Err"
+#Data: alpha_err, link, MDATA, alpha_err, 2, 4096, 4096, " Alpha_Err"
+#Data: field_inclination_err, link, MDATA, field_inclination_err, 2, 4096, 4096, "Field_Inclination_Err"
+#Data: field_az_err, link, MDATA, field_az_err, 2, 4096, 4096, "Field_azimuth_Err"
+#Data: inclin_azimuth_err, link, MDATA, inclin_azimuth_err, 2, 4096, 4096, "Inclination_Azimuth_Err"
+#Data: field_alpha_err, link, MDATA, field_alpha_err, 2, 4096, 4096, "Field_Alpha_Err"
+#Data: inclination_alpha_err, link, MDATA, inclination_alpha_err, 2, 4096, 4096, "Inclination_Alpha_Err"
+#Data: azimuth_alpha_err, link, MDATA, azimuth_alpha_err, 2, 4096, 4096, "Azimuth_Alpha_Err"
+#Data: conf_disambig, variable, char, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Confidence index for disambiguation result"
+#Data: info_map, variable, int, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Updated quality map"
+#Data: confid_map, variable, char, 2, 4096, 4096, "", fits, "compress Rice", 0.000000, 1.000000, "Updated confidence index"
