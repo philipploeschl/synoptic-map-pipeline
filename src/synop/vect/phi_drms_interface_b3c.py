@@ -29,6 +29,7 @@ def main(config, session_folder):
     for key in config.key:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
 
+    print(len(fitsfiles))
     if fitsfiles[0][0].endswith(".fits"):
         n_end = 5
     else:
@@ -226,8 +227,15 @@ def main(config, session_folder):
         # DATAMAX
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
         
-        hdul = fits.HDUList([prim, l2drms])
-        hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
+        if ("bamb" in file):
+            components=['disamb','configd','confmap'] #three components of 3D array of bamb files: disamb, config_disamb, confid_map
+            for i in range(l2drms.data.shape[0]): 
+                temp =  fits.CompImageHDU(data=l2drms.data[i,:,:], header=l2drms.header)
+                hdul = fits.HDUList([prim, temp])
+                hdul.writeto(os.path.join(outpath_data, '%s%s%s_drms.fits' %(file[11:27], components[i], file[31:-n_end])), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
+        else:
+            hdul = fits.HDUList([prim, l2drms])
+            hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
 
     if config.verbose: print('\nDRMS compatible FITS header creation complete.\n\n')
 
@@ -239,17 +247,22 @@ def main(config, session_folder):
     bmag_fitsfiles = [f for f in fitsfiles if "bmag" in f]
     binc_fitsfiles = [f for f in fitsfiles if "binc" in f]
     bazi_fitsfiles = [f for f in fitsfiles if "bazi" in f]
+    disamb_fitsfiles = [f for f in fitsfiles if "disamb" in f]
+    configd_fitsfiles = [f for f in fitsfiles if "configd" in f]
+    confmap_fitsfiles = [f for f in fitsfiles if "confmap" in f]
 
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
 
     #when disambig data avail
+    
+    set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s conf_disambig=%s confid_map=%s\n'
     #set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
-    set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s\n'
+
     #jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
-    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
-    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
-    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
+    vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
+    vectmag_poten  = 'setsid vectmag2helio3comp_poten  in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
+    vectmag_radial = 'setsid vectmag2helio3comp_radial in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
 
     if config.b3c_disambig == "random":
         vectmag = vectmag_random
@@ -266,8 +279,7 @@ def main(config, session_folder):
     trec_out = open(outpath_scripts+'trecs.txt', 'w')
 
     j = 0 # nsplit counter
-    #for i, fname_bmag, fname_binc, fname_bazi, fname_disambig in enumerate(zip(fbmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disambig_fitsfiles)):#, disambig_fitsfiles)):
-    for i, (fname_bmag, fname_binc, fname_bazi) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles)):
+    for i, (fname_bmag, fname_binc, fname_bazi, fname_disamb, fname_configd, fname_confmap) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disamb_fitsfiles, configd_fitsfiles, confmap_fitsfiles)):#, disambig_fitsfiles)):
         
         print(fname_bmag)
         if config.verbose: print('Processing %s...' %fname_bmag)
@@ -303,15 +315,16 @@ def main(config, session_folder):
         # set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
         
         #when disambig data avail
-        #batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disambig)))
-        #batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disambig)))
+        
+        #batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
+        #batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
 
-        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
-        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
+        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
+        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
         
         batch_out.write('\necho %s' %vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
         batch_out.write(vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
-           
+        
         add_check_continue(batch_out)
         batch_out.write('\n')
 
