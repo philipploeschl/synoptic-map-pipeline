@@ -15,6 +15,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from scipy import optimize
 import bisect
+from matplotlib.gridspec import GridSpec
 
 ##############################################
 ####### FUNCTION DEFINITIONS FOR UTILS #######
@@ -217,10 +218,13 @@ def gaussian_fit(a, show=True):
 
 
     
-def noise_cadence_windows(data, fits_table, deg2px=10):
+def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=10):
     # cadence_window_noise_plot
     noise = np.array([])
     mid   = np.array([])
+    
+    mask = (np.abs(data) > thld_low) & (np.abs(data) < thld_high)
+    data = np.where(mask, data, np.nan)    
 
     for row in fits_table:
         # make the colored boxes for each fits table line
@@ -272,7 +276,7 @@ def noise_cadence_windows(data, fits_table, deg2px=10):
     return mid, noise
 
 
-def combined_synoptic_noise_plot(data, fits_table, config, outpath, name, pdf=False):
+def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, outpath, name, pdf=False):
     """
     Two-panel plot:
     Top: Synoptic map
@@ -362,10 +366,14 @@ def combined_synoptic_noise_plot(data, fits_table, config, outpath, name, pdf=Fa
     # -------------------------
     # (2) Noise Plot
     # -------------------------
-    pos, noise = noise_cadence_windows(data, fits_table)
-    ax_noise.scatter(pos, noise, s=7.5, color="black", label="Gaussian Noise")
+
+    for xx, yy, ll in zip(pos, noise, legend):
+        ax_noise.scatter(xx, yy, s=7.5, label=ll)
+
+
     ax_noise.set_xlim(0, 3600)
-    ylim_noise = 4
+    ylim_noise = 5
+
     ax_noise.set_ylim(-noise_bar_height, ylim_noise)
     ax_noise.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
     ax_noise.set_ylabel("Noise [σ]", fontsize=labelsize)
@@ -373,6 +381,19 @@ def combined_synoptic_noise_plot(data, fits_table, config, outpath, name, pdf=Fa
     ax_noise.set_xticks(xlocations)
     ax_noise.set_xticklabels(xlabels)
     
+    handles, labels = ax_noise.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    legend_scatter = ax_noise.legend(
+        by_label.values(), by_label.keys(),
+        loc='upper left',
+        bbox_to_anchor=(1, 1),
+        title="Noise\nsource:",
+        fontsize=labelsize - 2,
+        frameon=False
+    )
+    ax_noise.add_artist(legend_scatter)  # Keep this legend when adding the next one
+
+
     # PHI/HMI horizontal bars (bottom) aligned with top
     for row in fits_table:
         color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
@@ -503,4 +524,14 @@ flux_phi = sum(flux_phi)/len(flux_phi)
 
 magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, pdf=False)
 
-combined_synoptic_noise_plot(phi_img, phi_table, config, path, outname, pdf=False)
+
+pos1, noise1 = noise_cadence_windows(phi_img[:360,:],      phi_table, thld_low=0, thld_high=10)
+pos2, noise2 = noise_cadence_windows(phi_img[360:1080,:],  phi_table, thld_low=0, thld_high=10)
+#pos3, noise3 = noise_cadence_windows(phi_img[720:1080,:], phi_table, thld_low=0, thld_high=10)
+pos4, noise4 = noise_cadence_windows(phi_img[1080:,:],     phi_table, thld_low=0, thld_high=10)
+
+pos   = [pos1,   pos2,    pos4]
+noise = [noise1, noise2,  noise4]
+legend = ['south', 'center', 'north']
+
+combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, legend, config, path, outname, pdf=False)
