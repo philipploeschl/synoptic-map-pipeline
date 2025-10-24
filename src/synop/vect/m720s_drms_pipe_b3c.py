@@ -18,9 +18,9 @@ def main(config, session_folder):
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
 
-    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
-    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
-    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s"
+    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n"
+    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n"
+    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n"
 
     #TODO add selection through config
     vectmag = vectmag_random
