@@ -132,6 +132,7 @@ SYNOPTIC-MAP-PIPELINE
 └─ SRC/
    ├─ synop_pipeline.py
    ├─ data_selection.py
+   ├─ diagnostics.py
    ├─ CONFIG/
    │  ├─ config.py           # config parser class
    │  └─ example_config.yaml # example config, not read for defaults
@@ -141,7 +142,11 @@ SYNOPTIC-MAP-PIPELINE
    │  │  ├─ m720s_drms_pipe.py
    │  │  ├─ phi_drms_interface.py
    │  │  └─ hmiphisynoptic.py
-   │  └─ VECT/               # vector code (todo)
+   │  └─ VECT/               # vector code
+   │     ├─ drms_preparation_b3c.py
+   │     ├─ m720s_drms_pipe_b3c.py
+   │     ├─ phi_drms_interface_b3c.py
+   │     └─ hmiphisynoptic_b3c.py
    └─ UTILS/
       ├─ solepehm.py         # ephemeris functions for hmiphisynoptic.py
       ├─ plots.py            # plotting scripts
@@ -191,8 +196,13 @@ phi_dbpath: "/data/slam/valori/test_l2_fmdb/polar_2025/v01/l2" # experimental fm
 
 #date_start: "2022-06-03" # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
 #date_end  : "2022-06-18" # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
-key       : "blos"       # data segment
-
+#key       : "blos"       # data segment OLD
+key:     # data segment NEW
+- "blos"      
+#- "bmag"
+#- "binc"
+#- "bazi"
+#- "bamb"
 
 # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
 output_path: 'output/'
@@ -226,6 +236,10 @@ _src/los/drms_preparation.py_
 ################# Data series definition ##################
 ###########################################################
 
+# Vector pipeline controls
+b3c: True
+b3c_disambig: "random" # random, randial, potential
+
 # Ml/Mr selection -> False: Blos, True: Mr
 Mr: False 
 
@@ -235,13 +249,14 @@ cr: 2297 # POSSIBLY OBSOLETE, NOW USING MOST COMMON CR FROM TIMESTRING_HMI/PHIs
 # owner of temporary data series, used for output file names
 dataseries_owner: "mps_loeschl"
 
-data_series_phi      : "mps_loeschl.phi_M"           #  mps_phi.something
-data_series_jv2ts_phi: "mps_loeschl.phi_Ml_hiresmap"  # "mps_loeschl.Ml_hiresmap_720s_test"
-data_series_remap_phi: "mps_loeschl.phi_Ml_remap"     # "mps_loeschl.Ml_remap_720s_test"
+# Vector pipeline skips jv2ts and directly writes into the _remap data series
+data_series_phi      : "mps_loeschl.phi_M"            #  mps_phi.something
+data_series_jv2ts_phi: "mps_loeschl.phi_Ml_hiresmap"  # "mps_user.Ml_hiresmap_720s_test"
+data_series_remap_phi: "mps_loeschl.phi_Ml_remap"     # "mps_user.Ml_remap_720s_test"
 
 data_series_hmi      : "hmi.M_720s"                   # "mps_production.hmi_m_720s_nrt"
-data_series_jv2ts_hmi: "mps_loeschl.hmi_Ml_hiresmap"  # "mps_loeschl.Ml_hiresmap_720s_test"
-data_series_remap_hmi: "mps_loeschl.hmi_Ml_remap"     # "mps_loeschl.Ml_remap_720s_test"
+data_series_jv2ts_hmi: "mps_loeschl.hmi_Ml_hiresmap"  # "mps_user.Ml_hiresmap_720s_test"
+data_series_remap_hmi: "mps_loeschl.hmi_Ml_remap"     # "mps_user.Ml_remap_720s_test"
 
 data_series_synop :    "mps_loeschl.synoptic_Ml"         # synoptic data series name
 data_series_polfil:    "mps_loeschl.synoptic_Mr_polfil"  # synoptic Mr polfil data series name
