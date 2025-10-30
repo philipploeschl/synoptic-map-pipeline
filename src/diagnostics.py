@@ -232,7 +232,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
 
 
-def pfss(phi_polfil, synop_hmi, name=None, pdf=False):
+def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
         
     ########################
     ######### PFSS #########
@@ -253,14 +253,14 @@ def pfss(phi_polfil, synop_hmi, name=None, pdf=False):
     #phi_map.meta["CUNIT2"] = "deg" # "Sine Latitude"
 
     phi_map = sunpy.map.Map(phi_polfil, dict(synop_hmi[1].header))
-    #phi_map = phi_map.resample([360, 180] * u.pix)
     phi_map = phi_map.resample([720, 360] * u.pix)
+    #phi_map = phi_map.resample([480, 240] * u.pix)
     #print('New shape: ', phi_map.data.shape)
 
     ###############################################################################
     # Now calculate the PFSS solution
     #nrho = 25
-    nrho = 120
+    nrho = 50
     rss = 2.5
     pfss_in = pfsspy.Input(phi_map, nrho, rss)
     pfss_out = pfsspy.pfss(pfss_in)
@@ -274,7 +274,7 @@ def pfss(phi_polfil, synop_hmi, name=None, pdf=False):
 
     r = const.R_sun
     # Number of steps in cos(latitude)
-    nsteps = phi_map.data.shape[0]//2 #90
+    nsteps = 90
     lon_1d = np.linspace(0, 2 * np.pi, nsteps * 2 + 1)
     lat_1d = np.arcsin(np.linspace(-1, 1, nsteps + 1))
     lon, lat = np.meshgrid(lon_1d, lat_1d, indexing='ij')
@@ -333,7 +333,9 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None):
     norm.vmax = None # +1500 # reset vmax
     ax3 = fig.add_subplot(3, 1, 3, projection=m)
     im3 = m.plot(cmap='hmimag')
-    ax3.contourf(np.rad2deg(lon_1d), np.sin(lat_1d)*90+90, pols, norm=norm, cmap=cmap, alpha=0.25)
+    xx = pfss_in.map.data.shape[1]/360
+    yy = pfss_in.map.data.shape[0]//2
+    ax3.contourf(np.rad2deg(lon_1d)*xx, np.sin(lat_1d)*yy+yy, pols, norm=norm, cmap=cmap, alpha=0.25)
     ax3.plot_coord(pfss_out.source_surface_pils[0])
     ax3.set_title('Input magnetogram w/ PFSS & Open Field')
     plt.colorbar(im3, ax=ax3)  # Attach colorbar to ax3
@@ -351,20 +353,20 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None):
 
 
 
-if __name__ == "__main__":
+
+def main(config, path):
 
     ############################
     ####### GET PHI DATA #######
     ############################
 
-    config = Config(config_path='/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/src/config.yaml') 
-
     #datapath = "CR2297_polar_2025_v01/"
-    datapath = "CR2297_v02_nimg7_cmin25/"
+    #datapath = "CR2297_v02_nimg7_cmin25/"
 
-    cwd = os.getcwd()
-    root = os.path.normpath(os.path.join(cwd, ".."))
-    path = os.path.join(root, config.output_path, datapath, config.synop_path)
+    #cwd = os.getcwd()
+    #root = os.path.normpath(os.path.join(cwd, ".."))
+    #path = os.path.join(root, config.output_path, datapath, config.synop_path)
+    path = os.path.join(path, config.synop_path)
 
     fname = "synopMr.fits"
     outname = f"{config.cr}"
@@ -429,14 +431,25 @@ if __name__ == "__main__":
     polfil_hdul.writeto(os.path.join(path, "synopMr_polfil.fits"), overwrite=True)
 
     # show filled synoptic map 
-    plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
+    #plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
 
-    
     diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10)
+    pfss(phi_polfil,        synop_hmi, path, name='PHI', pdf=True)
+    pfss(synop_hmi[1].data, synop_hmi, path, name='HMI', pdf=True)
 
-    pfss(phi_polfil, synop_hmi, name='PHI', pdf=True)
 
-    #pfss(synop_hmi[1].data, synop_hmi, name='HMI', pdf=True)
+if __name__ == "__main__":
 
+    out_dirs = ["output/CR2297_v02_nimg5_cmin5",
+                "output/CR2297_v02_nimg5_cmin25", 
+                "output/CR2297_v02_nimg7_cmin25"]
+
+    cwd = os.getcwd()
+    root = os.path.normpath(os.path.join(cwd, ".."))
+
+    for out_dir in out_dirs:
+        config = Config(config_path=os.path.join(root, out_dir, 'config.yaml'))
+        path = os.path.join(root, out_dir)
+        main(config, path)
 
 
