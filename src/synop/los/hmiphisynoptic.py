@@ -17,9 +17,10 @@ from astropy.io import fits
 import os, sys
 from datetime import date
 
-from utils.plots import plot_synoptic
 from utils.plots import plot_synoptic_sources
 from utils.utils import create_src_fits_table
+from diagnostics import diagnostics
+
 
 
 # DEFINES
@@ -1426,6 +1427,8 @@ def main(global_config, session_folder):
 
     hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
+
+    diagnostics(synop_img, table_hdu.data, synop_outpath, config['synop_name'][:-5]+"_diagnostics", global_config)
     plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     
     if config["bin"]:
@@ -1449,6 +1452,9 @@ def main(global_config, session_folder):
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
+
+        # iagnostics for small synoptic map currently breaks due to reduced statistics for gaussian - disabled
+        #diagnostics(smallSynop_img, table_hdu.data, synop_outpath, config['synop_small_name'][:-5]+"_diagnostics", global_config)
         plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     print('%s complete' %__file__)
 
