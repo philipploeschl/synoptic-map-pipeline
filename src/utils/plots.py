@@ -1,10 +1,16 @@
 import os
 import numpy as np
+from scipy import optimize
+import sunpy.map
+import pandas as pd
+
 import matplotlib.pylab as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
-import sunpy.map
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.gridspec import GridSpec
+
 
 def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
 
@@ -149,4 +155,357 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
         plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
     else:
         plt.show()
+
+
+
+########################
+####### ANALYSIS #######
+########################
+
+def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, outpath, name, pdf=False):
+    """
+    Two-panel plot:
+    Top: Synoptic map
+    Bottom: Noise scatter
+    PHI/HMI horizontal bars perfectly aligned between plots
+    Colorbar only for top plot
+    Legend in the empty bottom-right axis
+    """
+
+    fig = plt.figure(figsize=(14, 10.5))
+    gs = GridSpec(2, 2, figure=fig, width_ratios=[30, 1], height_ratios=[1.5, 1],
+                  hspace=0.05, wspace=0.05)
+
+    # Main axes
+    ax_synop = fig.add_subplot(gs[0, 0])
+    ax_noise = fig.add_subplot(gs[1, 0], sharex=ax_synop)
+    # Colorbar for top plot
+    cax = fig.add_subplot(gs[0, 1])
+    # Empty axis for legend
+    ax_legend = fig.add_subplot(gs[1, 1])
+    ax_legend.axis('off')  # hide axis
+
+    labelsize = 12
+    deg2px = 10
+    bar_height = 40
+    noise_bar_height = 0.15
+
+    # -------------------------
+    # (1) Synoptic Map
+    # -------------------------
+    im = ax_synop.imshow(
+        data, cmap="hmimag", vmin=-1500, vmax=1500,
+        origin="lower", extent=[0, 3600, bar_height, 1440 + bar_height],
+        interpolation=None
+    )
+
+    ax_synop.set_title(
+        f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}',
+        y=1.02, fontsize=24
+    )
+
+    # Add x-label on top plot
+    #ax_synop.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
+
+    # Longitude ticks
+    xlabels = [0,30,60,90,120,150,180,210,240,270,300,330,360]
+    xlocations = [i * 10 for i in xlabels]
+    ax_synop.set_xticks(xlocations)
+    ax_synop.set_xticklabels(xlabels)
+    ax_synop.set_ylabel('Latitude [°]', fontsize=labelsize)
+    ax_synop.tick_params(labelsize=labelsize)
+
+    # Latitude ticks
+    ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ','20',' ','40',' ','60',' ','80',' ']
+    ytick_latitude = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
+    ytick_normalize = [(y+1)*720. + bar_height for y in ytick_latitude]
+    ax_synop.set_yticks(ytick_normalize)
+    ax_synop.set_yticklabels(ylabels_r)
+    ax_synop.set_ylim(0, 1440+bar_height)
+
+    # PHI/HMI horizontal bars (top)
+    for row in fits_table:
+        color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
+        width = row["CRLN_START"] - row["CRLN_END"]
+        if width > 0:
+            ax_synop.barh(bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px,
+                          height=bar_height, color=color)
+        else:
+            ax_synop.barh(bar_height/2, (360-row["CRLN_END"])*deg2px,
+                          left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
+            ax_synop.barh(bar_height/2, row["CRLN_START"]*deg2px,
+                          left=0, height=bar_height, color=color)
+        ax_synop.vlines(row["CRLN_END"]*deg2px, 0, bar_height, color='black', linewidth=0.7)
+    ax_synop.hlines(y=bar_height, xmin=0, xmax=360*deg2px, color='black', linewidth=0.7)
+
+    # Colorbar
+    cbar = fig.colorbar(im, cax=cax, orientation='vertical')
+    label = '$B_r$ [Gauss]' if config.Mr else '$B_{LoS}$ [Gauss]'
+    cbar.set_label(label=label, size=labelsize, labelpad=-15)
+
+    # Make colorbar height match the synoptic map axis exactly and reduce width by 30%
+    cax_pos = ax_synop.get_position()  # get synoptic axis position (Bbox)
+    cax_width = 0.03 * 0.7  # 30% thinner than original width
+    cax.set_position([cax_pos.x1 + 0.01, cax_pos.y0, cax_width, cax_pos.height])
+
+
+    # -------------------------
+    # (2) Noise Plot
+    # -------------------------
+
+    colors = ["#0072B2", "#000000", "#D55E00"]
+    for xx, yy, ll, cc in zip(pos, noise, legend, colors):
+        ax_noise.scatter(xx, yy, s=7.5, label=ll, color=cc)
+
+
+    ax_noise.set_xlim(0, 3600)
+    ylim_noise = np.ceil(np.max(noise)+1)
+
+    ax_noise.set_ylim(-noise_bar_height, ylim_noise)
+    ax_noise.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
+    ax_noise.set_ylabel("Noise [σ]", fontsize=labelsize)
+    ax_noise.tick_params(labelsize=labelsize)
+    ax_noise.set_xticks(xlocations)
+    ax_noise.set_xticklabels(xlabels)
+    
+    handles, labels = ax_noise.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    legend_scatter = ax_noise.legend(
+        by_label.values(), by_label.keys(),
+        loc='upper left',
+        bbox_to_anchor=(1, 1),
+        title="Latitude windows:",
+        fontsize=labelsize - 2,
+        frameon=False
+    )
+    ax_noise.add_artist(legend_scatter)  # Keep this legend when adding the next one
+
+
+    # PHI/HMI horizontal bars (bottom) aligned with top
+    for row in fits_table:
+        color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
+        width = row["CRLN_START"] - row["CRLN_END"]
+        left_positions = []
+        widths = []
+        if width > 0:
+            left_positions = [row["CRLN_END"]*deg2px]
+            widths = [width*deg2px]
+        else:
+            left_positions = [row["CRLN_END"]*deg2px, 0]
+            widths = [(360-row["CRLN_END"])*deg2px, row["CRLN_START"]*deg2px]
+        for left, w in zip(left_positions, widths):
+            ax_noise.barh(-noise_bar_height/2, w, left=left,
+                          height=noise_bar_height, color=color)
+            ax_noise.vlines(left, -noise_bar_height, noise_bar_height+ylim_noise, color='black', linewidth=0.7)
+    ax_noise.hlines(y=0, xmin=0, xmax=360*deg2px, color='black', linewidth=0.7)
+
+    # -------------------------
+    # Legend in empty axis
+    # -------------------------
+    phi_patch = mpatches.Patch(color='orange', label='PHI')
+    hmi_patch = mpatches.Patch(color='steelblue', label='HMI')
+    boundary_line = mlines.Line2D([], [], color='black', linewidth=0.7, label='Boundary')
+
+    ax_noise.legend(handles=[phi_patch, hmi_patch, boundary_line],
+                    loc='upper center',bbox_to_anchor=(0.15, -0.05), 
+                    ncol=3, frameon=False)
+    
+    # --- Save or show ---
+    #fig.tight_layout()
+    if pdf:
+        os.makedirs(outpath, exist_ok=True)
+        #fig.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+        pdf.savefig(fig)
+    else:
+        plt.show()
+
+    plt.close()
+
+
+
+
+def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, pdf=False):
+
+    labelsize = 18
+    titlesize = 24
+
+    fig, ax = plt.subplots(figsize=(14, 10.5))
+
+    line1 = ax.plot(flux_hmi['pos'].values+flux_hmi['neg'].values, linestyle='dashed',  linewidth=2, label='HMI')
+    line2 = ax.plot(flux_phi['pos'].values+flux_phi['neg'].values, linestyle='dashdot', linewidth=2, label='PHI')
+
+    xticks = np.linspace(0, 1440/latwidth, 19)-0.5
+    xlabels = np.linspace(-90,90, 19, dtype=int)
+
+    plt.axhline(y=0, color='grey', linestyle=(0,(5,10)), alpha=0.75)
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xlabels)
+
+    ax.set_xlabel('Latitude [°]', fontsize=labelsize)
+    ax.set_ylabel('Magnetic Flux [mx/cm²]', fontsize=labelsize)
+    ax.set_title(f'Average weak magnetic flux balance for ({thld_low}-{thld_high}G)', fontsize=titlesize)
+    
+    lim = np.nanmax([np.nanmax(np.abs(flux_phi["pos"]+flux_phi["neg"])), 
+                     np.nanmax(np.abs(flux_hmi["pos"]+flux_hmi["neg"])), 
+                   ])
+    
+    lim = np.ceil(lim)+2
+    ax.set_ylim([-lim, lim])
+
+    ax.tick_params(labelsize=labelsize)
+
+    plt.legend(loc='lower right', ncol=2, fontsize=labelsize)
+
+
+    hmi_avg = np.round(np.nanmean(flux_hmi['pos'].values+flux_hmi['neg'].values), 3)
+    hmi_rms = np.round(np.nanstd ((flux_hmi['pos'].values+flux_hmi['neg'].values)/len(flux_hmi['pos'])), 3)          
+    
+    phi_avg = np.round(np.nanmean(flux_phi['pos'].values+flux_phi['neg'].values), 3)
+    phi_rms = np.round(np.nanstd ((flux_phi['pos'].values+flux_phi['neg'].values)/len(flux_phi['pos'])), 3)          
+    
+    plt.annotate(
+        f"Average signal\n",
+        xy=(1, 1),
+        xycoords='axes fraction',   # relative to axes (1.0 = right/top)
+        textcoords='offset points',
+        xytext=(-10, -10),
+        ha='right',
+        va='top',
+        fontsize=labelsize,
+        fontweight='bold'
+    )
+    
+    plt.annotate(
+        f"HMI: {hmi_avg} $\pm$ {hmi_rms} G\n",
+        xy=(1, 1),
+        xycoords='axes fraction',   # relative to axes (1.0 = right/top)
+        textcoords='offset points',
+        xytext=(-10, -35),
+        ha='right',
+        va='top',
+        fontsize=labelsize,
+        color=line1[0].get_color()
+    )
+
+
+    plt.annotate(
+        f"PHI: {phi_avg} $\pm$ {phi_rms} G",
+        xy=(1, 1),
+        xycoords='axes fraction',   # relative to axes (1.0 = right/top)
+        textcoords='offset points',
+        xytext=(-10, -60),
+        ha='right',
+        va='top',
+        fontsize=labelsize,
+        color=line2[0].get_color()
+    )
+
+
+
+    #plt.tight_layout()
+    if pdf:
+        pdf.savefig(fig)
+        #plt.savefig("flux_correction.pdf", format="pdf", dpi=300)
+    else:
+        plt.show()
+
+    plt.close()
+
+
+
+"""
+def flux_plot(hmiMr_polfil, synopMr05_v00, thld, save=False):
+    
+    labels = ['Full Map\n0-360°', 'PHI 1\n0-40°', 'PHI 2\n200-360°']
+    
+    hmi_pos , hmi_neg  = magnetic_flux(hmiMr_polfil.data         , thld=thld)
+    hmi_pos1, hmi_neg1 = magnetic_flux(hmiMr_polfil.data[:,0:400], thld=thld)
+    hmi_pos2, hmi_neg2 = magnetic_flux(hmiMr_polfil.data[:,2000:], thld=thld)
+
+    phi_pos , phi_neg  = magnetic_flux(synopMr05_v00.data         , thld=thld)
+    phi_pos1, phi_neg1 = magnetic_flux(synopMr05_v00.data[:,0:400], thld=thld)
+    phi_pos2, phi_neg2 = magnetic_flux(synopMr05_v00.data[:,2000:], thld=thld)
+
+    phi_flux_pos = [phi_pos, phi_pos1, phi_pos2]
+    phi_flux_neg = [abs(phi_neg), abs(phi_neg1), abs(phi_neg2)]
+
+    hmi_flux_pos = [hmi_pos, hmi_pos1, hmi_pos2]
+    hmi_flux_neg = [abs(hmi_neg), abs(hmi_neg1), abs(hmi_neg2)]
+
+    x = np.arange(len(labels))  # the label locations
+    width = 0.3  # the width of the bars
+
+    fig, ax = plt.subplots(figsize=(7,5))
+    rects1 = ax.bar(x - width  , phi_flux_pos, width/2, label='PHI+')
+    rects2 = ax.bar(x - width/2, phi_flux_neg, width/2, label='PHI-')
+    rects3 = ax.bar(x + width/2, hmi_flux_pos, width/2, label='HMI+')
+    rects4 = ax.bar(x + width  , hmi_flux_neg, width/2, label='HMI-')
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('B Flux [mx/cm²]')
+    ax.set_title('CR2240 Magnetic Flux by Region')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+
+    #ax.bar_label(rects1, padding=3)
+    #ax.bar_label(rects2, padding=3)
+    
+    ylim = ax.get_ylim()[1]
+    exp = np.floor(np.log10(ylim))
+    ylim_new = np.round(ylim/10**exp, 1)*10**exp
+    plt.vlines([0.5,1.5], 0, ylim_new, colors='k', linestyles='solid')#, label='', data=None)
+
+    fig.tight_layout()
+
+    
+    print("PHI+: %d, PHI-: %d | PHI1+: %d, PHI1-: %d | PHI2+: %d, PHI2-: %d"%(phi_pos, phi_neg, phi_pos1, phi_neg1, phi_pos2, phi_neg2))
+    print("HMI+: %d, HMI-: %d | HMI1+: %d, HMI1-: %d | HMI2+: %d, HMI2-: %d"%(hmi_pos, hmi_neg, hmi_pos1, hmi_neg1, hmi_pos2, hmi_neg2))
+    
+    print("HMI+/PHI+: %.2f, HMI-/PHI-: %.2f | HMI1+/PHI1+: %.2f, HMI1-/PHI1-: %.2f | HMI2+/PHI2+: %.2f, HMI2-/PHI2-: %.2f" %(hmi_pos/phi_pos, hmi_neg/phi_neg, hmi_pos1/phi_pos1, hmi_neg1/phi_neg1, hmi_pos2/phi_pos2, hmi_neg2/phi_neg2))
+      
+    if save:
+        plt.savefig('flux_balance.pdf', format='pdf', dpi=300)
+"""
+
+
+def plot_pfss_openfield(fieldmap, pfss_out, field_lines, title="PHI/HMI"):
+    import matplotlib.colors as mcolor
+    
+    fig = plt.figure(figsize=(8,11.25))
+
+    ss_br = pfss_out.source_surface_br
+    ax1 = fig.add_subplot(3, 1, 1, projection=ss_br)
+
+    # Plot the source surface map
+    im1 = ss_br.plot()
+    # Plot the polarity inversion line
+    ax1.plot_coord(pfss_out.source_surface_pils[0])
+    ax1.set_title('%s Source surface magnetic field'%title)
+    plt.colorbar()
+
+    m = fieldmap#phi_v02_pfss_in.map
+
+    ax2 = fig.add_subplot(3, 1, 2)
+    cmap = mcolor.ListedColormap(['tab:red', 'black', 'tab:blue'])
+    norm = mcolor.BoundaryNorm([-1.5, -0.5, 0.5, 1.5], ncolors=3)
+    pols = field_lines.polarities.reshape(2 * nsteps + 1, nsteps + 1).T
+    ax2.contourf(np.rad2deg(lon_1d), np.sin(lat_1d), pols, norm=norm, cmap=cmap)
+    ax2.set_ylabel('sin(latitude)')
+
+    ax2.set_title('%s Open (blue/red) and closed (black) field'%title)
+    ax2.set_aspect(0.5 * 360 / 2)
+    plt.colorbar()
+
+
+    ax3 = fig.add_subplot(3, 1, 3, projection=m)
+    m.plot(cmap='hmimag')
+    ax3.contourf(np.rad2deg(lon_1d)*2, np.sin(lat_1d)*180+180, pols, norm=norm, cmap=cmap, alpha=0.25)
+    ax3.plot_coord(pfss_out.source_surface_pils[0])
+    ax3.set_title('Input %s magnetogram w/ PFSS & Open Field' %title)
+    plt.colorbar()
+    plt.tight_layout()
+    
+    return fig
 
