@@ -169,6 +169,15 @@ TODO DESCRIPTION
 ################# Pipeline Configuration ##################
 ###########################################################
 
+# Pipeline selection
+b3c: True
+b3c_disambig: "random" # random, randial, potential
+
+# Ml/Mr selection -> False: Blos, True: Mr
+Mr: False 
+
+
+# Module selection
 run_drms_prep:           True  # run drms_prep.py to create JSD files and data series in DRMS
 run_m720s_drms_pipe:     True  # run m720s_drms_pipe.py to create the hiresmap and remap
 run_phi_drms_interface:  True  # run phi_drms_interface.py to create the phi data series
@@ -236,12 +245,7 @@ _src/los/drms_preparation.py_
 ################# Data series definition ##################
 ###########################################################
 
-# Vector pipeline controls
-b3c: True
-b3c_disambig: "random" # random, randial, potential
 
-# Ml/Mr selection -> False: Blos, True: Mr
-Mr: False 
 
 # Carrington rotation number (primary key for synoptic maps)
 cr: 2297 # POSSIBLY OBSOLETE, NOW USING MOST COMMON CR FROM TIMESTRING_HMI/PHIs
