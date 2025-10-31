@@ -7,6 +7,7 @@ from astropy.io import fits
 import drms
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from pathlib import Path
 
 from config.config import Config
 from utils.plots import magnetic_flux_plot_latitudes, combined_synoptic_noise_plot
@@ -34,7 +35,7 @@ def magnetic_flux_latitudes(data, lats, x1, x2, thld_low=0, thld_high=25, mean=F
     flux = pd.DataFrame(columns=['pos', 'neg'], dtype=float)
 
     for i in range(len(lats)-1):
-        #print(lats[i], lats[i+1])
+
         window = data[lats[i]:lats[i+1], x1:x2]
         
         pos = window[window > thld_low]
@@ -87,8 +88,8 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
             if width > 0:
                 window_hmi.append([int(row["CRLN_END"]*deg2px), int(row["CRLN_START"]*deg2px)])
             else:
-                window_hmi.append([row["CRLN_END"]*deg2px, 360*deg2px])
-                window_hmi.append([0*deg2px, row["CRLN_START"]*deg2px])
+                window_hmi.append([int(row["CRLN_END"]*deg2px), int(360*deg2px)])
+                window_hmi.append([int(0*deg2px), int(row["CRLN_START"]*deg2px)])
 
     window_hmi = sorted(window_hmi)
     
@@ -120,11 +121,17 @@ def gaussian_fit(a, show=True):
     y  = a[0][:]
     p0 = [0.,sum(xx*y)/sum(y),np.sqrt(sum(y * (xx - sum(xx*y)/sum(y))**2) / sum(y))]
     p0[0] = y[find_nearest(xx,p0[1])-5:find_nearest(xx,p0[1])+5].mean()
-    p,cov = optimize.curve_fit(gauss,xx,y,p0=p0, maxfev=5000)
+    
+    try: 
+        p,cov = optimize.curve_fit(gauss,xx,y,p0=p0, maxfev=25000)
+    except RuntimeError:
+        p = [np.nan, np.nan, np.nan]
+
     if show:
         lbl = '{:.2e} $\pm$ {:.2e}'.format(p[1],p[2])
         plt.plot(xx,gauss(xx,*p),'r--', label=lbl)
         plt.legend(fontsize=9)
+    
     return p
 
 
@@ -253,8 +260,10 @@ def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
     #phi_map.meta["CUNIT2"] = "deg" # "Sine Latitude"
 
     phi_map = sunpy.map.Map(phi_polfil, dict(synop_hmi[1].header))
-    phi_map = phi_map.resample([720, 360] * u.pix)
-    #phi_map = phi_map.resample([480, 240] * u.pix)
+    #phi_map = phi_map.resample([720, 360] * u.pix)
+    phi_map = phi_map.resample([480, 240] * u.pix)
+    #phi_map = phi_map.resample([360, 180] * u.pix)
+    
     #print('New shape: ', phi_map.data.shape)
 
     ###############################################################################
@@ -284,7 +293,7 @@ def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
     ###############################################################################
     # Trace the field lines
     print('Tracing field lines...')
-    tracer = tracing.FortranTracer(max_steps=2000)
+    tracer = tracing.FortranTracer(max_steps=5000)
     field_lines = tracer.trace(seeds, pfss_out)
     print('Finished tracing field lines')
 
@@ -354,27 +363,28 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None):
 
 
 
-def main(config, path):
+def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil"):
+
+    print(f"Processing {os.path.join(path, fname)}...")
+
+    root = os.getcwd()
 
     ############################
     ####### GET PHI DATA #######
     ############################
 
-    #datapath = "CR2297_polar_2025_v01/"
-    #datapath = "CR2297_v02_nimg7_cmin25/"
-
-    #cwd = os.getcwd()
-    #root = os.path.normpath(os.path.join(cwd, ".."))
-    #path = os.path.join(root, config.output_path, datapath, config.synop_path)
-    path = os.path.join(path, config.synop_path)
-
-    fname = "synopMr.fits"
-    outname = f"{config.cr}"
-
-    synop_phi  = fits.open(os.path.join(path, fname))
-
+    try:
+        synop_phi  = fits.open(os.path.join(path, fname))
+    except FileNotFoundError:
+        # skip folders without processed synoptic fits files
+        return 0
+    
     phi_img   = synop_phi[0].data
     phi_table = synop_phi[1].data
+
+    # Define Carrington rotation number
+    carrington_number = int(synop_phi[0].header["CAR_ROT"])
+    outname = f"{carrington_number}"
 
 
     ############################
@@ -384,19 +394,8 @@ def main(config, path):
     # Create DRMS client
     c = drms.Client(email="loeschl@mps.mpg.de", verbose=True)
 
-    # Define Carrington rotation number
-    carrington_number = int(config.cr)
-
-    # Choose the HMI synoptic map series you want
-    series  = "hmi.synoptic_mr_polfil_720s"
-    segment = "Mr_polfil"
-    #series  = "hmi.synoptic_mr_720s"
-    #segment = "synopMr"
-    #series = "hmi.synoptic_ml_720s"
-    #segment = "synopMl"
     datapath_hmi = os.path.join(root, f"data/tmp/CR{carrington_number}/")
     os.makedirs(datapath_hmi, exist_ok=True)
-
 
     # Query JSOC for that rotation
     q = c.query(f"{series}[{carrington_number}]", seg=segment)
@@ -426,30 +425,42 @@ def main(config, path):
                                    header=synop_phi[0].header, 
                                    compression_type='RICE_1')
 
-
     polfil_hdul = fits.HDUList([primary_hdu, polfil_hdu])
     polfil_hdul.writeto(os.path.join(path, "synopMr_polfil.fits"), overwrite=True)
 
     # show filled synoptic map 
     #plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
 
-    diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10)
-    pfss(phi_polfil,        synop_hmi, path, name='PHI', pdf=True)
-    pfss(synop_hmi[1].data, synop_hmi, path, name='HMI', pdf=True)
+    # populate config for diagnostics plots
+    config = Config()
+    config.cr = carrington_number
+   
+    if "Mr" in segment:
+        config.Mr = True
+        config.Btype = "Radial"
+    else:
+        config.Mr = False
+        config.Btype = "line-of-sight"
+
+    if run_diagnostics:
+        diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10)
+    
+    if run_pfss:
+        pfss(phi_polfil,        synop_hmi, path, name='PHI', pdf=True)
+        pfss(synop_hmi[1].data, synop_hmi, path, name='HMI', pdf=True)
 
 
 if __name__ == "__main__":
 
-    out_dirs = ["output/CR2297_v02_nimg5_cmin5",
-                "output/CR2297_v02_nimg5_cmin25", 
-                "output/CR2297_v02_nimg7_cmin25"]
+    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/')
 
-    cwd = os.getcwd()
-    root = os.path.normpath(os.path.join(cwd, ".."))
+    start_cr = 2285
+    paths = sorted(base.glob("CR*/synop/"))
+    paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr]
 
-    for out_dir in out_dirs:
-        config = Config(config_path=os.path.join(root, out_dir, 'config.yaml'))
-        path = os.path.join(root, out_dir)
-        main(config, path)
-
-
+    for path in paths:
+        try: 
+            main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
