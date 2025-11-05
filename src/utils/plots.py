@@ -94,6 +94,8 @@ def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
     
     if pdf:
         plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+        plt.savefig(os.path.join(outpath, f'{name}.png'), format='png')
+
     else:
         plt.show()
 
@@ -162,7 +164,7 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
 ####### ANALYSIS #######
 ########################
 
-def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, outpath, name, pdf=False):
+def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, outpath, name, save=False):
     """
     Two-panel plot:
     Top: Synoptic map
@@ -259,11 +261,11 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, o
 
 
     ax_noise.set_xlim(0, 3600)
-    ylim_noise = np.ceil(np.nanmax(noise)+1)
+    ylim_noise = np.ceil(np.max(noise)+1)
 
     ax_noise.set_ylim(-noise_bar_height, ylim_noise)
     ax_noise.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
-    ax_noise.set_ylabel("Noise [σ]", fontsize=labelsize)
+    ax_noise.set_ylabel("Noise σ [G]", fontsize=labelsize)
     ax_noise.tick_params(labelsize=labelsize)
     ax_noise.set_xticks(xlocations)
     ax_noise.set_xticklabels(xlabels)
@@ -312,10 +314,11 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, o
     
     # --- Save or show ---
     #fig.tight_layout()
-    if pdf:
-        os.makedirs(outpath, exist_ok=True)
+    if save:
+        #os.makedirs(outpath, exist_ok=True)
         #fig.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
-        pdf.savefig(fig)
+        #pdf.savefig(fig)
+        return fig 
     else:
         plt.show()
 
@@ -324,7 +327,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, o
 
 
 
-def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, pdf=False):
+def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=False):
 
     labelsize = 18
     titlesize = 24
@@ -359,10 +362,12 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwid
 
 
     hmi_avg = np.round(np.nanmean(flux_hmi['pos'].values+flux_hmi['neg'].values), 3)
-    hmi_rms = np.round(np.nanstd ((flux_hmi['pos'].values+flux_hmi['neg'].values)/len(flux_hmi['pos'])), 3)          
+    hmi_std = np.round(np.nanstd (flux_hmi['pos'].values+flux_hmi['neg'].values), 3)          
+    hmi_rms = np.round(np.nanstd (flux_hmi['pos'].values+flux_hmi['neg'].values)/len(flux_hmi['pos']), 3)          
     
     phi_avg = np.round(np.nanmean(flux_phi['pos'].values+flux_phi['neg'].values), 3)
-    phi_rms = np.round(np.nanstd ((flux_phi['pos'].values+flux_phi['neg'].values)/len(flux_phi['pos'])), 3)          
+    phi_std = np.round(np.nanstd (flux_phi['pos'].values+flux_phi['neg'].values), 3)          
+    phi_rms = np.round(np.nanstd (flux_phi['pos'].values+flux_phi['neg'].values)/len(flux_phi['pos']), 3)          
     
     plt.annotate(
         f"Average signal\n",
@@ -377,7 +382,7 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwid
     )
     
     plt.annotate(
-        f"HMI: {hmi_avg} $\pm$ {hmi_rms} G\n",
+        f"HMI: {hmi_avg} $\pm$ {hmi_std} G\n",
         xy=(1, 1),
         xycoords='axes fraction',   # relative to axes (1.0 = right/top)
         textcoords='offset points',
@@ -390,7 +395,7 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwid
 
 
     plt.annotate(
-        f"PHI: {phi_avg} $\pm$ {phi_rms} G",
+        f"PHI: {phi_avg} $\pm$ {phi_std} G",
         xy=(1, 1),
         xycoords='axes fraction',   # relative to axes (1.0 = right/top)
         textcoords='offset points',
@@ -401,12 +406,11 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwid
         color=line2[0].get_color()
     )
 
-
-
     #plt.tight_layout()
-    if pdf:
-        pdf.savefig(fig)
+    if save:
+        #pdf.savefig(fig)
         #plt.savefig("flux_correction.pdf", format="pdf", dpi=300)
+        return fig
     else:
         plt.show()
 
@@ -467,12 +471,12 @@ def flux_plot(hmiMr_polfil, synopMr05_v00, thld, save=False):
       
     if save:
         plt.savefig('flux_balance.pdf', format='pdf', dpi=300)
-"""
+
 
 
 def plot_pfss_openfield(fieldmap, pfss_out, field_lines, title="PHI/HMI"):
     import matplotlib.colors as mcolor
-    
+
     fig = plt.figure(figsize=(8,11.25))
 
     ss_br = pfss_out.source_surface_br
@@ -509,3 +513,4 @@ def plot_pfss_openfield(fieldmap, pfss_out, field_lines, title="PHI/HMI"):
     
     return fig
 
+"""

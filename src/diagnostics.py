@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from pathlib import Path
 
 from config.config import Config
-from utils.plots import magnetic_flux_plot_latitudes, combined_synoptic_noise_plot
+from utils.plots import magnetic_flux_plot_latitudes, combined_synoptic_noise_plot, plot_synoptic_sources
 
 ##############################################
 ####### FUNCTION DEFINITIONS FOR UTILS #######
@@ -233,10 +233,15 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     noise = [noise1, noise2,  noise3]
     legend = ['[ -90°,  -30°]', '[ -30°, +30°]', '[+30°, +90°]']#
 
-    with PdfPages(os.path.join(path, outname+'_diagnostics.pdf')) as pdf:
-        magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, pdf=pdf)
-        combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, legend, config, path, outname, pdf=pdf)
+    with PdfPages(os.path.join(path, f'CR{outname}_diagnostics.pdf')) as pdf:
+        fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=True)
+        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, legend, config, path, outname, save=True)
+        pdf.savefig(fig_mag)
+        pdf.savefig(fig_syn)
+        fig_mag.savefig(os.path.join(path, f'CR{outname}_latflux.png'), format='png')
+        fig_syn.savefig(os.path.join(path, f'CR{outname}_noise.png'),   format='png')
 
+        plot_synoptic_sources(phi_img, path, f'CR{outname}_synoptic', config, phi_table, pdf=True)
 
 
 def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
@@ -260,8 +265,8 @@ def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
     #phi_map.meta["CUNIT2"] = "deg" # "Sine Latitude"
 
     phi_map = sunpy.map.Map(phi_polfil, dict(synop_hmi[1].header))
-    #phi_map = phi_map.resample([720, 360] * u.pix)
-    phi_map = phi_map.resample([480, 240] * u.pix)
+    phi_map = phi_map.resample([720, 360] * u.pix)
+    #phi_map = phi_map.resample([480, 240] * u.pix)
     #phi_map = phi_map.resample([360, 180] * u.pix)
     
     #print('New shape: ', phi_map.data.shape)
@@ -303,15 +308,19 @@ def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
     # field regions and 0 for closed field regions.
     
     if pdf:
-        with PdfPages(os.path.join(path, name+'_pfss.pdf')) as pdf:
-            plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=pdf)
+        with PdfPages(os.path.join(path, f'CR{synop_hmi[1].header["CAR_ROT"]}_{name}_pfss_mag{phi_map.data.shape[1]}x{phi_map.data.shape[0]}_nrho{nrho}_nsteps{nsteps}.pdf')) as pdf:
+            fig = plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, name, pdf=pdf)
+            pdf.savefig(fig)
+            fig.savefig(os.path.join(path, f'CR{synop_hmi[1].header["CAR_ROT"]}_{name}_pfss_mag{phi_map.data.shape[1]}x{phi_map.data.shape[0]}_nrho{nrho}_nsteps{nsteps}.png'), format='png')
+           
     else:
-        plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None)
+        fig = plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None)
+    
 
 
 
 
-def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None):
+def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, name, pdf=None):
     import matplotlib.colors as mcolor
 
     fig = plt.figure(figsize=(8,11.25))
@@ -321,7 +330,7 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None):
     ax1 = fig.add_subplot(3, 1, 1, projection=ss_br)
     im1 = ss_br.plot()
     ax1.plot_coord(pfss_out.source_surface_pils[0])
-    ax1.set_title('Source surface magnetic field')
+    ax1.set_title(f'Source surface magnetic field')
     plt.colorbar(im1, ax=ax1)  # Attach colorbar to ax1
 
     # --- Second subplot ---
@@ -338,24 +347,22 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None):
     # --- Third subplot ---
     m = pfss_in.map # Create a norm with the limits you want 
     norm = m.plot_settings['norm'] # get existing norm 
-    norm.vmin = None # -1500 # reset vmin 
-    norm.vmax = None # +1500 # reset vmax
+    norm.vmin = None #-1500 # reset vmin 
+    norm.vmax = None #+1500 # reset vmax
     ax3 = fig.add_subplot(3, 1, 3, projection=m)
-    im3 = m.plot(cmap='hmimag')
+    im3 = m.plot(cmap='hmimag', vmin=-1500, vmax=1500)
     xx = pfss_in.map.data.shape[1]/360
     yy = pfss_in.map.data.shape[0]//2
     ax3.contourf(np.rad2deg(lon_1d)*xx, np.sin(lat_1d)*yy+yy, pols, norm=norm, cmap=cmap, alpha=0.25)
     ax3.plot_coord(pfss_out.source_surface_pils[0])
-    ax3.set_title('Input magnetogram w/ PFSS & Open Field')
+    ax3.set_title(f'{name} input magnetogram w/ PFSS & Open Field')
     plt.colorbar(im3, ax=ax3)  # Attach colorbar to ax3
 
     plt.tight_layout()
         
-    if pdf:
-        #os.makedirs(outpath, exist_ok=True)
-        #fig.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
-        pdf.savefig(fig)
-    else:
+    if pdf: 
+        return fig
+    else: 
         plt.show()
 
     plt.close()
@@ -394,7 +401,7 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
     # Create DRMS client
     c = drms.Client(email="loeschl@mps.mpg.de", verbose=True)
 
-    datapath_hmi = os.path.join(root, f"data/tmp/CR{carrington_number}/")
+    datapath_hmi = os.path.join(root, f"../data/tmp/CR{carrington_number}/")
     os.makedirs(datapath_hmi, exist_ok=True)
 
     # Query JSOC for that rotation
@@ -411,11 +418,16 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
         file_hmi = glob.glob(f"{datapath_hmi}*{fname_hmi}")[0]
         synop_hmi = fits.open(file_hmi)
 
-    hmi_img = synop_hmi[1].data   
 
+    hmi_img = synop_hmi[1].data   
+    
     # create mask of NaN values in phi_img and fill them with hmi_img values
     mask_polfil = np.isnan(phi_img)
     phi_polfil = np.where(mask_polfil, hmi_img, phi_img)    
+    
+    # aggressive HMI pole filling
+    #phi_polfil[:40, :]  = hmi_img[:40, :]
+    #phi_polfil[1400: :] = hmi_img[1400:, :]
 
     #synop_phi[0].header["CUNIT2"] = "deg" # "Sine Latitude"
 
@@ -429,7 +441,8 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
     polfil_hdul.writeto(os.path.join(path, "synopMr_polfil.fits"), overwrite=True)
 
     # show filled synoptic map 
-    #plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
+    plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
+    plt.show()
 
     # populate config for diagnostics plots
     config = Config()
@@ -446,21 +459,76 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
         diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10)
     
     if run_pfss:
-        pfss(phi_polfil,        synop_hmi, path, name='PHI', pdf=True)
+        pfss(phi_polfil,        synop_hmi, path, name='PHI-HMI', pdf=True)
         pfss(synop_hmi[1].data, synop_hmi, path, name='HMI', pdf=True)
 
 
+def flux_statistics():
+
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.stats import linregress
+
+    data = {       
+        'x':       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        'CR':      [2284, 2285, 2286, 2287, 2288, 2290, 2292, 2293, 2294, 2296, 2297, 2298, 2299, 2300],
+        'HMI':     [-0.016,	-0.344,	-0.262,	-0.063,	  0.05,	 0.009,	-0.013,	 0.336,	  0.42,	 0.414,	 0.083,	-0.141,	 0.134,	-0.071],
+        'HMI_err': [0.001, 0.007,	0.007,	0.006,	0.002,	0.001,	0.007,	0.007,	0.005,	0.007,	0.001,	0.002,	0.007,	0.001],
+        'PHI':     [0.1, -0.076, -0.405,  0.058,  0.295,  0.081, -0.085,  0.462,  0.868, -0.035,  0.325,   0.39,  0.461,  0.323],
+        'PHI_err': [0.003, 0.002, 0.002, 0.002, 0.003, 0.008, 0.009, 0.008, 0.007, 0.002, 0.004, 0.003, 0.003, 0.005]
+    }
+    df = pd.DataFrame(data)
+
+    # --- Linear regression ---
+
+    slope1, intercept1, r_value1, p_value1, std_err1 = linregress(df['x'], df['HMI'])
+    fit_line1 = intercept1 + slope1 * df['x']
+
+
+    slope2, intercept2, r_value2, p_value2, std_err2 = linregress(df['x'], df['PHI'])
+    fit_line2 = intercept2 + slope2 * df['x']
+
+    # --- Plot ---
+    plt.figure(figsize=(7, 5))
+    plt.errorbar(df['x'], df['HMI'], yerr=df['HMI_err'], color='tab:blue', fmt='o', capsize=5, label='HMI')
+    plt.plot(df['x'], fit_line1, linestyle='--', color='tab:blue', label=f'Linear fit HMI: y={slope1:.2f}x+{intercept1:.2f}')
+
+    plt.errorbar(df['x'], df['PHI'], yerr=df['PHI_err'], color='tab:orange', fmt='o', capsize=5, label='PHI')
+    plt.plot(df['x'], fit_line2, linestyle='--', color='tab:orange', label=f'Linear fit PHI: y={slope2:.2f}x+{intercept2:.2f}')
+
+    # --- Labels and legend ---
+    plt.xlabel('CR')
+    plt.ylabel('Average Magnetic Flux [Mx/cm²]')
+    plt.xlim(0, 15)
+    plt.ylim(-1.5, 1.5)
+    plt.xticks(ticks=df['x'], labels=df['CR'], rotation=45) 
+    plt.title('Average HMI & PHI Flux with Linear Regression')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+    plt.savefig('flux_statistics.png', format='png', dpi=300)
+
+    plt.show()
+
 if __name__ == "__main__":
 
+    #flux_statistics()
+
+    start_cr = 2284
+    run_pfss = False
+    run_diagnostics = True
     base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/')
 
-    start_cr = 2285
     paths = sorted(base.glob("CR*/synop/"))
     paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr]
 
     for path in paths:
         try: 
-            main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
+            main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
         except Exception as e:
             print(f"An error occurred: {e}")
             continue
+
+
