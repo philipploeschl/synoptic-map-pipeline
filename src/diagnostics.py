@@ -463,59 +463,78 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
         pfss(synop_hmi[1].data, synop_hmi, path, name='HMI', pdf=True)
 
 
+
+
 def flux_statistics():
 
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.stats import linregress
+    from scipy.optimize import curve_fit
 
     data = {       
-        'x':       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-        'CR':      [2284, 2285, 2286, 2287, 2288, 2290, 2292, 2293, 2294, 2296, 2297, 2298, 2299, 2300],
-        'HMI':     [-0.016,	-0.344,	-0.262,	-0.063,	  0.05,	 0.009,	-0.013,	 0.336,	  0.42,	 0.414,	 0.083,	-0.141,	 0.134,	-0.071],
-        'HMI_err': [0.001, 0.007,	0.007,	0.006,	0.002,	0.001,	0.007,	0.007,	0.005,	0.007,	0.001,	0.002,	0.007,	0.001],
-        'PHI':     [0.1, -0.076, -0.405,  0.058,  0.295,  0.081, -0.085,  0.462,  0.868, -0.035,  0.325,   0.39,  0.461,  0.323],
-        'PHI_err': [0.003, 0.002, 0.002, 0.002, 0.003, 0.008, 0.009, 0.008, 0.007, 0.002, 0.004, 0.003, 0.003, 0.005]
+        'x':       [   1,        2,      3,      4,      5,        6,       7,      8,      9,     10,     11,    12,      13,    14,      15,    16,     17],
+        'CR':      [2284,     2285,   2286,   2287,   2288,     2289,    2290,   2291,   2292,   2293,   2294,   2295,   2296,  2297,    2298,  2299,   2300],
+        'HMI':     [-0.016,	-0.344,	-0.262,	-0.063,	  0.05,	  np.nan,   0.009, np.nan, -0.013,	0.336,	 0.42, np.nan,	0.414,	0.083, -0.141, 0.134, -0.071],
+        'HMI_err': [0.001,   0.007,	 0.007,  0.006,  0.002,	  np.nan,   0.001, np.nan,  0.007,  0.007,	0.005, np.nan,  0.007,	0.001,	0.002, 0.007,  0.001],
+        'PHI':     [0.1,    -0.076, -0.405,  0.058,  0.295,   np.nan,   0.081, np.nan, -0.085,  0.462,  0.868, np.nan, -0.035,  0.325,   0.39, 0.461,  0.323],
+        'PHI_err': [0.003,   0.002,  0.002,  0.002,  0.003,   np.nan,   0.008, np.nan,  0.009,  0.008,  0.007, np.nan,  0.002,  0.004,  0.003, 0.003,  0.005]
     }
     df = pd.DataFrame(data)
 
-    # --- Linear regression ---
 
-    slope1, intercept1, r_value1, p_value1, std_err1 = linregress(df['x'], df['HMI'])
+
+    mask = ~np.isnan(df['HMI']) & ~np.isnan(df['PHI'])
+    x_fit    = df['x'][mask]
+    yhmi_fit = df['HMI'][mask]
+    yphi_fit = df['PHI'][mask]
+
+    # --- Linear regression ---
+    slope1, intercept1, r_value1, p_value1, std_err1 = linregress(x_fit, yhmi_fit)
     fit_line1 = intercept1 + slope1 * df['x']
 
-
-    slope2, intercept2, r_value2, p_value2, std_err2 = linregress(df['x'], df['PHI'])
+    slope2, intercept2, r_value2, p_value2, std_err2 = linregress(x_fit, yphi_fit)
     fit_line2 = intercept2 + slope2 * df['x']
 
+    # --- Define model ---
+    def cosine(x, A, f, phi, C):
+        return A * np.cos(2 * np.pi * f * x + phi) + C
+
+    # initial guesses
+    p0 = [2, 0.1, 0, 1]
+    params1, cov1 = curve_fit(cosine, x_fit, yhmi_fit, p0=p0)
+    params2, cov2 = curve_fit(cosine, x_fit, yphi_fit, p0=p0)
+    print(params1[3])
     # --- Plot ---
     plt.figure(figsize=(7, 5))
     plt.errorbar(df['x'], df['HMI'], yerr=df['HMI_err'], color='tab:blue', fmt='o', capsize=5, label='HMI')
-    plt.plot(df['x'], fit_line1, linestyle='--', color='tab:blue', label=f'Linear fit HMI: y={slope1:.2f}x+{intercept1:.2f}')
+    #plt.plot(df['x'], fit_line1, linestyle='--', color='tab:blue', label=f'Linear fit HMI: y={slope1:.2f}x+{intercept1:.2f}')
+    #plt.plot(df['x'], cosine(df['x'], *params1), color='tab:blue', linestyle='--', label=f'y_HMI = A × cos(2π f x + φ) + {params1[3]:.3f}G')#f'Cosine Fit {params1[0]:.2f}  cos(2π {params1[1]:.2f} x + {params1[2]:.2f}) + {params1[3]:.2f}')
 
     plt.errorbar(df['x'], df['PHI'], yerr=df['PHI_err'], color='tab:orange', fmt='o', capsize=5, label='PHI')
-    plt.plot(df['x'], fit_line2, linestyle='--', color='tab:orange', label=f'Linear fit PHI: y={slope2:.2f}x+{intercept2:.2f}')
+    #plt.plot(df['x'], fit_line2, linestyle='--', color='tab:orange', label=f'Linear fit PHI: y={slope2:.2f}x+{intercept2:.2f}')
+    #plt.plot(df['x'], cosine(df['x'], *params2), color='tab:orange', linestyle='--', label=f'y_PHI  = A × cos(2π f x + φ) + {params2[3]:.3f}G')#f'Cosine Fit {params1[0]:.2f}  cos(2π {params1[1]:.2f} x + {params1[2]:.2f}) + {params1[3]:.2f}')
 
     # --- Labels and legend ---
     plt.xlabel('CR')
     plt.ylabel('Average Magnetic Flux [Mx/cm²]')
-    plt.xlim(0, 15)
+    plt.xlim(0, 18)
     plt.ylim(-1.5, 1.5)
     plt.xticks(ticks=df['x'], labels=df['CR'], rotation=45) 
-    plt.title('Average HMI & PHI Flux with Linear Regression')
+    plt.title('Average HMI & PHI Flux')
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
 
-    plt.savefig('flux_statistics.png', format='png', dpi=300)
+    plt.savefig('flux_statistics_nofit.png', format='png', dpi=300)
 
     plt.show()
 
 if __name__ == "__main__":
 
     #flux_statistics()
-
+    
     start_cr = 2284
     run_pfss = False
     run_diagnostics = True
@@ -530,5 +549,5 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"An error occurred: {e}")
             continue
-
+    
 
