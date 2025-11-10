@@ -6,7 +6,7 @@ import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import sunpy.map
 
-def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
+def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, save=True):
 
     labelsize = 12
     ticksize  = 10
@@ -22,12 +22,12 @@ def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
         ytick_latitude.append(calculation)
         ytick_normalize.append((calculation+1)*720.)
 
-    # make the plot
+    # MAKE PLOT #1
     fig, ax = plt.subplots(figsize=(14,6))
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
     im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,bar_height,1440+bar_height] , interpolation=None)
-    ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
+    ax.set_title(f'PHI/HMI ${component}$ Synoptic Chart for Carrington Rotation {crt_rot}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
@@ -52,12 +52,8 @@ def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
     cax = divider.append_axes("right", size="3%", pad=0.25)
 
     # Add colorbar
-    if config.Mr:
-        cbar = fig.colorbar(im, cax=cax, orientation='vertical')
-        cbar.set_label(label='$B_r$ [Gauss]', size=labelsize, labelpad=-15)
-    else:
-        cbar = fig.colorbar(im, cax=cax, orientation='vertical')
-        cbar.set_label(label='$B_{LoS}$ [Gauss]', size=labelsize, labelpad=-15)
+    cbar = fig.colorbar(im, cax=cax, orientation='vertical')
+    cbar.set_label(label=f'${component}$ [Gauss]', size=labelsize, labelpad=-15)
     
     fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
 
@@ -86,11 +82,13 @@ def plot_synoptic_sources(synop, outpath, name, config, fits_table, pdf=True):
 
     ax.legend(handles=[phi_patch, hmi_patch, boundary_line],loc='upper center',bbox_to_anchor=(0.12, -0.045), ncol=3, frameon=False)
     
-    if pdf:
+    if save:
         plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+        plt.savefig(os.path.join(outpath, f'{name}.png'), format='png')
     else:
         plt.show()
 
+    return fig
 
 def plot_synoptic(synop, outpath, name, config, pdf=True):
 
