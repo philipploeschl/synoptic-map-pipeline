@@ -1423,7 +1423,9 @@ def main(global_config, session_folder):
 
     hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
+    if config.Mr:
+        plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, pdf=True) # cut out .fits
+    else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, pdf=True) 
     
     if config["bin"]:
         # create small synoptic map
@@ -1446,7 +1448,9 @@ def main(global_config, session_folder):
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
+        if config.Mr:
+            plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, pdf=True) # cut out .fits
+        else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, pdf=True) 
     print('%s complete' %__file__)
 
 
@@ -1502,9 +1506,11 @@ if __name__ == "__main__":
     table_hdu = create_src_fits_table(imrec)
 
     create_header(hdu.header, config, stats, imrec)
-    hdul = fits.HDUList([hdu])
+    hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
+    if config.Mr:
+        plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, pdf=True) # cut out .fits
+    else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, pdf=True) 
     
     if config["bin"]:
 
@@ -1522,6 +1528,8 @@ if __name__ == "__main__":
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True)
-
+        if config.Mr:
+            plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, pdf=True) # cut out .fits
+        else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, pdf=True) 
+ 
     print('%s complete' %__file__)
