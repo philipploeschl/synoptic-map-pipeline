@@ -29,7 +29,6 @@ def main(config, session_folder):
     for key in config.key:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
 
-    print(len(fitsfiles))
     if fitsfiles[0][0].endswith(".fits"):
         n_end = 5
     else:
@@ -38,8 +37,8 @@ def main(config, session_folder):
     trecs = []
     clons = []
 
-    
-    for file in [file for sublist in fitsfiles for file in sublist]:
+    fitsfiles = [x for sublist in fitsfiles for x in sublist]
+    for file in fitsfiles:
         #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
         l2 = fits.open(os.path.join(config.phi_dbpath,file))
         if config.verbose: print("Processing %s ..." %file)
@@ -196,9 +195,8 @@ def main(config, session_folder):
         #CRLT_OBS
         l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of PHI'), end=True)
         
-        # OBSOLETE
         #CAR_ROT        
-        #l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
+        l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
         #l2drms.header.append(('CAR_ROT2', car_rot, 'Carrington rotation number of synoptic map'), end=True)
         
         # OBS_VW
@@ -227,10 +225,13 @@ def main(config, session_folder):
         # DATAMAX
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
         
+        # FILENAME
+        l2drms.header.append(('FILENAME', file[11:27]+'bmag'+file[31:] , 'Source PHI filename'), end=True)
+        
         if ("bamb" in file):
             components=['disamb','configd','confmap'] #three components of 3D array of bamb files: disamb, config_disamb, confid_map
             for i in range(l2drms.data.shape[0]): 
-                temp =  fits.CompImageHDU(data=l2drms.data[i,:,:], header=l2drms.header)
+                temp = fits.CompImageHDU(data=l2drms.data[i,:,:], header=l2drms.header)
                 hdul = fits.HDUList([prim, temp])
                 hdul.writeto(os.path.join(outpath_data, '%s%s%s_drms.fits' %(file[11:27], components[i], file[31:-n_end])), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
         else:
@@ -281,7 +282,6 @@ def main(config, session_folder):
     j = 0 # nsplit counter
     for i, (fname_bmag, fname_binc, fname_bazi, fname_disamb, fname_configd, fname_confmap) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disamb_fitsfiles, configd_fitsfiles, confmap_fitsfiles)):#, disambig_fitsfiles)):
         
-        print(fname_bmag)
         if config.verbose: print('Processing %s...' %fname_bmag)
         
         # load with scaling to recognize blank cells -> necessary to prevent artifacts after resize
@@ -289,7 +289,7 @@ def main(config, session_folder):
         trec = fld[1].header['T_REC']
         fld.close()
 
-        nsplit = int(np.ceil(len(fitsfiles)/config.nparallel_phi))
+        nsplit = int(np.ceil(len(bmag_fitsfiles)/config.nparallel_phi))
         
         if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
 
