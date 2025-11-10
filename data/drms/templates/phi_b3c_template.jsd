@@ -155,6 +155,7 @@ Keyword:BKEYI3, int, variable, record, -2147483648, "%d", "none", "For future us
 Keyword:BKEYD1, double, variable, record, nan, "%e", "none", "For future use"
 Keyword:BKEYD2, double, variable, record, nan, "%e", "none", "For future use"
 Keyword:BKEYD3, double, variable, record, nan, "%e", "none", "For future use"
+Keyword:FILENAME, string, variable, record, "", "%s", "none", "Original FITS filename used for this data segment"
 
 #=====Segments=====
 Data: inclination, vardim, int, 2, 4096, 4096, "gauss", fits, "compress Rice", 0.000000, 1.000000, "Inclination"
