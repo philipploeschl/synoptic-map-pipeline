@@ -18,6 +18,9 @@ import os, sys
 from datetime import date
 
 from utils.plots import plot_synoptic
+from utils.plots import plot_synoptic_sources
+from utils.utils import create_src_fits_table
+
 
 
 # DEFINES
@@ -34,7 +37,7 @@ DRMS_MISSING_FLOAT = np.nan
 kNOISE_EQ = 10.0 # redefined in CalcSynopCol but unused
 
 # DRMS Interface
-def get_drms_parameters(inRecs, input_ds):
+def get_drms_parameters_hmi(inRecs, input_ds):
 
     formatted = [] 
     drms_param = []
@@ -45,7 +48,7 @@ def get_drms_parameters(inRecs, input_ds):
     
     #nRecs = len(inRecs.split(','))
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
-    show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA' 
+    show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
     
     #-P for path and -A for segment
     
@@ -65,7 +68,55 @@ def get_drms_parameters(inRecs, input_ds):
                 dict_tmp[key] = 0
             else:
                 dict_tmp[key] = formatted[i]
+        dict_tmp["FILENAME"] = ''
    
+        drms_param.append(dict_tmp)
+        nRecs += 1
+
+    return drms_param, nRecs
+
+def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
+
+    formatted = [] 
+    drms_param = []
+    nRecs = 0
+
+    if input_ds == "": return drms_param, nRecs
+    #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
+    
+    #nRecs = len(inRecs.split(','))
+    #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
+    show_info_remap = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
+    show_info_base  = 'show_info %s["%s"] key="FILENAME" -iPA' 
+    
+    #-P for path and -A for segment
+    
+    si_out_remap = subprocess.check_output(show_info_remap %(input_ds, inRecs) , shell=True)[:-1].decode("utf-8")
+    raw_remap = si_out_remap.split('\n')
+    keys_remap = raw_remap[0].split('\t')
+
+    si_out_base = subprocess.check_output(show_info_base %(input_ds_origin, inRecs) , shell=True)[:-1].decode("utf-8")
+    raw_base = si_out_base.split('\n')
+    keys_base = raw_base[0].split('\t')
+
+    for (line_remap, line_base) in (zip(raw_remap[1:],raw_base[1:])):  
+        formatted_remap = line_remap.split('\t') # [CALVER64, T_REC, QUALITY, FDRADIAL, CARSTRCH, DIFROT_A, DIFROT_B, DIFROT_C, CRVAL1, CRLN_OBS, CAR_ROT, MAPLGMAX, MAPLGMIN, I_DREC, INSTRUME]
+        formatted_base = line_base.split('\t') # FILENAME
+
+        dict_tmp = {}
+
+        for i, key in enumerate(keys_remap):
+            
+            if formatted_remap[i].strip() == "InvalidKeyname":
+                dict_tmp[key] = 0
+            else:
+                dict_tmp[key] = formatted_remap[i]
+        for i, key in enumerate(keys_base):
+            
+            if formatted_base[i].strip() == "InvalidKeyname":
+                dict_tmp[key] = 0
+            else:
+                dict_tmp[key] = formatted_base[i]
         drms_param.append(dict_tmp)
         nRecs += 1
 
@@ -596,11 +647,12 @@ def synoptic_map(config):#, hw_overwrite=None):
     inRecs_phi = config["timestring_phi"]
 
     # query HMI and PHI remap data series separately
-    drms_getkey_hmi, nRecs_hmi = get_drms_parameters(inRecs_hmi, config["input_ds_hmi"])
-    drms_getkey_phi, nRecs_phi = get_drms_parameters(inRecs_phi, config["input_ds_phi"])
+    drms_getkey_hmi, nRecs_hmi = get_drms_parameters_hmi(inRecs_hmi, config["input_ds_hmi"])
+    drms_getkey_phi, nRecs_phi = get_drms_parameters_phi(inRecs_phi, config["input_ds_phi"], config["input_ds_phi_origin"])
 
     # combine into a single drms_getkey dictionary list for the remaining code
     # sort by descending CRLN_OBS to emulate T_REC order
+    
     drms_getkey_tmp = drms_getkey_hmi + drms_getkey_phi
     drms_getkey = sorted(drms_getkey_tmp, key=lambda x: float(x['CRLN_OBS']), reverse=True)
 
@@ -770,6 +822,8 @@ def synoptic_map(config):#, hw_overwrite=None):
         config["halfWindow"] = np.round(((width-1) * synstep)/2., 5)
         
         imrec_tmp = {}
+        imrec_tmp["src"] = drms_getkey[inRec]["INSTRUME"]
+        imrec_tmp["filename"] = drms_getkey[inRec]["FILENAME"]
         imrec_tmp["mapdev"] = (remapLgmax - remapLgmin) / 2.0
         imrec_tmp["recno"]  = int(drms_getkey[inRec]["I_DREC"])
         imrec_tmp["mapct"]  = mapct
@@ -901,9 +955,9 @@ def synoptic_map(config):#, hw_overwrite=None):
                 mMagCol = init_MagCol(length)  # MagCol_t mMagCol;
 
                 mMagCol["dist"]     = ((col - mapmidcol) * synstep + imrec[idx]["mapct"]) - imrec[idx]["mapCM"]
-                mMagCol["datacolBr"]  = inArrayBr[0].data[:, col] # (float *)malloc(sizeof(float) * length[1])
-                mMagCol["datacolBt"]  = inArrayBt[0].data[:, col] # (float *)malloc(sizeof(float) * length[1])
-                mMagCol["datacolBp"]  = inArrayBp[0].data[:, col] # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacolBr"]  = inArrayBr[0].data[:, col].copy() # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacolBt"]  = inArrayBt[0].data[:, col].copy() # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacolBp"]  = inArrayBp[0].data[:, col].copy() # (float *)malloc(sizeof(float) * length[1])
                 mMagCol["equivPts"] = equivPts
                 mMagCol["ds"]       = imrec[idx]["ds"]
                 mMagCol["col"]      = col
@@ -959,7 +1013,6 @@ def synoptic_map(config):#, hw_overwrite=None):
     return synopBr, synopBt, synopBp, epts, length, imrec
 
     # data ready in synop/epts and smallSynop/smallEpts
-
 
 
 # Synoptic Column calculation
@@ -1401,12 +1454,13 @@ def get_arg_parameters(global_config):
         "cr":   global_config.cr,
         "proj": global_config.proj,  # "Mr" or "Ml"
         # TODO B3comp dataseries
-        "input_ds_hmi":     global_config.data_series_remap_hmi, #"mps_loeschl.B3comp_disambR_remap_final_720s"bin_070au", 
-        "input_ds_phi":     global_config.data_series_remap_phi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
-        "timestring_hmi":   global_config.timestring_hmi, 
-        "timestring_phi":   global_config.timestring_phi,
-        "synop_name":       global_config.synop_name,
-        "synop_small_name": global_config.synop_small_name,
+        "input_ds_hmi":        global_config.data_series_remap_hmi, #"mps_loeschl.B3comp_disambR_remap_final_720s"bin_070au", 
+        "input_ds_phi":        global_config.data_series_remap_phi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        "input_ds_phi_origin": global_config.data_series_phi,
+        "timestring_hmi":      global_config.timestring_hmi, 
+        "timestring_phi":      global_config.timestring_phi,
+        "synop_name":          global_config.synop_name,
+        "synop_small_name":    global_config.synop_small_name,
 
         "synop_path": global_config.synop_path,
 
@@ -1468,20 +1522,23 @@ def main(global_config, session_folder):
     hduBt = fits.PrimaryHDU(synopBt_img)
     hduBp = fits.PrimaryHDU(synopBp_img)
 
+    table_hdu = create_src_fits_table(imrec)
+
     create_header(hduBr.header, config, stats, imrec)
     create_header(hduBt.header, config, stats, imrec)
     create_header(hduBp.header, config, stats, imrec)
 
-    hdulBr = fits.HDUList([hduBr])
-    hdulBt = fits.HDUList([hduBt])
-    hdulBp = fits.HDUList([hduBp])
+    hdulBr = fits.HDUList([hduBr, table_hdu])
+    hdulBt = fits.HDUList([hduBt, table_hdu])
+    hdulBp = fits.HDUList([hduBp, table_hdu])
 
-    hdulBr.writeto(os.path.join(synop_outpath,config['synop_name_Br']), overwrite=True)
-    hdulBt.writeto(os.path.join(synop_outpath,config['synop_name_Bt']), overwrite=True)
-    hdulBp.writeto(os.path.join(synop_outpath,config['synop_name_Bp']), overwrite=True)
+    hdulBr.writeto(os.path.join(synop_outpath,'synopBr.fits'), overwrite=True)
+    hdulBt.writeto(os.path.join(synop_outpath,'synopBt.fits'), overwrite=True)
+    hdulBp.writeto(os.path.join(synop_outpath,'synopBp.fits'), overwrite=True)
 
-
-    #plot_synoptic_b3c(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
+    plot_synoptic_sources(synopBr_img, 'B_r', synop_outpath, 'synopBr', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBt_img, 'B_t', synop_outpath, 'synopBt', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBp_img, 'B_p', synop_outpath, 'synopBp', config['cr'], table_hdu.data, save=True)   
     
     if config["bin"]:
         # create small synoptic map
@@ -1515,25 +1572,25 @@ def main(global_config, session_folder):
         hduBt_small = fits.PrimaryHDU(smallSynopBt_img)
         hduBp_small = fits.PrimaryHDU(smallSynopBp_img)
 
+        table_hdu = create_src_fits_table(imrec)
+
         create_header(hduBr_small.header, config, stats, imrec)
         create_header(hduBt_small.header, config, stats, imrec)
         create_header(hduBp_small.header, config, stats, imrec)
 
-        hdulBr_small = fits.HDUList([hduBr_small])
-        hdulBt_small = fits.HDUList([hduBt_small])
-        hdulBp_small = fits.HDUList([hduBp_small])
+        hdulBr_small = fits.HDUList([hduBr_small, table_hdu])
+        hdulBt_small = fits.HDUList([hduBt_small, table_hdu])
+        hdulBp_small = fits.HDUList([hduBp_small, table_hdu])
 
-        hdulBr_small.writeto(os.path.join(synop_outpath,config['synop_small_name_Br']), overwrite=True)
-        hdulBt_small.writeto(os.path.join(synop_outpath,config['synop_small_name_Bt']), overwrite=True)
-        hdulBp_small.writeto(os.path.join(synop_outpath,config['synop_small_name_Bp']), overwrite=True)
+        hdulBr_small.writeto(os.path.join(synop_outpath,'synopBr_small.fits'), overwrite=True)
+        hdulBt_small.writeto(os.path.join(synop_outpath,'synopBt_small.fits'), overwrite=True)
+        hdulBp_small.writeto(os.path.join(synop_outpath,'synopBp_small.fits'), overwrite=True)
 
-        #plot_synoptic_b3c(smallSynop_img, synop_outpath, config['synop_small_name_Br'][:-5], global_config, pdf=True) # cut out .fits
-        
-        #TODO plot_synoptic_b3c script
+        plot_synoptic_sources(smallSynopBr_img, 'B_r', synop_outpath, 'synopBr_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBt_img, 'B_t', synop_outpath, 'synopBt_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBp_img, 'B_p', synop_outpath, 'synopBp_small', config['cr'], table_hdu.data, save=True)   
 
     print('%s complete' %__file__)
-
-
 
 
 
@@ -1593,20 +1650,23 @@ if __name__ == "__main__":
     hduBt = fits.PrimaryHDU(synopBt_img)
     hduBp = fits.PrimaryHDU(synopBp_img)
 
+    table_hdu = create_src_fits_table(imrec)
+
     create_header(hduBr.header, config, stats, imrec)
     create_header(hduBt.header, config, stats, imrec)
     create_header(hduBp.header, config, stats, imrec)
 
-    hdulBr = fits.HDUList([hduBr])
-    hdulBt = fits.HDUList([hduBt])
-    hdulBp = fits.HDUList([hduBp])
+    hdulBr = fits.HDUList([hduBr, table_hdu])
+    hdulBt = fits.HDUList([hduBt, table_hdu])
+    hdulBp = fits.HDUList([hduBp, table_hdu])
 
-    hdulBr.writeto(os.path.join(synop_outpath,config['synop_name_Br']), overwrite=True)
-    hdulBt.writeto(os.path.join(synop_outpath,config['synop_name_Bt']), overwrite=True)
-    hdulBp.writeto(os.path.join(synop_outpath,config['synop_name_Bp']), overwrite=True)
+    hdulBr.writeto(os.path.join(synop_outpath,'synopBr.fits'), overwrite=True)
+    hdulBt.writeto(os.path.join(synop_outpath,'synopBt.fits'), overwrite=True)
+    hdulBp.writeto(os.path.join(synop_outpath,'synopBp.fits'), overwrite=True)
 
-
-    #plot_synoptic_b3c(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
+    plot_synoptic_sources(synopBr_img, 'B_r', synop_outpath, 'synopBr', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBt_img, 'B_t', synop_outpath, 'synopBt', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBp_img, 'B_p', synop_outpath, 'synopBp', config['cr'], table_hdu.data, save=True) 
     
     if config["bin"]:
         # create small synoptic map
@@ -1648,12 +1708,14 @@ if __name__ == "__main__":
         hdulBt_small = fits.HDUList([hduBt_small])
         hdulBp_small = fits.HDUList([hduBp_small])
 
-        hdulBr_small.writeto(os.path.join(synop_outpath,config['synop_small_name_Br']), overwrite=True)
-        hdulBt_small.writeto(os.path.join(synop_outpath,config['synop_small_name_Bt']), overwrite=True)
-        hdulBp_small.writeto(os.path.join(synop_outpath,config['synop_small_name_Bp']), overwrite=True)
+        hdulBr_small.writeto(os.path.join(synop_outpath,'synopBr_small.fits'), overwrite=True)
+        hdulBt_small.writeto(os.path.join(synop_outpath,'synopBt_small.fits'), overwrite=True)
+        hdulBp_small.writeto(os.path.join(synop_outpath,'synopBp_small.fits'), overwrite=True)
 
-        #plot_synoptic_b3c(smallSynop_img, synop_outpath, config['synop_small_name_Br'][:-5], global_config, pdf=True) # cut out .fits
-        
+        plot_synoptic_sources(smallSynopBr_img, 'B_r', synop_outpath, 'synopBr_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBt_img, 'B_t', synop_outpath, 'synopBt_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBp_img, 'B_p', synop_outpath, 'synopBp_small', config['cr'], table_hdu.data, save=True)  
+             
         #TODO plot_synoptic_b3c script
         
     print('%s complete' %__file__)
