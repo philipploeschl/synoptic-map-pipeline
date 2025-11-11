@@ -1283,8 +1283,58 @@ if __name__ == "__main__":
         # TODO
         # - add priority settings for individual custom synotic maps
 
+        from utils.utils import get_phi_filenames
+        from astropy.io import fits
+
+        #fitsfiles = get_phi_filenames(config.phi_dbpath, config.cr_date_start.split("T")[0], config.cr_date_end.split("T")[0], 'blos')
+
+        start = '2024-01-01'
+        end   = '2025-08-01'
+        fitsfiles = get_phi_filenames(config.phi_dbpath, start, end, 'blos')
+
+        cr_dict = {'FILE':[], 'CAR_ROT':[], 'CRLN_OBS':[], 'TSTR_PHI':[]}
+        for file in fitsfiles:
+            a = fits.open(os.path.join(config.phi_dbpath, file))
+
+            cr_dict['CAR_ROT'].append(a[0].header['CAR_ROT'])
+            cr_dict['CRLN_OBS'].append(a[0].header['CRLN_OBS'] if a[0].header['CRLN_OBS']>0 else a[0].header['CRLN_OBS']+360)
+            cr_dict['FILE'].append(file)
+
+            a.close()
+            #print(cr_dict['CAR_ROT'][-1], cr_dict['CRLN_OBS'][-1], cr_dict['FILE'][-1])
+
+        iend = np.where(np.diff(cr_dict['CAR_ROT']))[0]
+        istart = np.where(np.diff(cr_dict['CAR_ROT']))[0]+1
+        istart = np.insert(istart, 0, 0) # add first index
+
+        gap_max = 30 # degrees = about 2 days
+
+        for i, start in enumerate(istart):
+            
+            if i < len(istart)-1:
+                gaps = np.sort(np.abs(np.diff(cr_dict['CRLN_OBS'][istart[i]:istart[i+1]])))
+            else:
+                gaps = np.sort(np.abs(np.diff(cr_dict['CRLN_OBS'][istart[i]:])))
+
+            gap = np.max(gaps)
+
+            if np.any(gaps > gap_max):
+                print(f"{cr_dict['CAR_ROT'][start]} incomplete | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
+            else:
+                print(f"{cr_dict['CAR_ROT'][start]} complete   | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
+        
 
 
+        print('Gherardo file')
+        for i, start in enumerate(istart[0:]):
+            timestring_start = datetime.strptime(cr_dict['FILE'][istart[i]].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
+            
+            if i < len(istart)-1:
+                timestring_end   = datetime.strptime(cr_dict['FILE'][istart[i+1]-1].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
+            else:
+                timestring_end   = datetime.strptime(cr_dict['FILE'][-1].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
+
+            print(f"CR{cr_dict['CAR_ROT'][start]}_PHI;;{timestring_start}-{timestring_end}")
     #sp.kclear()
 
     # TODO 
