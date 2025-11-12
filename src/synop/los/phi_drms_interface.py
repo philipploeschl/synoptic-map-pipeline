@@ -24,9 +24,11 @@ def main(config, session_folder):
     #fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
 
     fitsfiles = []
-    for key in config.key:
+    for key in [config.key]:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
     
+    fitsfiles = [x for sublist in fitsfiles for x in sublist]
+
     if fitsfiles[0].endswith(".fits"):
         n_end = 5
     else:
@@ -223,6 +225,9 @@ def main(config, session_folder):
         
         # DATAMAX
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
+
+        # FILENAME
+        l2drms.header.append(('FILENAME', file[11:27]+'bmag'+file[31:] , 'Source PHI filename'), end=True)
         
         hdul = fits.HDUList([prim, l2drms])
         hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
