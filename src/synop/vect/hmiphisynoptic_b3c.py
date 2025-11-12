@@ -77,7 +77,8 @@ def get_drms_parameters_hmi(inRecs, input_ds):
 
 def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
 
-    formatted = [] 
+    formatted_remap = [] 
+    formatted_base = [] 
     drms_param = []
     nRecs = 0
 
