@@ -55,8 +55,8 @@ if __name__ == "__main__":
         if status != STATUS_OK: 
             exit()
 
-
-    if config.run_m720s_drms_pipe:
+    # minimum viable time string length check
+    if config.run_m720s_drms_pipe and len(config.time_series_hmi) >= 23:
         if config.verbose: print("Running m720s_drms_pipe.py ...")
 
         status = hmi_data_main(config, session_folder)
@@ -65,7 +65,7 @@ if __name__ == "__main__":
             exit()
 
 
-    if config.run_phi_drms_interface:
+    if config.run_phi_drms_interface and len(config.time_series_phi) >= 23:
         if config.verbose: print("Running phi_drms_interface.py ...")
 
         status = phi_data_main(config, session_folder)
