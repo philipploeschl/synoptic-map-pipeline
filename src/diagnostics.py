@@ -66,8 +66,9 @@ def magnetic_flux_latitudes(data, lats, x1, x2, thld_low=0, thld_high=25, mean=F
             else:
                 neg = np.nan  # or 0, or some default
 
-        flux_row = pd.DataFrame([[pos, neg]], columns=['pos', 'neg'])
-        flux = pd.concat([flux, flux_row])
+        flux_row = pd.DataFrame({"pos":[pos], "neg":[neg]}) #[[pos, neg]], columns=['pos', 'neg'])
+        flux = pd.concat([flux, flux_row], ignore_index=True)
+
 
     return flux
 
@@ -209,7 +210,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
     latwidth = 10  #px
     lats = np.arange(0,1440+latwidth, latwidth)
-
+    print(f"phi_table{phi_table}")
     window_hmi, window_phi = get_phi_hmi_windows(phi_table, deg2px=10)
 
     flux_hmi = []
@@ -218,25 +219,45 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     for (x1, x2) in window_hmi:
         flux_hmi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
-    flux_hmi = sum(flux_hmi)/len(flux_hmi)
+    # this gives the average flux over all HMI windows
+    #flux_hmi = sum(flux_hmi)/len(flux_hmi)
+    if len(flux_hmi) > 1:
+        flux_hmi_combined = pd.concat(flux_hmi)
+        flux_hmi = flux_hmi_combined.groupby(flux_hmi_combined.index).mean()
+    elif len(flux_hmi) == 1:
+        flux_hmi = flux_hmi[0]
+    else:
+        pass
 
     for (x1, x2) in window_phi:
         flux_phi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+    print(f"window_hmi {window_hmi}")
+    print(f"window_phi {window_phi}")
+    # this gives the average flux over all PHI windows
+    #flux_phi = sum(flux_phi)/len(flux_phi)
+    print(flux_phi)
+    if len(flux_phi) > 1:
+        flux_phi_combined = pd.concat(flux_phi)
+        flux_phi = flux_phi_combined.groupby(flux_phi_combined.index).mean()
+    elif len(flux_phi) == 1:
+        flux_phi = flux_phi[0]
+    else:
+        pass
 
-    flux_phi = sum(flux_phi)/len(flux_phi)
 
+    print(flux_phi)
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
     pix_lat  = [int((y+1)*720) for y in sine_lat]
 
     # pix_lat[6]  = +30°
     # pix_lat[12] = -30°
 
-    pos1, noise1, offset1 = noise_cadence_windows(phi_img[:pix_lat[6],:],      phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos1, noise1, offset1 = noise_cadence_windows(phi_img[:pix_lat[6],:],             phi_table, thld_low=thld_low, thld_high=thld_high)
     pos2, noise2, offset2 = noise_cadence_windows(phi_img[pix_lat[6]:pix_lat[12],:],  phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos3, noise3, offset3 = noise_cadence_windows(phi_img[pix_lat[12]:,:], phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos3, noise3, offset3 = noise_cadence_windows(phi_img[pix_lat[12]:,:],            phi_table, thld_low=thld_low, thld_high=thld_high)
 
-    pos    = [pos1,   pos2,    pos3]
-    noise  = [noise1, noise2,  noise3]
+    pos    = [pos1,    pos2,    pos3]
+    noise  = [noise1,  noise2,  noise3]
     offset = [offset1, offset2, offset3]
 
     legend = ['[ -90°,  -30°]', '[ -30°, +30°]', '[+30°, +90°]']#
@@ -543,11 +564,12 @@ if __name__ == "__main__":
 
     #flux_statistics()
     
-    start_cr = 2284
-    end_cr   = 2300
+    start_cr = 2297
+    end_cr   = 2297
     run_pfss = False
     run_diagnostics = True
-    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/')
+    #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/')
+    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/PHI_only/')
 
     paths = sorted(base.glob("CR*/synop/"))
     paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
