@@ -194,7 +194,7 @@ def main(config, session_folder):
         
         # OBSOLETE
         #CAR_ROT        
-        #l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
+        l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
         #l2drms.header.append(('CAR_ROT2', car_rot, 'Carrington rotation number of synoptic map'), end=True)
         
         # OBS_VW
