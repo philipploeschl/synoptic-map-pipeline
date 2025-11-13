@@ -46,7 +46,7 @@ def get_drms_parameters(inRecs, input_ds):
     drms_param = []
     nRecs = 0
 
-    if len(inRecs) < 23: return drms_param, nRecs
+    if inRecs is None or len(inRecs) < 23: return drms_param, nRecs
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
  
     #nRecs = len(inRecs.split(','))
@@ -85,7 +85,7 @@ def update_common_carrot(drms_getkey):
         carrots.append(float(inRec['CAR_ROT']))
 
     most_common = max(carrots, key=carrots.count)
-    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)   } records")
+    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)} records")
 
     for inRec in drms_getkey:
         inRec["CAR_ROT"] = most_common
