@@ -241,7 +241,7 @@ def get_dataseries_count(data_series, period, interval):
 def get_dataseries_times(data_series, period, interval):
     
     times = []
-    if len(period) < 23: return times # len('2025.01.01_00:00:00_TAI') = 23
+    if period is None or len(period) < 23: return times # len('2025.01.01_00:00:00_TAI') = 23
 
     si_string = "show_info -iP %s[%s%s]" %(data_series, period, interval)
     si_out = subprocess.check_output(si_string, shell=True)[:-1].decode("utf-8")
