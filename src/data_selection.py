@@ -1310,11 +1310,17 @@ if __name__ == "__main__":
         gap_max = 30 # degrees = about 2 days
 
         for i, start in enumerate(istart):
-            
+            # add 0 and 360 to the list of observed clons to calculate gaps correctly
             if i < len(istart)-1:
-                gaps = np.sort(np.abs(np.diff(cr_dict['CRLN_OBS'][istart[i]:istart[i+1]])))
+                tmp = cr_dict['CRLN_OBS'][istart[i]:istart[i+1]]
+                tmp = np.insert(tmp, 0, 360)
+                tmp = np.insert(tmp, len(tmp), 0)
+                gaps = np.sort(np.abs(np.diff(tmp)))
             else:
-                gaps = np.sort(np.abs(np.diff(cr_dict['CRLN_OBS'][istart[i]:])))
+                tmp = cr_dict['CRLN_OBS'][istart[i]:]
+                tmp = np.insert(tmp, 0, 360)
+                tmp = np.insert(tmp, len(tmp), 0)
+                gaps = np.sort(np.abs(np.diff(tmp)))
 
             gap = np.max(gaps)
 
@@ -1334,7 +1340,7 @@ if __name__ == "__main__":
             else:
                 timestring_end   = datetime.strptime(cr_dict['FILE'][-1].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
 
-            print(f"CR{cr_dict['CAR_ROT'][start]}_PHI;;{timestring_start}-{timestring_end}")
+            print(f"CR{cr_dict['CAR_ROT'][start]}_PHI;'';{timestring_start}-{timestring_end}")
     #sp.kclear()
 
     # TODO 
