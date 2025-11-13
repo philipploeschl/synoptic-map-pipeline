@@ -164,7 +164,7 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
 ####### ANALYSIS #######
 ########################
 
-def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, outpath, name, save=False):
+def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, config, outpath, name, save=False):
     """
     Two-panel plot:
     Top: Synoptic map
@@ -259,6 +259,8 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, legend, config, o
     for xx, yy, ll, cc in zip(pos, noise, legend, colors):
         ax_noise.scatter(xx, yy, s=7.5, label=ll, color=cc)
 
+    for xx, yy, ll, cc in zip(pos, offset, legend, colors):
+        ax_noise.scatter(xx, yy, s=7.5, label=ll, color=cc, marker='x')
 
     ax_noise.set_xlim(0, 3600)
     ylim_noise = np.ceil(np.max(noise)+1)

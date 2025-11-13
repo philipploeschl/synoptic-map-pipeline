@@ -138,9 +138,10 @@ def gaussian_fit(a, show=True):
     
 def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=10):
     # cadence_window_noise_plot
-    noise = np.array([])
-    mid   = np.array([])
-    
+    noise  = np.array([])
+    mid    = np.array([])
+    offset = np.array([])
+
     mask = (np.abs(data) > thld_low) & (np.abs(data) < thld_high)
     data = np.where(mask, data, np.nan)    
 
@@ -159,10 +160,11 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 
             bins = np.linspace(-1e2, 1e2, 200)
             counts, bin_edges = np.histogram(slice.ravel(), bins=bins, density=False)
-            sigma = gaussian_fit([counts, bin_edges], show=False)[2]
+            (_, avg, sigma) = gaussian_fit([counts, bin_edges], show=False)
 
-            noise = np.append(noise, sigma)
-            mid   = np.append(mid, center)
+            noise  = np.append(noise, sigma)
+            mid    = np.append(mid, center)
+            offset = np.append(offset, avg)
         
         else:
             # interval wraps around 0°
@@ -176,22 +178,26 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 
             bins = np.linspace(-1e2, 1e2, 200)
             counts1, bin_edges1 = np.histogram(slice1.ravel(), bins=bins, density=False)
-            sigma1 = gaussian_fit([counts1, bin_edges1], show=False)[2]
+            (_, avg1, sigma1) = gaussian_fit([counts1, bin_edges1], show=False)
 
             counts2, bin_edges2 = np.histogram(slice2.ravel(), bins=bins, density=False)
-            sigma2 = gaussian_fit([counts2, bin_edges2], show=False)[2]
+            (_, avg2, sigma2) = gaussian_fit([counts2, bin_edges2], show=False)
 
             noise = np.append(noise, sigma1)
             noise = np.append(noise, sigma2)
             mid   = np.append(mid, center1)
             mid   = np.append(mid, center2)
 
+            offset = np.append(offset, avg1)
+            offset = np.append(offset, avg2)
+
     order = np.argsort(mid)
 
     mid = mid[order]
     noise = noise[order]
-        
-    return mid, noise
+    offset = offset[order]
+
+    return mid, noise, offset
 
 
 
@@ -225,17 +231,19 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     # pix_lat[6]  = +30°
     # pix_lat[12] = -30°
 
-    pos1, noise1 = noise_cadence_windows(phi_img[:pix_lat[6],:],      phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos2, noise2 = noise_cadence_windows(phi_img[pix_lat[6]:pix_lat[12],:],  phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos3, noise3 = noise_cadence_windows(phi_img[pix_lat[12]:,:], phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos1, noise1, offset1 = noise_cadence_windows(phi_img[:pix_lat[6],:],      phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos2, noise2, offset2 = noise_cadence_windows(phi_img[pix_lat[6]:pix_lat[12],:],  phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos3, noise3, offset3 = noise_cadence_windows(phi_img[pix_lat[12]:,:], phi_table, thld_low=thld_low, thld_high=thld_high)
 
-    pos   = [pos1,   pos2,    pos3]
-    noise = [noise1, noise2,  noise3]
+    pos    = [pos1,   pos2,    pos3]
+    noise  = [noise1, noise2,  noise3]
+    offset = [offset1, offset2, offset3]
+
     legend = ['[ -90°,  -30°]', '[ -30°, +30°]', '[+30°, +90°]']#
 
     with PdfPages(os.path.join(path, f'CR{outname}_diagnostics.pdf')) as pdf:
         fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=True)
-        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, legend, config, path, outname, save=True)
+        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, path, outname, save=True)
         pdf.savefig(fig_mag)
         pdf.savefig(fig_syn)
         fig_mag.savefig(os.path.join(path, f'CR{outname}_latflux.png'), format='png')
@@ -536,12 +544,13 @@ if __name__ == "__main__":
     #flux_statistics()
     
     start_cr = 2284
+    end_cr   = 2300
     run_pfss = False
     run_diagnostics = True
     base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/')
 
     paths = sorted(base.glob("CR*/synop/"))
-    paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr]
+    paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
 
     for path in paths:
         try: 
