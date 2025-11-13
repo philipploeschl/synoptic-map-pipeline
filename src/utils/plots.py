@@ -362,7 +362,6 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwid
 
     plt.legend(loc='lower right', ncol=2, fontsize=labelsize)
 
-
     hmi_avg = np.round(np.nanmean(flux_hmi['pos'].values+flux_hmi['neg'].values), 3)
     hmi_std = np.round(np.nanstd (flux_hmi['pos'].values+flux_hmi['neg'].values), 3)          
     hmi_rms = np.round(np.nanstd (flux_hmi['pos'].values+flux_hmi['neg'].values)/len(flux_hmi['pos']), 3)          

@@ -94,16 +94,31 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
 
     window_hmi = sorted(window_hmi)
     
-    for i, (x1, x2) in enumerate(window_hmi):
-        if i == 0:
-            if x1 > 0:
-                window_phi.append([0, x1])
-        else:
-            window_phi.append([window_hmi[i-1][1], x1])
+    # This won't work without an HMI window
+    # Define PHI window independent of HMI windows
+    if len(window_hmi) > 0:
+        for i, (x1, x2) in enumerate(window_hmi):
+            if i == 0:
+                if x1 > 0:
+                    window_phi.append([0, x1])
+            else:
+                window_phi.append([window_hmi[i-1][1], x1])
 
-        if i == len(window_hmi)-1:
-            if x2 < 360*deg2px:
-                window_phi.append([x2, 360*deg2px])
+            if i == len(window_hmi)-1:
+                if x2 < 360*deg2px:
+                    window_phi.append([x2, 360*deg2px])
+    else:
+        #window_phi.append([0, 360*deg2px])
+        crln_start = []
+        crln_end   = []
+        crln_obs   = []
+        for row in fits_table:
+            if row['SRC'] == 'PHI':
+                crln_start.append(row['CRLN_START'])
+                crln_end.append(row['CRLN_END'])
+                crln_obs.append(row['CRLN_OBS'])
+        # WARNING: This doesn't account for observation gaps!
+        window_phi.append([int(np.min(crln_obs)*deg2px), int(np.max(crln_obs)*deg2px)])
 
     return window_hmi, window_phi
 
@@ -210,6 +225,11 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
     latwidth = 10  #px
     lats = np.arange(0,1440+latwidth, latwidth)
+    
+    n_rows = 1440//latwidth
+    columns = ['pos', 'neg']
+    nandf = pd.DataFrame(np.nan, index=range(n_rows), columns=columns)
+
     print(f"phi_table{phi_table}")
     window_hmi, window_phi = get_phi_hmi_windows(phi_table, deg2px=10)
 
@@ -227,25 +247,22 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     elif len(flux_hmi) == 1:
         flux_hmi = flux_hmi[0]
     else:
-        pass
+        flux_hmi = nandf
 
     for (x1, x2) in window_phi:
         flux_phi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
-    print(f"window_hmi {window_hmi}")
-    print(f"window_phi {window_phi}")
+
     # this gives the average flux over all PHI windows
     #flux_phi = sum(flux_phi)/len(flux_phi)
-    print(flux_phi)
+
     if len(flux_phi) > 1:
         flux_phi_combined = pd.concat(flux_phi)
         flux_phi = flux_phi_combined.groupby(flux_phi_combined.index).mean()
     elif len(flux_phi) == 1:
         flux_phi = flux_phi[0]
     else:
-        pass
+        flux_phi = nandf
 
-
-    print(flux_phi)
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
     pix_lat  = [int((y+1)*720) for y in sine_lat]
 
@@ -575,6 +592,8 @@ if __name__ == "__main__":
     paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
 
     for path in paths:
+        main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
+
         try: 
             main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
         except Exception as e:
