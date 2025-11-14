@@ -127,11 +127,26 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
         tmp = np.insert(tmp, 0, 360)
         tmp = np.insert(tmp, len(tmp), 0)
         gaps = np.abs(np.diff(tmp))
+        print(tmp)
         print(gaps)
         print(len(gaps), len(tmp))
         borders = np.where(gaps > gap_max)[0]
+        istart = tmp[0]
+        iend = []
         print(borders)
-        print(tmp[borders[0]])
+        print(tmp[0], tmp[borders[0]])
+
+        # scan the index in borders:
+        # case where 360 to first observation is a gap
+        # 
+        #window_phi.append([int(np.min(crln_obs)*deg2px), int(tmp[borders[0]]*deg2px)])
+        
+        # case where the gap is somewhere in the middle of the observations
+        #window_phi.append([int(np.min(crln_obs)*deg2px), int(tmp[borders[0]]*deg2px)])
+
+        # case where last observation to 0 is a gap
+        #window_phi.append([int(np.min(crln_obs)*deg2px), int(tmp[borders[0]]*deg2px)])
+
         """
         iend = np.where(np.diff(cr_dict['CAR_ROT']))[0]
         istart = np.where(np.diff(cr_dict['CAR_ROT']))[0]+1
@@ -631,7 +646,7 @@ if __name__ == "__main__":
     paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
 
     for path in paths:
-        main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
+        #main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
 
         try: 
             main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
