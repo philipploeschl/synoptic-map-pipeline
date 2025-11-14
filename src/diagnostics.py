@@ -118,7 +118,46 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
                 crln_end.append(row['CRLN_END'])
                 crln_obs.append(row['CRLN_OBS'])
         # WARNING: This doesn't account for observation gaps!
+        print(crln_obs)
         window_phi.append([int(np.min(crln_obs)*deg2px), int(np.max(crln_obs)*deg2px)])
+
+        gap_max = 30 # degrees = about 2 days
+
+        tmp = crln_obs
+        tmp = np.insert(tmp, 0, 360)
+        tmp = np.insert(tmp, len(tmp), 0)
+        gaps = np.abs(np.diff(tmp))
+        print(gaps)
+        print(len(gaps), len(tmp))
+        borders = np.where(gaps > gap_max)[0]
+        print(borders)
+        print(tmp[borders[0]])
+        """
+        iend = np.where(np.diff(cr_dict['CAR_ROT']))[0]
+        istart = np.where(np.diff(cr_dict['CAR_ROT']))[0]+1
+        istart = np.insert(istart, 0, 0) # add first index
+
+
+        for i, start in enumerate(istart):
+            # add 0 and 360 to the list of observed clons to calculate gaps correctly
+            if i < len(istart)-1:
+                tmp = cr_dict['CRLN_OBS'][istart[i]:istart[i+1]]
+                tmp = np.insert(tmp, 0, 360)
+                tmp = np.insert(tmp, len(tmp), 0)
+                gaps = np.sort(np.abs(np.diff(tmp)))
+            else:
+                tmp = cr_dict['CRLN_OBS'][istart[i]:]
+                tmp = np.insert(tmp, 0, 360)
+                tmp = np.insert(tmp, len(tmp), 0)
+                gaps = np.sort(np.abs(np.diff(tmp)))
+
+            gap = np.max(gaps)
+
+            if np.any(gaps > gap_max):
+                print(f"{cr_dict['CAR_ROT'][start]} incomplete | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
+            else:
+                print(f"{cr_dict['CAR_ROT'][start]} complete   | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
+        """
 
     return window_hmi, window_phi
 
