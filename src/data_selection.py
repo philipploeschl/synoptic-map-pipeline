@@ -1288,7 +1288,7 @@ if __name__ == "__main__":
 
         #fitsfiles = get_phi_filenames(config.phi_dbpath, config.cr_date_start.split("T")[0], config.cr_date_end.split("T")[0], 'blos')
 
-        start = '2024-01-01'
+        start = '2025-05-01'
         end   = '2025-08-01'
         fitsfiles = get_phi_filenames(config.phi_dbpath, start, end, 'blos')
 
@@ -1341,6 +1341,25 @@ if __name__ == "__main__":
                 timestring_end   = datetime.strptime(cr_dict['FILE'][-1].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
 
             print(f"CR{cr_dict['CAR_ROT'][start]}_PHI;'';{timestring_start}-{timestring_end}")
+
+
+
+        """
+        for crot, crobs, file in zip(cr_dict['CAR_ROT'], cr_dict['CRLN_OBS'], cr_dict['FILE']):
+            print(crot, crobs, file)
+
+            # WHY IS THERE A TRANSITION FROM 2297 TO 2298 IN THE MIDDLE OF THE PERIOD? -> SHOULD BE FROM 0->360
+            #2297 275.759616 2025-05-16/solo_L2_phi-fdt-blos_20250516T012003_V202509230051_0545160501.fits.gz
+            #2297 274.675774 2025-05-16/solo_L2_phi-fdt-blos_20250516T032003_V202509230051_0545160502.fits.gz
+            #2297 273.049516 2025-05-16/solo_L2_phi-fdt-blos_20250516T062003_V202509230051_0545160503.fits.gz
+            #2297 271.422902 2025-05-16/solo_L2_phi-fdt-blos_20250516T092003_V202509230051_0545160504.fits.gz
+            #2298 269.795883 2025-05-16/solo_L2_phi-fdt-blos_20250516T122003_V202509230051_0545160505.fits.gz
+            #2298 268.168478 2025-05-16/solo_L2_phi-fdt-blos_20250516T152003_V202509230051_0545160506.fits.gz
+            #2298 266.540688 2025-05-16/solo_L2_phi-fdt-blos_20250516T182003_V202509230051_0545160507.fits.gz
+            #2298 264.822071 2025-05-16/solo_L2_phi-fdt-blos_20250516T213003_V202509230051_0545160508.fits.gz
+            #2298 263.284016 2025-05-17/solo_L2_phi-fdt-blos_20250517T002003_V202509230051_0545170501.fits.gz
+            #2298 261.655149 2025-05-17/solo_L2_phi-fdt-blos_20250517T032003_V202509230051_0545170502.fits.gz
+        """
     #sp.kclear()
 
     # TODO 
