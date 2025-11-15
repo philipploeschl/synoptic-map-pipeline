@@ -77,9 +77,10 @@ def magnetic_flux_latitudes(data, lats, x1, x2, thld_low=0, thld_high=25, mean=F
 def get_phi_hmi_windows(fits_table, deg2px=10):
     # find start and end of PHI and HMI data coverage in synoptic map
     
-    window_phi = []
-    window_hmi = []
+    windows_phi = []
+    windows_hmi = []
 
+    # TODO CHANGE HMI WINDOWING AFTER HMI TABLE UPDATES!
     for row in fits_table:
         # make the colored boxes for each fits table line
 
@@ -87,15 +88,14 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
             width = row["CRLN_START"] - row["CRLN_END"]
 
             if width > 0:
-                window_hmi.append([int(row["CRLN_END"]*deg2px), int(row["CRLN_START"]*deg2px)])
+                windows_hmi.append([int(row["CRLN_END"]*deg2px), int(row["CRLN_START"]*deg2px)])
             else:
-                window_hmi.append([int(row["CRLN_END"]*deg2px), int(360*deg2px)])
-                window_hmi.append([int(0*deg2px), int(row["CRLN_START"]*deg2px)])
+                windows_hmi.append([int(row["CRLN_END"]*deg2px), int(360*deg2px)])
+                windows_hmi.append([int(0*deg2px), int(row["CRLN_START"]*deg2px)])
 
-    window_hmi = sorted(window_hmi)
+    windows_hmi = sorted(windows_hmi)
     
-    # This won't work without an HMI window
-    # Define PHI window independent of HMI windows
+    """
     if len(window_hmi) > 0:
         for i, (x1, x2) in enumerate(window_hmi):
             if i == 0:
@@ -109,72 +109,59 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
                     window_phi.append([x2, 360*deg2px])
     else:
         #window_phi.append([0, 360*deg2px])
-        crln_start = []
-        crln_end   = []
-        crln_obs   = []
-        for row in fits_table:
-            if row['SRC'] == 'PHI':
-                crln_start.append(row['CRLN_START'])
-                crln_end.append(row['CRLN_END'])
-                crln_obs.append(row['CRLN_OBS'])
-        # WARNING: This doesn't account for observation gaps!
-        print(crln_obs)
-        window_phi.append([int(np.min(crln_obs)*deg2px), int(np.max(crln_obs)*deg2px)])
+    """ 
+    crln_phi   = []
+    for row in fits_table:
+        if row['SRC'] == 'PHI':
+            crln_phi.append(row['CRLN_OBS'])
 
-        gap_max = 30 # degrees = about 2 days
+    print(crln_phi)
+    windows_phi = filter_observation_windows(crln_phi, max_gap=30)
 
-        tmp = crln_obs
-        tmp = np.insert(tmp, 0, 360)
-        tmp = np.insert(tmp, len(tmp), 0)
-        gaps = np.abs(np.diff(tmp))
-        print(tmp)
-        print(gaps)
-        print(len(gaps), len(tmp))
-        borders = np.where(gaps > gap_max)[0]
-        istart = tmp[0]
-        iend = []
-        print(borders)
-        print(tmp[0], tmp[borders[0]])
+    windows_phi = (np.array(windows_phi)*deg2px).astype(int)
+    print(windows_phi)
 
-        # scan the index in borders:
-        # case where 360 to first observation is a gap
-        # 
-        #window_phi.append([int(np.min(crln_obs)*deg2px), int(tmp[borders[0]]*deg2px)])
-        
-        # case where the gap is somewhere in the middle of the observations
-        #window_phi.append([int(np.min(crln_obs)*deg2px), int(tmp[borders[0]]*deg2px)])
-
-        # case where last observation to 0 is a gap
-        #window_phi.append([int(np.min(crln_obs)*deg2px), int(tmp[borders[0]]*deg2px)])
-
-        """
-        iend = np.where(np.diff(cr_dict['CAR_ROT']))[0]
-        istart = np.where(np.diff(cr_dict['CAR_ROT']))[0]+1
-        istart = np.insert(istart, 0, 0) # add first index
+    return windows_hmi, windows_phi
 
 
-        for i, start in enumerate(istart):
-            # add 0 and 360 to the list of observed clons to calculate gaps correctly
-            if i < len(istart)-1:
-                tmp = cr_dict['CRLN_OBS'][istart[i]:istart[i+1]]
-                tmp = np.insert(tmp, 0, 360)
-                tmp = np.insert(tmp, len(tmp), 0)
-                gaps = np.sort(np.abs(np.diff(tmp)))
-            else:
-                tmp = cr_dict['CRLN_OBS'][istart[i]:]
-                tmp = np.insert(tmp, 0, 360)
-                tmp = np.insert(tmp, len(tmp), 0)
-                gaps = np.sort(np.abs(np.diff(tmp)))
+def filter_observation_windows(lon_obs, max_gap=30):
 
-            gap = np.max(gaps)
+    """
+    Identify contiguous observing windows where solar longitude coverage
+    is continuous and no gap between measurements exceeds max_gap degrees.
 
-            if np.any(gaps > gap_max):
-                print(f"{cr_dict['CAR_ROT'][start]} incomplete | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
-            else:
-                print(f"{cr_dict['CAR_ROT'][start]} complete   | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
-        """
+    Parameters
+    ----------
+    lon_obs : list of float
+        Observed Carrington longitudes in chronological order.
+    max_gap : float
+        Maximum allowed jump (in degrees) before declaring an observation gap.
 
-    return window_hmi, window_phi
+    Returns
+    -------
+    list of [start_lon, end_lon]
+        Start and end longitudes of each acceptable observation window.
+    """
+
+    if len(lon_obs)==0:
+        return []
+
+    windows = []
+    start = lon_obs[0]
+    prev  = lon_obs[0]
+
+    for lon in lon_obs[1:]:
+        if abs(lon - prev) > max_gap:
+            # Gap detected → close current window
+            # save in reverse for later function compatibilty
+            windows.append([prev, start])
+            start = lon  # start new window
+        prev = lon
+
+    # Close final window
+    windows.append([prev, start])
+
+    return windows
 
 
 def find_nearest(array, value):
@@ -304,6 +291,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         flux_hmi = nandf
 
     for (x1, x2) in window_phi:
+        print(x1,x2)
         flux_phi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all PHI windows
@@ -316,7 +304,8 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         flux_phi = flux_phi[0]
     else:
         flux_phi = nandf
-
+    print(flux_phi)
+    print(flux_hmi)
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
     pix_lat  = [int((y+1)*720) for y in sine_lat]
 
@@ -646,7 +635,7 @@ if __name__ == "__main__":
     paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
 
     for path in paths:
-        #main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
+        main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
 
         try: 
             main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
