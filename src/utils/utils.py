@@ -219,7 +219,7 @@ def get_phi_filenames(phi_dbpath,date_st,date_end,key,verbose=False):
         if isinstance(date_files, str):
             files.append(os.path.join(T,os.path.basename(date_files)))
         elif isinstance(date_files, list):
-            for onefile in  date_files:
+            for onefile in date_files:
                 files.append(os.path.join(T,os.path.basename(onefile)))
 
     files = sorted(files)
