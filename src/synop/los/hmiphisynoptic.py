@@ -84,9 +84,12 @@ def update_common_carrot(drms_getkey):
     for inRec in drms_getkey:
         carrots.append(float(inRec['CAR_ROT']))
 
+    if not carrots:
+        raise ValueError("Error: No inRecs found!")
+
     most_common = max(carrots, key=carrots.count)
     print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)} records")
-
+    
     for inRec in drms_getkey:
         inRec["CAR_ROT"] = most_common
     
