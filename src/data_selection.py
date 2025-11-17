@@ -1220,6 +1220,12 @@ def get_clons(config):
     return solo_clon, earth_clon, ets, solo_hdis, earth_hdis
 
 
+
+
+
+
+
+
 if __name__ == "__main__":
 
     # Set cwd to file directory
@@ -1283,83 +1289,6 @@ if __name__ == "__main__":
         # TODO
         # - add priority settings for individual custom synotic maps
 
-        from utils.utils import get_phi_filenames
-        from astropy.io import fits
-
-        #fitsfiles = get_phi_filenames(config.phi_dbpath, config.cr_date_start.split("T")[0], config.cr_date_end.split("T")[0], 'blos')
-
-        start = '2025-05-01'
-        end   = '2025-08-01'
-        fitsfiles = get_phi_filenames(config.phi_dbpath, start, end, 'blos')
-
-        cr_dict = {'FILE':[], 'CAR_ROT':[], 'CRLN_OBS':[], 'TSTR_PHI':[]}
-        for file in fitsfiles:
-            a = fits.open(os.path.join(config.phi_dbpath, file))
-
-            cr_dict['CAR_ROT'].append(a[0].header['CAR_ROT'])
-            cr_dict['CRLN_OBS'].append(a[0].header['CRLN_OBS'] if a[0].header['CRLN_OBS']>0 else a[0].header['CRLN_OBS']+360)
-            cr_dict['FILE'].append(file)
-
-            a.close()
-            #print(cr_dict['CAR_ROT'][-1], cr_dict['CRLN_OBS'][-1], cr_dict['FILE'][-1])
-
-        iend = np.where(np.diff(cr_dict['CAR_ROT']))[0]
-        istart = np.where(np.diff(cr_dict['CAR_ROT']))[0]+1
-        istart = np.insert(istart, 0, 0) # add first index
-
-        gap_max = 30 # degrees = about 2 days
-
-        for i, start in enumerate(istart):
-            # add 0 and 360 to the list of observed clons to calculate gaps correctly
-            if i < len(istart)-1:
-                tmp = cr_dict['CRLN_OBS'][istart[i]:istart[i+1]]
-                tmp = np.insert(tmp, 0, 360)
-                tmp = np.insert(tmp, len(tmp), 0)
-                gaps = np.sort(np.abs(np.diff(tmp)))
-            else:
-                tmp = cr_dict['CRLN_OBS'][istart[i]:]
-                tmp = np.insert(tmp, 0, 360)
-                tmp = np.insert(tmp, len(tmp), 0)
-                gaps = np.sort(np.abs(np.diff(tmp)))
-
-            gap = np.max(gaps)
-
-            if np.any(gaps > gap_max):
-                print(f"{cr_dict['CAR_ROT'][start]} incomplete | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
-            else:
-                print(f"{cr_dict['CAR_ROT'][start]} complete   | largest gap: {gap:.2f} degrees | {gaps[-3:]}")
-        
-
-
-        print('Gherardo file')
-        for i, start in enumerate(istart[0:]):
-            timestring_start = datetime.strptime(cr_dict['FILE'][istart[i]].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
-            
-            if i < len(istart)-1:
-                timestring_end   = datetime.strptime(cr_dict['FILE'][istart[i+1]-1].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
-            else:
-                timestring_end   = datetime.strptime(cr_dict['FILE'][-1].split('_')[3], '%Y%m%dT%H%M%S').strftime('%Y.%m.%d_%H:%M:%S_TAI')
-
-            print(f"CR{cr_dict['CAR_ROT'][start]}_PHI;'';{timestring_start}-{timestring_end}")
-
-
-
-        """
-        for crot, crobs, file in zip(cr_dict['CAR_ROT'], cr_dict['CRLN_OBS'], cr_dict['FILE']):
-            print(crot, crobs, file)
-
-            # WHY IS THERE A TRANSITION FROM 2297 TO 2298 IN THE MIDDLE OF THE PERIOD? -> SHOULD BE FROM 0->360
-            #2297 275.759616 2025-05-16/solo_L2_phi-fdt-blos_20250516T012003_V202509230051_0545160501.fits.gz
-            #2297 274.675774 2025-05-16/solo_L2_phi-fdt-blos_20250516T032003_V202509230051_0545160502.fits.gz
-            #2297 273.049516 2025-05-16/solo_L2_phi-fdt-blos_20250516T062003_V202509230051_0545160503.fits.gz
-            #2297 271.422902 2025-05-16/solo_L2_phi-fdt-blos_20250516T092003_V202509230051_0545160504.fits.gz
-            #2298 269.795883 2025-05-16/solo_L2_phi-fdt-blos_20250516T122003_V202509230051_0545160505.fits.gz
-            #2298 268.168478 2025-05-16/solo_L2_phi-fdt-blos_20250516T152003_V202509230051_0545160506.fits.gz
-            #2298 266.540688 2025-05-16/solo_L2_phi-fdt-blos_20250516T182003_V202509230051_0545160507.fits.gz
-            #2298 264.822071 2025-05-16/solo_L2_phi-fdt-blos_20250516T213003_V202509230051_0545160508.fits.gz
-            #2298 263.284016 2025-05-17/solo_L2_phi-fdt-blos_20250517T002003_V202509230051_0545170501.fits.gz
-            #2298 261.655149 2025-05-17/solo_L2_phi-fdt-blos_20250517T032003_V202509230051_0545170502.fits.gz
-        """
     #sp.kclear()
 
     # TODO 
