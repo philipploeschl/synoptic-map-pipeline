@@ -1431,8 +1431,8 @@ def main(global_config, session_folder):
     hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
 
-    diagnostics(synop_img, table_hdu.data, synop_outpath, config['synop_name'][:-5], global_config)
-    plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
+    diagnostics(synop_img, table_hdu.data, synop_outpath, int(config["cr"]), global_config)
+    plot_synoptic_sources(synop_img, synop_outpath, int(config["cr"]), global_config, table_hdu.data, pdf=True) # cut out .fits
     
     if config["bin"]:
         # create small synoptic map
