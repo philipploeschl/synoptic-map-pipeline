@@ -115,11 +115,11 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
         if row['SRC'] == 'PHI':
             crln_phi.append(row['CRLN_OBS'])
 
-    print(crln_phi)
+    #print(crln_phi)
     windows_phi = filter_observation_windows(crln_phi, max_gap=30)
 
     windows_phi = (np.array(windows_phi)*deg2px).astype(int)
-    print(windows_phi)
+    #print(windows_phi)
 
     return windows_hmi, windows_phi
 
@@ -271,7 +271,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     columns = ['pos', 'neg']
     nandf = pd.DataFrame(np.nan, index=range(n_rows), columns=columns)
 
-    print(f"phi_table{phi_table}")
+    #print(f"phi_table{phi_table}")
     window_hmi, window_phi = get_phi_hmi_windows(phi_table, deg2px=10)
 
     flux_hmi = []
@@ -291,7 +291,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         flux_hmi = nandf
 
     for (x1, x2) in window_phi:
-        print(x1,x2)
+        #print(x1,x2)
         flux_phi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all PHI windows
@@ -304,8 +304,8 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         flux_phi = flux_phi[0]
     else:
         flux_phi = nandf
-    print(flux_phi)
-    print(flux_hmi)
+    #print(flux_phi)
+    #print(flux_hmi)
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
     pix_lat  = [int((y+1)*720) for y in sine_lat]
 
@@ -594,7 +594,7 @@ def flux_statistics():
     p0 = [2, 0.1, 0, 1]
     params1, cov1 = curve_fit(cosine, x_fit, yhmi_fit, p0=p0)
     params2, cov2 = curve_fit(cosine, x_fit, yphi_fit, p0=p0)
-    print(params1[3])
+    #print(params1[3])
     # --- Plot ---
     plt.figure(figsize=(7, 5))
     plt.errorbar(df['x'], df['HMI'], yerr=df['HMI_err'], color='tab:blue', fmt='o', capsize=5, label='HMI')
