@@ -115,11 +115,11 @@ def get_phi_hmi_windows(fits_table, deg2px=10):
         if row['SRC'] == 'PHI':
             crln_phi.append(row['CRLN_OBS'])
 
-    print(crln_phi)
+    #print(crln_phi)
     windows_phi = filter_observation_windows(crln_phi, max_gap=30)
 
     windows_phi = (np.array(windows_phi)*deg2px).astype(int)
-    print(windows_phi)
+    #print(windows_phi)
 
     return windows_hmi, windows_phi
 
@@ -262,7 +262,7 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 ####### ANALYSIS #######
 ########################
 
-def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10):
+def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10, export=None, separate_maps=False, hmi_img=None):
 
     latwidth = 10  #px
     lats = np.arange(0,1440+latwidth, latwidth)
@@ -271,14 +271,19 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     columns = ['pos', 'neg']
     nandf = pd.DataFrame(np.nan, index=range(n_rows), columns=columns)
 
-    print(f"phi_table{phi_table}")
+    #print(f"phi_table{phi_table}")
     window_hmi, window_phi = get_phi_hmi_windows(phi_table, deg2px=10)
 
     flux_hmi = []
     flux_phi = []
 
-    for (x1, x2) in window_hmi:
-        flux_hmi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+    if separate_maps and hmi_img is not None:
+        x1 = 0
+        x2 = len(hmi_img[0])
+        flux_hmi.append(magnetic_flux_latitudes(hmi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+    else:
+        for (x1, x2) in window_hmi:
+            flux_hmi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all HMI windows
     #flux_hmi = sum(flux_hmi)/len(flux_hmi)
@@ -291,7 +296,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         flux_hmi = nandf
 
     for (x1, x2) in window_phi:
-        print(x1,x2)
+        #print(x1,x2)
         flux_phi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all PHI windows
@@ -304,8 +309,8 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         flux_phi = flux_phi[0]
     else:
         flux_phi = nandf
-    print(flux_phi)
-    print(flux_hmi)
+    #print(flux_phi)
+    #print(flux_hmi)
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
     pix_lat  = [int((y+1)*720) for y in sine_lat]
 
@@ -324,7 +329,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
     with PdfPages(os.path.join(path, f'CR{outname}_diagnostics.pdf')) as pdf:
         fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=True)
-        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, path, outname, save=True)
+        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, save=True)
         pdf.savefig(fig_mag)
         pdf.savefig(fig_syn)
         fig_mag.savefig(os.path.join(path, f'CR{outname}_latflux.png'), format='png')
@@ -332,6 +337,29 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
         plot_synoptic_sources(phi_img, path, f'CR{outname}_synoptic', config, phi_table, pdf=True)
 
+    if export: export_magnetic_flux(flux_phi, flux_hmi, outname, file=export)
+
+
+
+def export_magnetic_flux(flux_phi, flux_hmi, cr, file):
+
+    #is_empty = (not os.path.exists(file)) or os.path.getsize(file) == 0
+
+    hmi_avg = np.round(np.nanmean(flux_hmi['pos'].values+flux_hmi['neg'].values), 3)
+    hmi_std = np.round(np.nanstd (flux_hmi['pos'].values+flux_hmi['neg'].values), 3)    
+    hmi_rms = np.round(np.nanstd (flux_hmi['pos'].values+flux_hmi['neg'].values)/len(flux_hmi['pos']), 3)          
+
+    phi_avg = np.round(np.nanmean(flux_phi['pos'].values+flux_phi['neg'].values), 3)
+    phi_std = np.round(np.nanstd (flux_phi['pos'].values+flux_phi['neg'].values), 3)
+    phi_rms = np.round(np.nanstd (flux_phi['pos'].values+flux_phi['neg'].values)/len(flux_phi['pos']), 3)
+
+    with open(file, 'a') as f:
+        #if is_empty:
+        #    # write header or first line
+        #    f.write("#cr,hmi_avg,hmi_std,hmi_rms,phi_avg,phi_std,phi_rms\n")
+
+        # write your data row
+        f.write(f"{cr},{hmi_avg},{hmi_std},{hmi_rms},{phi_avg},{phi_std},{phi_rms}\n")
 
 def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
         
@@ -459,7 +487,7 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, name, pdf=
 
 
 
-def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil"):
+def main(path, carrington_number, run_diagnostics=True, run_pfss=True, export_diagnostics=None, separate_maps=True, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil"):
 
     print(f"Processing {os.path.join(path, fname)}...")
 
@@ -479,7 +507,7 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
     phi_table = synop_phi[1].data
 
     # Define Carrington rotation number
-    carrington_number = int(synop_phi[0].header["CAR_ROT"])
+    #carrington_number = int(synop_phi[0].header["CAR_ROT"])
     outname = f"{carrington_number}"
 
 
@@ -498,13 +526,13 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
     fname_hmi = q[segment][0].split('/')[-1]
 
     try:
-        file_hmi = glob.glob(f"{datapath_hmi}*{fname_hmi}")[0]
+        file_hmi  = glob.glob(f"{datapath_hmi}*{fname_hmi}")[0]
         synop_hmi = fits.open(file_hmi)
     except IndexError:
         # Download the FITS file
         result = c.export(f"{series}[{carrington_number}]", method='url', protocol='fits')
         result.download(datapath_hmi)
-        file_hmi = glob.glob(f"{datapath_hmi}*{fname_hmi}")[0]
+        file_hmi  = glob.glob(f"{datapath_hmi}*{fname_hmi}")[0]
         synop_hmi = fits.open(file_hmi)
 
 
@@ -512,7 +540,7 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
     
     # create mask of NaN values in phi_img and fill them with hmi_img values
     mask_polfil = np.isnan(phi_img)
-    phi_polfil = np.where(mask_polfil, hmi_img, phi_img)    
+    phi_polfil  = np.where(mask_polfil, hmi_img, phi_img)    
     
     # aggressive HMI pole filling
     #phi_polfil[:40, :]  = hmi_img[:40, :]
@@ -530,13 +558,14 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
     polfil_hdul.writeto(os.path.join(path, "synopMr_polfil.fits"), overwrite=True)
 
     # show filled synoptic map 
-    plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
-    plt.show()
+    #plt.imshow(phi_polfil, cmap='hmimag', vmin=-1500, vmax=1500, origin='lower')
+    #plt.show()
 
     # populate config for diagnostics plots
-    config = Config()
-    config.cr = carrington_number
-   
+    config = Config(path / "../config.yaml")
+    #config.cr = carrington_number
+    config.update("cr", carrington_number)
+
     if "Mr" in segment:
         config.Mr = True
         config.Btype = "Radial"
@@ -545,23 +574,23 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
         config.Btype = "line-of-sight"
 
     if run_diagnostics:
-        diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10)
+        diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10, export=export_diagnostics, separate_maps=separate_maps, hmi_img=hmi_img)
     
     if run_pfss:
         pfss(phi_polfil,        synop_hmi, path, name='PHI-HMI', pdf=True)
-        pfss(synop_hmi[1].data, synop_hmi, path, name='HMI', pdf=True)
+        pfss(synop_hmi[1].data, synop_hmi, path, name='HMI',     pdf=True)
 
 
 
 
-def flux_statistics():
+def flux_statistics(file):
 
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.stats import linregress
     from scipy.optimize import curve_fit
-
+    """
     data = {       
         'x':       [   1,        2,      3,      4,      5,        6,       7,      8,      9,     10,     11,    12,      13,    14,      15,    16,     17],
         'CR':      [2284,     2285,   2286,   2287,   2288,     2289,    2290,   2291,   2292,   2293,   2294,   2295,   2296,  2297,    2298,  2299,   2300],
@@ -571,7 +600,22 @@ def flux_statistics():
         'PHI_err': [0.003,   0.002,  0.002,  0.002,  0.003,   np.nan,   0.008, np.nan,  0.009,  0.008,  0.007, np.nan,  0.002,  0.004,  0.003, 0.003,  0.005]
     }
     df = pd.DataFrame(data)
+    """
 
+    df = pd.read_csv(file, comment=None)
+
+    df = df.rename(columns={
+        "cr": "CR",
+        "hmi_avg": "HMI",
+        "hmi_std": "HMI_err",
+        "phi_avg": "PHI",
+        "phi_std": "PHI_err",
+    })
+
+    # x follows the same increments as CR
+    df["x"] = df["CR"] - df["CR"].iloc[0] + 1
+
+    df = df[["x", "CR", "HMI", "HMI_err", "PHI", "PHI_err"]]
 
 
     mask = ~np.isnan(df['HMI']) & ~np.isnan(df['PHI'])
@@ -594,7 +638,7 @@ def flux_statistics():
     p0 = [2, 0.1, 0, 1]
     params1, cov1 = curve_fit(cosine, x_fit, yhmi_fit, p0=p0)
     params2, cov2 = curve_fit(cosine, x_fit, yphi_fit, p0=p0)
-    print(params1[3])
+
     # --- Plot ---
     plt.figure(figsize=(7, 5))
     plt.errorbar(df['x'], df['HMI'], yerr=df['HMI_err'], color='tab:blue', fmt='o', capsize=5, label='HMI')
@@ -606,9 +650,10 @@ def flux_statistics():
     #plt.plot(df['x'], cosine(df['x'], *params2), color='tab:orange', linestyle='--', label=f'y_PHI  = A × cos(2π f x + φ) + {params2[3]:.3f}G')#f'Cosine Fit {params1[0]:.2f}  cos(2π {params1[1]:.2f} x + {params1[2]:.2f}) + {params1[3]:.2f}')
 
     # --- Labels and legend ---
+    xlim = (df["CR"].iloc[-1]-df["CR"].iloc[0])+2
     plt.xlabel('CR')
     plt.ylabel('Average Magnetic Flux [Mx/cm²]')
-    plt.xlim(0, 18)
+    plt.xlim(0, xlim)
     plt.ylim(-1.5, 1.5)
     plt.xticks(ticks=df['x'], labels=df['CR'], rotation=45) 
     plt.title('Average HMI & PHI Flux')
@@ -620,27 +665,45 @@ def flux_statistics():
 
     plt.show()
 
+
+def extract_cr(name: str) -> int:
+    # name like "CR1234" or "CR1234_PHI"
+    base = name.split("_")[0]    # → "CR1234"
+    return int(base[2:])          # extract number
+
+
+
 if __name__ == "__main__":
 
-    #flux_statistics()
-    
-    start_cr = 2297
-    end_cr   = 2297
+    only_flux_statistics = True
+
+    start_cr = 2279
+    end_cr   = 2300
     run_pfss = False
     run_diagnostics = True
-    #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/')
-    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/PHI_only/')
 
-    paths = sorted(base.glob("CR*/synop/"))
-    paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
+    #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHIHMI')
+    #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/PHI_only/')
+    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHI')
+    diag_out = base / 'flux_diagnostics.csv'
 
-    for path in paths:
-        main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
-
-        try: 
-            main(path, run_diagnostics=run_diagnostics, run_pfss=run_pfss, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            continue
+    if only_flux_statistics: 
+        flux_statistics(diag_out)
     
+    else:
+        with open(diag_out, 'w') as f:
+            f.write("cr,hmi_avg,hmi_std,hmi_rms,phi_avg,phi_std,phi_rms\n")
 
+        paths = sorted(base.glob("CR*/synop/"))
+        #paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
+        paths = [p for p in paths if start_cr <= extract_cr(p.parent.name) <= end_cr]
+        
+        for path in paths:
+            try: 
+                main(path, extract_cr(path.parent.name), run_diagnostics=run_diagnostics, run_pfss=run_pfss, export_diagnostics=diag_out, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                continue
+        
+        flux_statistics(diag_out)
+                
