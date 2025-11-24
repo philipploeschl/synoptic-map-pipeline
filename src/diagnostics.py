@@ -278,9 +278,13 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     flux_phi = []
 
     if separate_maps and hmi_img is not None:
-        x1 = 0
-        x2 = len(hmi_img[0])
-        flux_hmi.append(magnetic_flux_latitudes(hmi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+        # use full HMI image for HMI flux calculation
+        #x1 = 0
+        #x2 = len(hmi_img[0])
+        
+        # use PHI windows for comparable activity and pixel statistics
+        for (x1, x2) in window_phi:
+            flux_hmi.append(magnetic_flux_latitudes(hmi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
     else:
         for (x1, x2) in window_hmi:
             flux_hmi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
@@ -583,7 +587,7 @@ def main(path, carrington_number, run_diagnostics=True, run_pfss=True, export_di
 
 
 
-def flux_statistics(file):
+def flux_statistics(file, outname):
 
     import pandas as pd
     import numpy as np
@@ -661,7 +665,7 @@ def flux_statistics(file):
     plt.grid(True)
     plt.tight_layout()
 
-    plt.savefig('flux_statistics_nofit.png', format='png', dpi=300)
+    plt.savefig(file.parent / outname, format='png', dpi=300)
 
     plt.show()
 
@@ -673,9 +677,11 @@ def extract_cr(name: str) -> int:
 
 
 
+
+
 if __name__ == "__main__":
 
-    only_flux_statistics = True
+    only_flux_statistics = False
 
     start_cr = 2279
     end_cr   = 2300
@@ -688,7 +694,7 @@ if __name__ == "__main__":
     diag_out = base / 'flux_diagnostics.csv'
 
     if only_flux_statistics: 
-        flux_statistics(diag_out)
+        flux_statistics(diag_out, 'flux_statistics.png')
     
     else:
         with open(diag_out, 'w') as f:
