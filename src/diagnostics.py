@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from pathlib import Path
 
 from config.config import Config
-from utils.plots import magnetic_flux_plot_latitudes, combined_synoptic_noise_plot, plot_synoptic_sources
+from utils.plots import magnetic_flux_plot_latitudes, combined_synoptic_noise_plot, plot_synoptic_sources, plot_synoptic_with_stripe_magnitudes
 
 ##############################################
 ####### FUNCTION DEFINITIONS FOR UTILS #######
@@ -676,34 +676,50 @@ def extract_cr(name: str) -> int:
     return int(base[2:])          # extract number
 
 
+def stripe_pattern_magnitude(path):
+    import matplotlib.patches as patches
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    cr =  extract_cr(path.parent.name)
+    synop = fits.open(path / "synopMr.fits")
+
+    img = synop[0].data
+    fits_table = synop[1].data
+
+    config = Config(path / "../config.yaml")
+    plot_synoptic_with_stripe_magnitudes(img, path, f"CR{cr}_stripe_pattern_magnitudes", config, fits_table, pdf=True)
 
 
 
 if __name__ == "__main__":
 
-    only_flux_statistics = False
-
     start_cr = 2279
     end_cr   = 2300
-    run_pfss = False
-    run_diagnostics = True
+
+    only_flux_statistics = False
+    only_stripes         = True
+    run_pfss             = False
+    run_diagnostics      = True
 
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHIHMI')
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/PHI_only/')
     base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHI')
     diag_out = base / 'flux_diagnostics.csv'
+    
+    paths = sorted(base.glob("CR*/synop/"))
+    paths = [p for p in paths if start_cr <= extract_cr(p.parent.name) <= end_cr]
 
     if only_flux_statistics: 
         flux_statistics(diag_out, 'flux_statistics.png')
     
+    elif only_stripes:
+        for path in paths:
+            stripe_pattern_magnitude(path)
+
     else:
         with open(diag_out, 'w') as f:
             f.write("cr,hmi_avg,hmi_std,hmi_rms,phi_avg,phi_std,phi_rms\n")
 
-        paths = sorted(base.glob("CR*/synop/"))
-        #paths = [p for p in paths if int(p.parent.name[2:]) >= start_cr and int(p.parent.name[2:]) <= end_cr]
-        paths = [p for p in paths if start_cr <= extract_cr(p.parent.name) <= end_cr]
-        
         for path in paths:
             try: 
                 main(path, extract_cr(path.parent.name), run_diagnostics=run_diagnostics, run_pfss=run_pfss, export_diagnostics=diag_out, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil")
