@@ -193,6 +193,23 @@ def gaussian_fit(a, show=True):
 
 
     
+def ar_filtering(img, high_thld=250.0, low_thld=25.0, empty=0.0):
+
+    from skimage.morphology import reconstruction
+
+    seed = np.abs(img) >= high_thld
+    mask = np.abs(img) >= low_thld
+
+    final_mask = reconstruction(
+        seed.astype(np.uint8),
+        mask.astype(np.uint8),
+        method='dilation'
+    ).astype(bool)
+    filtered_img = np.where(final_mask, img, empty)
+
+    return filtered_img, final_mask
+
+
 def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=10):
     # cadence_window_noise_plot
     noise  = np.array([])
@@ -264,6 +281,13 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 
 def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10, export=None, separate_maps=False, hmi_img=None):
 
+
+    phi_filtered, phi_mask = ar_filtering(phi_img, high_thld=50, low_thld=5, empty=np.nan)
+    phi_filtered = np.where(~phi_mask, phi_img, np.nan)
+
+    hmi_filtered, hmi_mask = ar_filtering(hmi_img, high_thld=50, low_thld=5, empty=np.nan)
+    hmi_filtered = np.where(~hmi_mask, hmi_img, np.nan)
+
     latwidth = 10  #px
     lats = np.arange(0,1440+latwidth, latwidth)
     
@@ -284,10 +308,10 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         
         # use PHI windows for comparable activity and pixel statistics
         for (x1, x2) in window_phi:
-            flux_hmi.append(magnetic_flux_latitudes(hmi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+            flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
     else:
         for (x1, x2) in window_hmi:
-            flux_hmi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+            flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all HMI windows
     #flux_hmi = sum(flux_hmi)/len(flux_hmi)
@@ -301,7 +325,7 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
     for (x1, x2) in window_phi:
         #print(x1,x2)
-        flux_phi.append(magnetic_flux_latitudes(phi_img, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+        flux_phi.append(magnetic_flux_latitudes(phi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all PHI windows
     #flux_phi = sum(flux_phi)/len(flux_phi)
@@ -321,9 +345,9 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     # pix_lat[6]  = +30°
     # pix_lat[12] = -30°
 
-    pos1, noise1, offset1 = noise_cadence_windows(phi_img[:pix_lat[6],:],             phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos2, noise2, offset2 = noise_cadence_windows(phi_img[pix_lat[6]:pix_lat[12],:],  phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos3, noise3, offset3 = noise_cadence_windows(phi_img[pix_lat[12]:,:],            phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos1, noise1, offset1 = noise_cadence_windows(phi_filtered[:pix_lat[6],:],             phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos2, noise2, offset2 = noise_cadence_windows(phi_filtered[pix_lat[6]:pix_lat[12],:],  phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos3, noise3, offset3 = noise_cadence_windows(phi_filtered[pix_lat[12]:,:],            phi_table, thld_low=thld_low, thld_high=thld_high)
 
     pos    = [pos1,    pos2,    pos3]
     noise  = [noise1,  noise2,  noise3]
@@ -331,13 +355,13 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
     legend = ['[ -90°,  -30°]', '[ -30°, +30°]', '[+30°, +90°]']#
 
-    with PdfPages(os.path.join(path, f'CR{outname}_diagnostics.pdf')) as pdf:
+    with PdfPages(os.path.join(path, f'CR{outname}_diagnostics_new.pdf')) as pdf:
         fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=True)
         fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, save=True)
         pdf.savefig(fig_mag)
         pdf.savefig(fig_syn)
-        fig_mag.savefig(os.path.join(path, f'CR{outname}_latflux.png'), format='png')
-        fig_syn.savefig(os.path.join(path, f'CR{outname}_noise.png'),   format='png')
+        fig_mag.savefig(os.path.join(path, f'CR{outname}_latflux_new.png'), format='png')
+        fig_syn.savefig(os.path.join(path, f'CR{outname}_noise_new.png'),   format='png')
 
         plot_synoptic_sources(phi_img, path, f'CR{outname}_synoptic', config, phi_table, pdf=True)
 
@@ -697,20 +721,22 @@ if __name__ == "__main__":
     end_cr   = 2300
 
     only_flux_statistics = False
-    only_stripes         = True
+    only_stripes         = False
     run_pfss             = False
     run_diagnostics      = True
 
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHIHMI')
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/PHI_only/')
     base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHI')
+    #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/vector_tests/')
+
     diag_out = base / 'flux_diagnostics.csv'
     
     paths = sorted(base.glob("CR*/synop/"))
     paths = [p for p in paths if start_cr <= extract_cr(p.parent.name) <= end_cr]
 
     if only_flux_statistics: 
-        flux_statistics(diag_out, 'flux_statistics.png')
+        flux_statistics(diag_out, 'flux_statistics_new.png')
     
     elif only_stripes:
         for path in paths:
@@ -727,5 +753,5 @@ if __name__ == "__main__":
                 print(f"An error occurred: {e}")
                 continue
         
-        flux_statistics(diag_out)
+        flux_statistics(diag_out, 'flux_statistics_new.png')
                 
