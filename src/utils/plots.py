@@ -384,7 +384,8 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
         ax_noise.scatter(xx, yy, s=7.5, label=ll, color=cc, marker='x')
 
     ax_noise.set_xlim(0, 3600)
-    ylim_noise = np.ceil(np.nanmax(noise)+1)
+    #ylim_noise = np.ceil(np.nanmax(noise)+1)
+    ylim_noise = 7
 
     ax_noise.set_ylim(-noise_bar_height, ylim_noise)
     ax_noise.set_xlabel("Carrington Longitude [°]", fontsize=labelsize)
