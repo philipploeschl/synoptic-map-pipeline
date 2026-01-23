@@ -10,6 +10,7 @@ from synop.los.hmiphisynoptic import main as synop_main
 
 from config.config import Config
 
+STATUS_OK = 0
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -48,15 +49,30 @@ if __name__ == "__main__":
 
     if config.run_drms_prep:
         if config.verbose: print("Running drms_preparation.py ...")
-        drms_main(config, session_folder)
+
+        status = drms_main(config, session_folder)
+
+        if status != STATUS_OK: 
+            exit()
+
 
     if config.run_m720s_drms_pipe:
         if config.verbose: print("Running m720s_drms_pipe.py ...")
-        hmi_data_main(config, session_folder)
+
+        status = hmi_data_main(config, session_folder)
+
+        if status != STATUS_OK: 
+            exit()
+
 
     if config.run_phi_drms_interface:
         if config.verbose: print("Running phi_drms_interface.py ...")
-        phi_data_main(config, session_folder)
+
+        status = phi_data_main(config, session_folder)
+
+        if status != STATUS_OK: 
+            exit()
+
 
     # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
     if config.run_hmi_scripts and config.run_phi_scripts:
@@ -68,7 +84,12 @@ if __name__ == "__main__":
 
     if config.run_hmiphisynoptic:
         if config.verbose: print("Running hmiphisynoptic.py ...")
-        synop_main(config, session_folder)
+
+        status = synop_main(config, session_folder)
+
+        if status != STATUS_OK: 
+            exit()
+
 
     # Todo
     #if config.run_polefilling:

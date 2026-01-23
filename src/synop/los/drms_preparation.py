@@ -11,6 +11,7 @@
 import os, sys
 import subprocess
 
+STATUS_OK = 0
 
 def create_series(config, outpath, outname):
     if config.create_series:
@@ -165,6 +166,7 @@ def main(config, session_folder):
 
         create_series(config, path_output + '/', outname)
 
+    return STATUS_OK
 
 if __name__ == "__main__":
     main()

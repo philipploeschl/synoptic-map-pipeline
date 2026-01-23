@@ -3,6 +3,7 @@ import os
 import numpy as np
 from utils.utils import add_script_header, add_check_continue, get_dataseries_count, get_dataseries_times
 
+STATUS_OK = 0
 
 def main(config, session_folder):
 
@@ -70,6 +71,9 @@ def main(config, session_folder):
     
     if config.verbose: 
         print('\nHMI processing script creation complete.\n')
+
+    return STATUS_OK
+
 
 if __name__ == "__main__":
     #main(sys.argv[1:])

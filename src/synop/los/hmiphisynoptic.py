@@ -18,6 +18,8 @@ import os, sys
 from datetime import date
 
 from utils.plots import plot_synoptic
+from utils.plots import plot_synoptic_sources
+from utils.utils import create_src_fits_table
 
 
 # DEFINES
@@ -33,6 +35,9 @@ SHRT_MIN = -SHRT_MAX -1
 DRMS_MISSING_FLOAT = np.nan    
 kNOISE_EQ = 10.0 # redefined in CalcSynopCol but unused
 
+STATUS_OK = 0
+STATUS_ERROR = 1
+
 # DRMS Interface
 def get_drms_parameters(inRecs, input_ds):
 
@@ -45,7 +50,7 @@ def get_drms_parameters(inRecs, input_ds):
     
     #nRecs = len(inRecs.split(','))
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
-    show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA' 
+    show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
     
     #-P for path and -A for segment
     
@@ -653,7 +658,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
 
-    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
+    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs","src"]
     imrec = [] # list to hold dictionary
 
     idx = 0
@@ -776,6 +781,7 @@ def synoptic_map(config):#, hw_overwrite=None):
         config["halfWindow"] = np.round(((width-1) * synstep)/2., 5)
         
         imrec_tmp = {}
+        imrec_tmp["src"] = drms_getkey[inRec]["INSTRUME"]
         imrec_tmp["mapdev"] = (remapLgmax - remapLgmin) / 2.0
         imrec_tmp["recno"]  = int(drms_getkey[inRec]["I_DREC"])
         imrec_tmp["mapct"]  = mapct
@@ -789,10 +795,11 @@ def synoptic_map(config):#, hw_overwrite=None):
         # temporary, remove after debugging:
         imrec_tmp["cadence"] = cadences[ds] #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
         imrec_tmp["crln_obs"] = cmLong #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
+   
         
         imrec.append(imrec_tmp)
         idx += 1
-
+    
     ngood = idx
     
     config["ngood"] = ngood
@@ -908,7 +915,7 @@ def synoptic_map(config):#, hw_overwrite=None):
                 mMagCol = init_MagCol(length)  # MagCol_t mMagCol;
 
                 mMagCol["dist"]     = ((col - mapmidcol) * synstep + imrec[idx]["mapct"]) - imrec[idx]["mapCM"]
-                mMagCol["datacol"]  = inArray[0].data[:, col] # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacol"]  = inArray[0].data[:, col].copy()  # (float *)malloc(sizeof(float) * length[1])
                 mMagCol["equivPts"] = equivPts
                 mMagCol["ds"]       = imrec[idx]["ds"]
                 mMagCol["col"]      = col
@@ -948,7 +955,6 @@ def synoptic_map(config):#, hw_overwrite=None):
                                  config["dlog"],
                                  kNOISE_EQ)
 
-
         #FreeMagColsData(SyncolStart, SyncolEnd, -1, wt, sortedMagCol, length)
 
     #smallSynop = np.zeros([int(length[1]/config["nbin"]), int(length[0]/config["nbin"])])
@@ -959,7 +965,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     
     
     # TODO HEADER
-    
+    #synop = np.zeros([3600,1440])
     return synop, epts, length, imrec
 
     # data ready in synop/epts and smallSynop/smallEpts
@@ -1401,12 +1407,11 @@ def get_arg_parameters(global_config):
     
     return config    
 
-
 def main(global_config, session_folder):
     config = get_arg_parameters(global_config)    
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
-    synop, epts, length, imrec =  synoptic_map(config)
+    synop, epts, length, imrec = synoptic_map(config)
 
     synop_img = np.zeros([length[1], length[0]])
     #convert_image_array(synop, synop_img, length[0], length[1])    
@@ -1415,10 +1420,13 @@ def main(global_config, session_folder):
     stats = fstats(length[1]*length[0], synop, small=False)
     
     hdu  = fits.PrimaryHDU(synop_img)
+    table_hdu = create_src_fits_table(imrec)
+
     create_header(hdu.header, config, stats, imrec)
-    hdul = fits.HDUList([hdu])
+
+    hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
+    plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     
     if config["bin"]:
         # create small synoptic map
@@ -1441,13 +1449,10 @@ def main(global_config, session_folder):
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
-
+        plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     print('%s complete' %__file__)
 
-
-
-
+    return STATUS_OK
 
 if __name__ == "__main__":
     from config import Config
@@ -1497,10 +1502,12 @@ if __name__ == "__main__":
     stats = fstats(length[1]*length[0], synop, small=False)
     
     hdu  = fits.PrimaryHDU(synop_img)
+    table_hdu = create_src_fits_table(imrec)
+
     create_header(hdu.header, config, stats, imrec)
     hdul = fits.HDUList([hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    plot_synoptic(synop_img, synop_outpath, config['synop_name'][:-5], global_config, pdf=True) # cut out .fits
+    plot_synoptic_sources(synop_img, synop_outpath, config['synop_name'][:-5], global_config, table_hdu.data, pdf=True) # cut out .fits
     
     if config["bin"]:
 
@@ -1518,6 +1525,6 @@ if __name__ == "__main__":
         create_header(hdu_small.header, config, stats_small, imrec, True)
         hdul_small = fits.HDUList([hdu_small])
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        plot_synoptic(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, pdf=True) # cut out .fits
+        plot_synoptic_sources(smallSynop_img, synop_outpath, config['synop_small_name'][:-5], global_config, table_hdu.data, pdf=True)
 
     print('%s complete' %__file__)

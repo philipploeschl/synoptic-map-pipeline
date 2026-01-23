@@ -13,10 +13,6 @@ This is currently abused as a todo list
 - phi_drms_interface.py
   - figure out why some files are leftover in the duplicate filtering. possibly first and last
 
-- hmiphisynopitc.py
-  - gherardo crash at the weight function
-
-
 - DATA SELECTION: 
   - maybe throw out CR check in hmiphisynoptic instead of overwriting it
   - or just give it +-1 CR as margin  
@@ -423,10 +419,6 @@ UTC	CARRINGTON_LONGITUDE	SOURCE
 - CRLN_OBS now [-180,+180] -> BUG in header, but pipeline handles both now
 
 
-## Gherardo
-
-## Frank
-
 ## Pipeline 
 - change --session argument to --output
 - check if automatic session creation still uses config.cr
@@ -440,7 +432,6 @@ UTC	CARRINGTON_LONGITUDE	SOURCE
   - this will probably need a custom plot to get the x axis right
 
 ## PHI DRMS Interface
-- phi duplicate filtering needs to delete the _drms.fits output folder!
 
 
 ## M720 Processing

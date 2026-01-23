@@ -7,6 +7,9 @@ from datetime import timedelta
 import numpy as np
 from sunpy.coordinates.sun import carrington_rotation_time
 from scipy import interpolate
+from itertools import groupby
+from astropy.io import fits
+
 
 def create_session_folder(config):
     """
@@ -53,6 +56,61 @@ def create_session_structure(config, session_folder):
     os.makedirs(jsd_folder,    exist_ok=True)
     os.makedirs(synop_folder,  exist_ok=True)
 
+# create fits table with each data source used for synoptic map 
+def create_src_fits_table(imrec):
+    lines = []
+
+    for src, group in groupby(imrec, key=lambda x: x["src"]):
+        group_list = list(group)
+
+        if src =='HMI_COMBINED':
+            # get start and end of crln_obs in this HMI group
+            max_lon = round(group_list[0]["crln_obs"],2)
+            min_lon = round(group_list[-1]["crln_obs"],2)    
+            t_rec = f"{group_list[0]['tobs']}-{group_list[-1]['tobs']}"
+
+            # append variables in dictionary (no need to separate files of HMI)
+            lines.append({"src": 'HMI',"crln_start": max_lon,"crln_obs": np.nan,"crln_end": min_lon,"t_rec": t_rec})
+        else:
+            # append phi lines with src and crln_obs (crln_start and crln_end computed afterwards)                                    
+            for e in group_list:
+                lines.append({"src": 'PHI',"crln_start": np.nan,"crln_obs": round(e["crln_obs"],2),"crln_end": np.nan,"t_rec": e["tobs"]})
+    
+    def mean_longitude(a, b):
+        diff = abs(a - b)
+        if diff > 180:return ((a + b + 360) / 2) % 360
+        else:return (a + b) / 2
+    
+    #Compute crln_start and crln_end of each file by taking the mean of crln_obs of consecutive files (PHI case)
+    #Recompute crln_start/crln_end of each HMI block by taking the mean with crln_obs of previous/next PHI file (HMI case)
+    n=len(lines)
+    for i, line in enumerate(lines):
+        if line["src"]=='HMI':
+            line["crln_start"] = mean_longitude(line["crln_start"], lines[(i-1) % n]['crln_obs'])
+            line["crln_end"] = mean_longitude(line["crln_end"], lines[(i+1) % n]['crln_obs'])
+
+            lines[(i-1) % n]["crln_end"] = line["crln_start"]
+            lines[(i+1) % n]["crln_start"] = line["crln_end"]
+        else:
+            if lines[(i-1) % n]['src']!='HMI': line["crln_start"] = mean_longitude(line["crln_obs"], lines[(i-1) % n]["crln_obs"])
+            if lines[(i+1) % n]['src']!='HMI': line["crln_end"] = mean_longitude(line["crln_obs"], lines[(i+1) % n]["crln_obs"])
+
+    src_col = np.array([i["src"] for i in lines])
+    crlnstart_col = np.array([i['crln_start'] for i in lines])
+    crlnobs_col = np.array([i['crln_obs'] for i in lines])
+    crlnend_col = np.array([i['crln_end'] for i in lines])
+    trec_col = np.array([i['t_rec'] for i in lines])
+    
+    col1 = fits.Column(name='SRC', format='3A', array=src_col)
+    col2 = fits.Column(name='CRLN_START', format='E', array=crlnstart_col)
+    col3 = fits.Column(name='CRLN_OBS', format='E', array=crlnobs_col)
+    col4 = fits.Column(name='CRLN_END', format='E', array=crlnend_col)
+    col5 = fits.Column(name='T_REC', format='47A', array=trec_col)
+
+    table_hdu = fits.BinTableHDU.from_columns([col1, col2, col3, col4, col5])
+
+    return table_hdu
+
 
 def add_script_header(batch_out, script_name="script.sh"):
     """
@@ -66,7 +124,6 @@ def add_script_header(batch_out, script_name="script.sh"):
     batch_out.write('    exit 0\n')
     batch_out.write('  fi\n')
     batch_out.write('}\n\n')
-    
         
 def add_check_continue(batch_out):
     batch_out.write('check_continue\n')
@@ -356,6 +413,29 @@ def calc_trec(crln_obs, car_rot, verbose=False):
         
     #print(trec_hmi, hmi_prev, hmi_next, crln_obs, car_rot)
     return trec_hmi, hmi_prev, hmi_next, car_rot
+
+
+def get_fits_extension_name(filename):
+
+    if filename.endswith(".fits"):
+        n_end = len(".fits")
+    elif filename.endswith(".fits.gz"):
+        n_end = len(".fits.gz")
+    elif filename.endswith(".fits.Z"):
+        n_end = len(".fits.Z")
+    elif filename.endswith(".fits.z"):
+        n_end = len(".fits.z")
+    elif filename.endswith(".fits.zip"):
+        n_end = len(".fits.zip")
+    elif filename.endswith(".fits-z"):
+        n_end = len(".fits-z")
+    elif filename.endswith(".fits-gz"):
+        n_end = len(".fits-gz")
+    else:
+        raise ValueError(f"Unsupported file format: {filename}")
+
+    return n_end
+
 
 #if __name__ == "__main__":
     # Example usage

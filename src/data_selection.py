@@ -1220,6 +1220,12 @@ def get_clons(config):
     return solo_clon, earth_clon, ets, solo_hdis, earth_hdis
 
 
+
+
+
+
+
+
 if __name__ == "__main__":
 
     # Set cwd to file directory
@@ -1282,8 +1288,6 @@ if __name__ == "__main__":
         pass
         # TODO
         # - add priority settings for individual custom synotic maps
-
-
 
     #sp.kclear()
 
