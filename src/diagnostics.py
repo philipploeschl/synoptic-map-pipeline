@@ -285,9 +285,6 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
     phi_filtered, phi_mask = ar_filtering(phi_img, high_thld=50, low_thld=5, empty=np.nan)
     phi_filtered = np.where(~phi_mask, phi_img, np.nan)
 
-    hmi_filtered, hmi_mask = ar_filtering(hmi_img, high_thld=50, low_thld=5, empty=np.nan)
-    hmi_filtered = np.where(~hmi_mask, hmi_img, np.nan)
-
     latwidth = 10  #px
     lats = np.arange(0,1440+latwidth, latwidth)
     
