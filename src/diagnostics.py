@@ -303,6 +303,9 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
         #x1 = 0
         #x2 = len(hmi_img[0])
         
+        hmi_filtered, hmi_mask = ar_filtering(hmi_img, high_thld=50, low_thld=5, empty=np.nan)
+        hmi_filtered = np.where(~hmi_mask, hmi_img, np.nan)
+
         # use PHI windows for comparable activity and pixel statistics
         for (x1, x2) in window_phi:
             flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
@@ -717,7 +720,7 @@ if __name__ == "__main__":
     # function call from pipeline modules  "diagnostics(synop_img, table_hdu.data, synop_outpath, config['synop_name'][:-5], global_config)"
     
     start_cr = 2279
-    end_cr   = 2300
+    end_cr   = 2306
 
     only_flux_statistics = False
     only_stripes         = False
@@ -726,8 +729,9 @@ if __name__ == "__main__":
 
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHIHMI')
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/PHI_only/')
-    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHI')
     #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/vector_tests/')
+    #base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v01/l3/syn/PHI')
+    base = Path('/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/release_2025_v02/l3/syn/PHIHMI')
 
     diag_out = base / 'flux_diagnostics.csv'
     
