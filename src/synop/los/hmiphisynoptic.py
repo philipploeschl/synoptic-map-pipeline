@@ -21,6 +21,8 @@ from utils.plots import plot_synoptic_sources
 from utils.utils import create_src_fits_table
 from diagnostics import diagnostics
 
+from sunpy.coordinates.sun import carrington_rotation_time
+
 
 
 # DEFINES
@@ -1228,9 +1230,16 @@ def create_header(outRec, config, stats, imrec, small=False):
         yout = config["length"][1]
 
     eph = np.zeros(30)
-    tstart = CarringtonTime(config["cr"], 360.0)
-    tstop  = CarringtonTime(config["cr"], 0.0)
-    trot   = CarringtonTime(config["cr"], 180.0)
+
+    # replace old CarringtonTime from HMI C code with sunpy function to avoid out of ecliptic bugs
+    #tstart = CarringtonTime(config["cr"], 360.0)
+    #tstop  = CarringtonTime(config["cr"], 0.0)
+    #trot   = CarringtonTime(config["cr"], 180.0)
+
+    tstart = carrington_rotation_time(config["cr"])
+    tstop  = carrington_rotation_time(config["cr"] + 1)
+    trot   = carrington_rotation_time(config["cr"] + 0.5)
+
     delta_T = sscan_time("1977.01.01_00:00:00_TAI") - sscan_time("1601.01.01_00:00:00_UT")
     
     firstidx = 0
