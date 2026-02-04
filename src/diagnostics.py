@@ -714,6 +714,8 @@ def stripe_pattern_magnitude(path):
 
 if __name__ == "__main__":
 
+    # function call from pipeline modules  "diagnostics(synop_img, table_hdu.data, synop_outpath, config['synop_name'][:-5], global_config)"
+    
     start_cr = 2279
     end_cr   = 2300
 
