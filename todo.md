@@ -1,5 +1,23 @@
 This is currently abused as a todo list
 
+
+# Merge ToDo List
+## Misc
+- throw out everything that's obsolete from this list
+- update readme.md
+
+## General
+- implement smaller intermediate reprojection dimensions
+- merge diagnostics
+- fix and merge data planning
+
+## PHI_DRMS_INTERFACE
+- add new WCS check (see gherardo email)
+  - PWCSCORR= '1       '           / WCS entries corrected 1 = yes
+  - discard dataset if not 1
+
+
+
 ## Data Selection
 ## Notes
 - link to drms installation
