@@ -7,7 +7,7 @@ Archive:         	0
 Retention:       	60
 PrimeKeys:       	T_REC
 DBIndex:         	T_REC
-Description:     	"HMI & PHI B %s Magnetograms remapped to grid in longitude, sin latitude, in full-resolution"
+Description:     	"HMI & PHI vector B Magnetograms remapped to grid in longitude, sin latitude, in full-resolution"
 
 #=====Links=====
 
@@ -105,4 +105,6 @@ Keyword:DIFROT_C, float, variable, record, nan, "%f", "none", "C coefficient (to
 Keyword:CALVER64, longlong, variable, record, 0x0000000000000000, "0x%016llX", "none", "Calibration Version"
 
 #=====Segments=====
-Data: %s, vardim, float, 2, 1801, 1080, "gauss", fits, "", "0.000000"
+Data: Br, vardim, float, 2, 1801, 1080, "gauss", fits, "", "0.000000"
+Data: Bt, vardim, float, 2, 1801, 1080, "gauss", fits, "", "0.000000"
+Data: Bp, vardim, float, 2, 1801, 1080, "gauss", fits, "", "0.000000"

@@ -17,9 +17,9 @@ from astropy.io import fits
 import os, sys
 from datetime import date
 
+from utils.plots import plot_synoptic
 from utils.plots import plot_synoptic_sources
 from utils.utils import create_src_fits_table
-from diagnostics import diagnostics
 
 
 
@@ -36,9 +36,6 @@ SHRT_MIN = -SHRT_MAX -1
 DRMS_MISSING_FLOAT = np.nan    
 kNOISE_EQ = 10.0 # redefined in CalcSynopCol but unused
 
-STATUS_OK = 0
-STATUS_ERROR = 1
-
 # DRMS Interface
 def get_drms_parameters_hmi(inRecs, input_ds):
 
@@ -46,9 +43,9 @@ def get_drms_parameters_hmi(inRecs, input_ds):
     drms_param = []
     nRecs = 0
 
-    if inRecs is None or len(inRecs) < 23: return drms_param, nRecs
+    if input_ds == "": return drms_param, nRecs
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
- 
+    
     #nRecs = len(inRecs.split(','))
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
     show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
@@ -72,7 +69,7 @@ def get_drms_parameters_hmi(inRecs, input_ds):
             else:
                 dict_tmp[key] = formatted[i]
         dict_tmp["FILENAME"] = ''
-
+   
         drms_param.append(dict_tmp)
         nRecs += 1
 
@@ -92,7 +89,7 @@ def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
     show_info_remap = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
     show_info_base  = 'show_info %s["%s"] key="FILENAME" -iPA' 
-
+    
     #-P for path and -A for segment
     
     si_out_remap = subprocess.check_output(show_info_remap %(input_ds, inRecs) , shell=True)[:-1].decode("utf-8")
@@ -102,11 +99,11 @@ def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
     si_out_base = subprocess.check_output(show_info_base %(input_ds_origin, inRecs) , shell=True)[:-1].decode("utf-8")
     raw_base = si_out_base.split('\n')
     keys_base = raw_base[0].split('\t')
-    
+
     for (line_remap, line_base) in (zip(raw_remap[1:],raw_base[1:])):  
         formatted_remap = line_remap.split('\t') # [CALVER64, T_REC, QUALITY, FDRADIAL, CARSTRCH, DIFROT_A, DIFROT_B, DIFROT_C, CRVAL1, CRLN_OBS, CAR_ROT, MAPLGMAX, MAPLGMIN, I_DREC, INSTRUME]
         formatted_base = line_base.split('\t') # FILENAME
-        
+
         dict_tmp = {}
 
         for i, key in enumerate(keys_remap):
@@ -133,12 +130,9 @@ def update_common_carrot(drms_getkey):
     for inRec in drms_getkey:
         carrots.append(float(inRec['CAR_ROT']))
 
-    if not carrots:
-        raise ValueError("Error: No inRecs found!")
-
     most_common = max(carrots, key=carrots.count)
-    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)} records")
-    
+    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)   } records")
+
     for inRec in drms_getkey:
         inRec["CAR_ROT"] = most_common
     
@@ -222,7 +216,9 @@ def init_MagCol(length):
     mMagCol = {}
     
     mMagCol["dist"]     = None
-    mMagCol["datacol"]  = np.zeros(length[1]) # (float *)malloc(sizeof(float) * length[1])
+    mMagCol["datacolBr"] = np.zeros(length[1]) # (float *)malloc(sizeof(float) * length[1])
+    mMagCol["datacolBt"] = np.zeros(length[1]) # (float *)malloc(sizeof(float) * length[1])
+    mMagCol["datacolBp"] = np.zeros(length[1]) # (float *)malloc(sizeof(float) * length[1])
     mMagCol["equivPts"] = None
     mMagCol["ds"]       = None 
     mMagCol["col"]      = None 
@@ -261,12 +257,12 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     weights  = np.array([])
 
     multi = nimg     # total width of magnetogram slices, must be UNEVEN
-    delta_min = 4  # hours for HMI averaging
+    delta_min = 4 # hours for HMI averaging
     delta_max = 80 # hours: about 45° halfWidth. only used with data gaps
     
     nrows = len(mrd_cont)
     pph = (2.2/4)/synstep # pix per hour approximated from HMI cadence
-
+    
     # convert time strings into datetime objects
     for key in drms_getkey:
         time = np.append(time, datetime.datetime.strptime(key['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI"))
@@ -311,6 +307,7 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         if not widths[-1] % 2: widths[-1] += 1 # make widths uneven to have a central column
         
         mids = np.append(mids, (np.round(cad_max*pph*multi/2)).astype(int)) # floor for array[0] element
+        
     #weights = [np.zeros(int(w)) for w in widths]
 
     # np.floor to avoid going into the neighbour frame!
@@ -329,6 +326,7 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     
     # loop over weight of each magnetogram
     for i in range(len(weights)):
+
         # polynomial version
         # measured from current CM:
         # 1x chwidth reaches image border to the next record 
@@ -346,24 +344,18 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         
         n1 = np.ceil((multi-1)*chwidth[i][0]).astype(int) # needs to be >1.0 to work without NaNs 
         n2 = np.ceil((multi-1)*chwidth[i][1]).astype(int) # needs to be >1.0 to work without NaNs
-        
+
         if lim:
             # nlim = 25 # this gives 2*25*0.1 = 5° wide overlap region
             # now set in config.py
             if n1 > nlim: n1 = nlim
             if n2 > nlim: n2 = nlim
-
+        
         for j, exp in enumerate(exps):
 
-            # rounding issues in len(np.arange(0, 1, 1/n)) can return len(n)+1
-            # use np.linespace without endpoint instead
-            #slope1 = np.arange(0, 1, 1/n1)**exp       # **5/2 for < 20% contribution at adjCM
-            #slope2 = np.arange(0, 1, 1/n2)[::-1]**exp #reverse for decreasing order
-            slope1 = np.linspace(0, 1, n1, endpoint=False)**exp # exclude endpoint to avoid the slope reaching weight=1
-            slope2 = np.linspace(0, 1, n2, endpoint=False)[::-1]**exp #reverse for decreasing order
-
-            #if j==0: print(i, j, len(slope1), len(weights[i][j][mids[i]-chwidth[i][0]:mids[i]+chwidth[i][1]+1]), len(slope2), len(weights[i][j][mids[i]-chwidth[i][0]:mids[i]+chwidth[i][1]+1])+len(slope1)+len(slope2), len(weights[i][j]))
-
+            slope1 = np.arange(0, 1, 1/n1)**exp       # **5/2 for < 20% contribution at adjCM
+            slope2 = np.arange(0, 1, 1/n2)[::-1]**exp #reverse for decreasing order
+            
             weights[i][j][mids[i]-(chwidth[i][0]+n1):mids[i]-(chwidth[i][0])] = slope1
             weights[i][j][mids[i]-chwidth[i][0]:mids[i]+chwidth[i][1]+1] = 1
             weights[i][j][mids[i]+(chwidth[i][1]+1):mids[i]+(chwidth[i][1]+1+n2)] = slope2
@@ -661,19 +653,16 @@ def synoptic_map(config):#, hw_overwrite=None):
 
     # combine into a single drms_getkey dictionary list for the remaining code
     # sort by descending CRLN_OBS to emulate T_REC order
+    
     drms_getkey_tmp = drms_getkey_hmi + drms_getkey_phi
     drms_getkey = sorted(drms_getkey_tmp, key=lambda x: float(x['CRLN_OBS']), reverse=True)
 
     nRecs = nRecs_hmi + nRecs_phi
 
     # select the most common CAR_ROT entry and set it for all data
-    # WARNING, this requires
-    # - all data to be from the same map, as months offset would be overwritten by this
-    # - the HMI dataset not to overlap with itself!
-    # TODO this might need a decimal carrington number based on the first and last HMI date
     drms_getkey, common_carrot = update_common_carrot(drms_getkey)
     config["cr"] = common_carrot
-    
+
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
     
     #if hw_overwrite is not None:
@@ -711,7 +700,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
 
-    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs","src"]
+    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
     imrec = [] # list to hold dictionary
 
     idx = 0
@@ -849,11 +838,10 @@ def synoptic_map(config):#, hw_overwrite=None):
         # temporary, remove after debugging:
         imrec_tmp["cadence"] = cadences[ds] #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
         imrec_tmp["crln_obs"] = cmLong #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
-   
         
         imrec.append(imrec_tmp)
         idx += 1
-    
+
     ngood = idx
     
     config["ngood"] = ngood
@@ -868,9 +856,11 @@ def synoptic_map(config):#, hw_overwrite=None):
     ww   = np.zeros(length[0] * length[1], dtype=int)                 # UNUSED
     epts = np.zeros(length[0] * length[1], dtype=float)
 
-    synop    = np.zeros(length[0] * length[1], dtype=float)
-    losSynop = np.zeros(length[0] * length[1], dtype=float)
-
+    synopBr = np.zeros(length[0] * length[1], dtype=float)
+    synopBt = np.zeros(length[0] * length[1], dtype=float)
+    synopBp = np.zeros(length[0] * length[1], dtype=float)
+    #losSynop = np.zeros(length[0] * length[1], dtype=float)
+        
     sortedMagCol = init_sortedMagCol(length[0]) # sortedMagCol[3600][] empty list []
 
     started = 0
@@ -938,13 +928,10 @@ def synoptic_map(config):#, hw_overwrite=None):
             equivPts = 1.0
 
             # Read inArray from current frame
-            # TODO this is the correct version
-            #inArray = fits.open(drms_getkey[inRec][config["proj"]])
-            # TODO TEMPORARY FIX UNTIL DRMS_PREPARATION.PY DEFINITION IS FIXED
-            try:
-                inArray = fits.open(drms_getkey[inRec]["Ml"])
-            except KeyError:
-                inArray = fits.open(drms_getkey[inRec]["Mr"])
+            inArrayBr = fits.open(drms_getkey[inRec]["Br"])
+            inArrayBt = fits.open(drms_getkey[inRec]["Bt"])
+            inArrayBp = fits.open(drms_getkey[inRec]["Bp"])
+            
             
             # synoptic columns/segments are processed from RIGHT to LEFT
             # weights are allocated from LEFT to RIGHT for each magnetogram
@@ -969,7 +956,9 @@ def synoptic_map(config):#, hw_overwrite=None):
                 mMagCol = init_MagCol(length)  # MagCol_t mMagCol;
 
                 mMagCol["dist"]     = ((col - mapmidcol) * synstep + imrec[idx]["mapct"]) - imrec[idx]["mapCM"]
-                mMagCol["datacol"]  = inArray[0].data[:, col].copy()  # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacolBr"]  = inArrayBr[0].data[:, col].copy() # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacolBt"]  = inArrayBt[0].data[:, col].copy() # (float *)malloc(sizeof(float) * length[1])
+                mMagCol["datacolBp"]  = inArrayBp[0].data[:, col].copy() # (float *)malloc(sizeof(float) * length[1])
                 mMagCol["equivPts"] = equivPts
                 mMagCol["ds"]       = imrec[idx]["ds"]
                 mMagCol["col"]      = col
@@ -985,22 +974,26 @@ def synoptic_map(config):#, hw_overwrite=None):
                 sortedMagCol[syncol].append(mMagCol)
                 wt[syncol] += 1 
 
-            inArray.close()
-        
+            inArrayBr.close()
+            inArrayBt.close()
+            inArrayBp.close()
+            
         calcsynret = CalcSynCols(SyncolStart,
                                  SyncolEnd,
                                  -1,
                                  sortedMagCol,
-                                 synop,
+                                 synopBr,
+                                 synopBt,
+                                 synopBp,
                                  wt,
                                  ww,
                                  epts,
-                                 losSynop,
+                                 #losSynop,
                                  length,
                                  config["center"],
                                  config["nEquivPtsReq"],
                                  config["los"],
-                                 radialFound,
+                                 #radialFound,
                                  sensAdj,
                                  config["noiseS"],
                                  config["nsig"],
@@ -1008,6 +1001,7 @@ def synoptic_map(config):#, hw_overwrite=None):
                                  config["minOutPts"],
                                  config["dlog"],
                                  kNOISE_EQ)
+
 
         #FreeMagColsData(SyncolStart, SyncolEnd, -1, wt, sortedMagCol, length)
 
@@ -1017,38 +1011,36 @@ def synoptic_map(config):#, hw_overwrite=None):
     #frebinbox(synop, smallSynop, length[0], length[1], config["nbin"], config["nbin"] - 1)
     #frebinbox(epts,  smallEpts,  length[0], length[1], config["nbin"], config["nbin"] - 1)
     
-    
-    # TODO HEADER
-    #synop = np.zeros([3600,1440])
-    return synop, epts, length, imrec
+    return synopBr, synopBt, synopBp, epts, length, imrec
 
     # data ready in synop/epts and smallSynop/smallEpts
-
 
 
 # Synoptic Column calculation
 
 def CalcSynCols(start, #int start,
-            end,   #int end,
-            incr,  #int incr,
-            smc,   #MagCol_t **smc,
-            synop, #float *synop,
-            wt,    #int *wt,
-            ww,    #char *ww,               # UNUSED
-            epts,  #float *epts,
-            losSynop, #float *losSynop,
-            length,   #int *len,
-            center,   #float center,
-            nEquivPtsReq, #float nEquivPtsReq,
-            los,          #int los,
-            radialFound,  #int radialFound,
-            sensAdj,  #float sensAdj,
-            noiseS,   #float noiseS,
-            nsig,     #float nsig,
-            maxNoiseAdj,  #float maxNoiseAdj,
-            minOutPts,    #int minOutPts,
-            dlog,         #int dlog
-            kNOISE_EQ):   # added since not global in python
+                end,   #int end,
+                incr,  #int incr,
+                smc,   #MagCol_t **smc,
+                synopBr,
+                synopBt,
+                synopBp,
+                wt,    #int *wt,
+                ww,    #char *ww,               # UNUSED
+                epts,  #float *epts,
+                #losSynop, #float *losSynop,
+                length,   #int *len,
+                center,   #float center,
+                nEquivPtsReq, #float nEquivPtsReq,
+                los,          #int los,
+                #radialFound,  #int radialFound,
+                sensAdj,  #float sensAdj,
+                noiseS,   #float noiseS,
+                nsig,     #float nsig,
+                maxNoiseAdj,  #float maxNoiseAdj,
+                minOutPts,    #int minOutPts,
+                dlog,         #int dlog
+                kNOISE_EQ):   # added since not global in python
 
 
     #float cosrho; #/* equal cos(magnetogram latitude) * cos(magnetogram dlatitude) 
@@ -1075,8 +1067,10 @@ def CalcSynCols(start, #int start,
         incl = 1
 
     for col in range(start, end+incl, incr):
-
-        val = np.zeros(wt[col])        #float *val = (float *)malloc(sizeof(float) * wt[col]);
+        valBr = np.zeros(wt[col])        #float *valBr = (float *)malloc(sizeof(float) * wt[col]);
+        valBt = np.zeros(wt[col])        #float *valBt = (float *)malloc(sizeof(float) * wt[col]);
+        valBp = np.zeros(wt[col])        #float *valBp = (float *)malloc(sizeof(float) * wt[col]);
+        
         ept = np.zeros(wt[col])        #float *ept = (float *)malloc(sizeof(float) * wt[col]);
         wti = np.zeros(wt[col])        #float *ept = (float *)malloc(sizeof(float) * wt[col]);
 
@@ -1089,13 +1083,16 @@ def CalcSynCols(start, #int start,
             sinLat = (row - midSynRow) / midSynRow             #float sinLat = (row - midSynRow) / midSynRow;
             cosLat = np.sqrt(1 - sinLat * sinLat)                 #float cosLat = sqrt(1 - sinLat * sinLat);
 
-            sumfinal = 0.0                                     #float sumfinal = 0.0;
+            sumfinalBr = 0.0                                     #float sumfinalBr = 0.0;
+            sumfinalBt = 0.0                                     #float sumfinalBt = 0.0;
+            sumfinalBp = 0.0                                     #float sumfinalBp = 0.0;
+            
             nptsfinal = 0                                      #int nptsfinal = 0;
             Maxnepts = nEquivPtsReq + 10                       #int Maxnepts = nEquivPtsReq + 10;
             wtfinal = 0.0
             
-            if (radialFound):
-                cosrho = cosLat * cosCenter
+            #if (radialFound):
+            #    cosrho = cosLat * cosCenter
     
             sum_ = 0.0
             npts = 0
@@ -1122,14 +1119,19 @@ def CalcSynCols(start, #int start,
             # this is not an issue at 2h cadence because wt[col] is always < Maxnepts
             
             while (i < wt[col] and nEquivPts < Maxnepts):           # for (i = 0; i < wt[col] && nEquivPts < Maxnepts; i++)
-                
-                magVal = smc[col][i]["datacol"][row]                # float magVal = *(smc[col][i].datacol + row);
-    
-                if not drms_ismissing_float(magVal):
 
+                magValBr = smc[col][i]["datacolBr"][row]                 # float magVal = *(smc[col][i].datacolBr + row);
+                magValBt = smc[col][i]["datacolBt"][row]                 # float magVal = *(smc[col][i].datacolBt + row);
+                magValBp = smc[col][i]["datacolBp"][row]                 # float magVal = *(smc[col][i].datacolBp + row);
+                                        
+                if not drms_ismissing_float(magValBr):
+                    
                     nEquivPts += smc[col][i]["equivPts"]
-                    sum_  += magVal
-                    val[j] = magVal
+                    sum_  += magValBr
+                    valBr[j] = magValBr
+                    valBt[j] = magValBt
+                    valBp[j] = magValBp
+                    
                     ept[j] = smc[col][i]["equivPts"]
                     wti[j] = smc[col][i]["wt"][row]                 # TODO track wti[j] for averaging later wt col
 
@@ -1139,7 +1141,10 @@ def CalcSynCols(start, #int start,
                 i = i + 1
                 
             # discard initialised but unfilled columns
-            #val = val[:j] 
+            #valBr = valBr[:j]
+            #valBt = valBt[:j]
+            #valBp = valBp[:j]
+            
             #ept = ept[:j] 
             #wti = wti[:j] 
             # this was moved to statVals = copy(val[:j]) 
@@ -1161,10 +1166,10 @@ def CalcSynCols(start, #int start,
                 # * we don't want to reject them under any circumstances */
             
                 noiseLevel = kNOISE_EQ * noiseS * sensAdj #// noiseLevel not be used so far.
-                if (radialFound):
-                    noiseLevel = noiseLevel * int(np.min(1 / cosrho, maxNoiseAdj))
-                
-                statVals = copy(val[:j]) # truncate initialised but unfilled columns             
+                #if (radialFound):
+                #    noiseLevel = noiseLevel * int(np.min(1 / cosrho, maxNoiseAdj))
+                    
+                statVals = copy(valBr[:j])            
                 statVals, nStatPts, avg, med = magStats(statVals, npts, sum_, minOutPts)
 
                 #/* Reject outliers whose values exceeds the noise threshold */
@@ -1177,13 +1182,16 @@ def CalcSynCols(start, #int start,
                         sig = np.sqrt((ssqr - nStatPts * avg * avg) / (nStatPts - 1))
                         statsDone = 1
 
-                    dev = np.fabs(val[j] - med)
+                    dev = np.fabs(valBr[j] - med)
                     if (nptsfinal >= nEquivPtsReq):
                         break
  
                     if npts > 10:                            # deactivate outlier rejection for low number datasets
                         if (dev < nsig * sig):
-                            sumfinal  += val[j] * wti[j]
+                            sumfinalBr  += valBr[j] * wti[j]
+                            sumfinalBt  += valBt[j] * wti[j]
+                            sumfinalBp  += valBp[j] * wti[j]
+
                             nptsfinal += 1
                             wtfinal   += wti[j] 
 
@@ -1192,8 +1200,10 @@ def CalcSynCols(start, #int start,
                         else:
                             nrej += 1 #++nrej;               # UNUSED
                     else:
-                        
-                        sumfinal  += val[j] * wti[j]
+                        sumfinalBr  += valBr[j] * wti[j]
+                        sumfinalBt  += valBt[j] * wti[j]
+                        sumfinalBp  += valBp[j] * wti[j]
+                            
                         nptsfinal += 1
                         wtfinal   += wti[j] 
 
@@ -1202,7 +1212,9 @@ def CalcSynCols(start, #int start,
             #/* Calcuate the average value for each x,y in the stack */
             if (nptsfinal):
                 #TODO: check if this is correct: RuntimeWarning: invalid value encountered in scalar divide
-                synVal = sumfinal / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
+                synValBr = sumfinalBr / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
+                synValBt = sumfinalBt / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
+                synValBp = sumfinalBp / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
 
                 minVal = (SHRT_MIN + 1) #// * kOutScale;        #float minVal = (SHRT_MIN + 1); // * kOutScale;
                 maxVal = (SHRT_MAX - 1) #// * kOutScale;        #float maxVal = (SHRT_MAX - 1); // * kOutScale;
@@ -1211,31 +1223,57 @@ def CalcSynCols(start, #int start,
                 #    * If 16 bits cannot hold the float value, then cap the value at 
                 #    * the largest value (in magnitude) that 16 bits can hold. */
                 
-                if (synVal < minVal):
-                    synop[row * length[0] + col] = minVal
+                if (synValBr < minVal):
+                    synopBr[row * length[0] + col] = minVal
                 
-                elif (synVal > maxVal):
-                    synop[row * length[0] + col] = maxVal
+                elif (synValBr > maxVal):
+                    synopBr[row * length[0] + col] = maxVal
                 
                 else:
-                    synop[row * length[0] + col] = synVal
+                    synopBr[row * length[0] + col] = synValBr
+                    
+                
+                if (synValBt < minVal):
+                    synopBt[row * length[0] + col] = minVal
+                
+                elif (synValBt > maxVal):
+                    synopBt[row * length[0] + col] = maxVal
+                
+                else:
+                    synopBt[row * length[0] + col] = synValBt
+                    
+                    
+                if (synValBp < minVal):
+                    synopBp[row * length[0] + col] = minVal
+                
+                elif (synValBp > maxVal):
+                    synopBp[row * length[0] + col] = maxVal
+                
+                else:
+                    synopBp[row * length[0] + col] = synValBp
                 
             else:
-                synop[row * length[0] + col] = DRMS_MISSING_FLOAT
+                synopBr[row * length[0] + col] = DRMS_MISSING_FLOAT;
+                synopBt[row * length[0] + col] = DRMS_MISSING_FLOAT;
+                synopBp[row * length[0] + col] = DRMS_MISSING_FLOAT;
     
             ww[row * length[0] + col] = npts
             #//	 epts[row * len[0] + col] = nEquivPts;
             epts[row * length[0] + col] = nptsfinal
-            if (los and radialFound):
-                
-                offset = int(row * length[0] + col)
-                if (drms_ismissing_float(synop[offset])):
-                    losSynop[offset] = DRMS_MISSING_FLOAT
-                
-                else:
-                    losSynop[offset] = synop[offset] * cosLat
+
+            #if (los and radialFound):
+            #    
+            #    offset = int(row * length[0] + col)
+            #    if (drms_ismissing_float(synopBr[offset])):
+            #        losSynop[offset] = DRMS_MISSING_FLOAT
+            #    
+            #    else:
+            #        losSynop[offset] = synopBr[offset] * cosLat
             
-        del(val) #free(val);
+        del(valBr) #free(valBr);
+        del(valBt) #free(valBt);
+        del(valBp) #free(valBp);
+        
         del(ept) #free(ept);
 
     #return 0
@@ -1413,10 +1451,11 @@ def get_arg_parameters(global_config):
 
     # IMPORTANT: CHECK IF MAPMMAX AND SINBDIVS MATCH THE PROJECTION RESOLUTION
     config = {
-        
+        # 
         "cr":   global_config.cr,
         "proj": global_config.proj,  # "Mr" or "Ml"
-        "input_ds_hmi":        global_config.data_series_remap_hmi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
+        # TODO B3comp dataseries
+        "input_ds_hmi":        global_config.data_series_remap_hmi, #"mps_loeschl.B3comp_disambR_remap_final_720s"bin_070au", 
         "input_ds_phi":        global_config.data_series_remap_phi, #"mps_loeschl.Mr_remap_CR2258_FDT_test_release_june_2022_defri", #"mps_loeschl.mr_remap_cr2240_fdt_test_release_sup_conj_2021", #"mps_loeschl.Mr_remap_CR2240_trl_v01", #"mps_loeschl.Ml_remap_CR2240_rev02_ideal",#"mps_loeschl.Mr_remap_CR2240_rev03", #"mps_loeschl.Ml_remap_CR2240_rev02",#"mps_loeschl.Ml_remap_CR2240_fast", #"mps_loeschl.Ml_remap_720s", #"mps_loeschl.Ml_remap_720s_1440p_1xbin_070au", #"mps_loeschl.Ml_remap_720s",#_720p_2xbin_070au", #mps_loeschl.Ml_remap_720s #mps_loeschl.Ml_remap_CR2255
         "input_ds_phi_origin": global_config.data_series_phi,
         "timestring_hmi":      global_config.timestring_hmi, 
@@ -1462,31 +1501,45 @@ def get_arg_parameters(global_config):
     
     return config    
 
+
 def main(global_config, session_folder):
     config = get_arg_parameters(global_config)    
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
-    synop, epts, length, imrec = synoptic_map(config)
+    synopBr, synopBt, synopBp, epts, length, imrec =  synoptic_map(config)
 
-    synop_img = np.zeros([length[1], length[0]])
+    #synopBr_img = np.zeros([length[1], length[0]])
+    #synopBt_img = np.zeros([length[1], length[0]])
+    #synopBp_img = np.zeros([length[1], length[0]])  
+
     #convert_image_array(synop, synop_img, length[0], length[1])    
-    synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    synopBr_img = np.reshape(synopBr, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    synopBt_img = np.reshape(synopBt, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    synopBp_img = np.reshape(synopBp, (length[1], length[0])) # confirmed to work identical to convert_image_array()
     
-    stats = fstats(length[1]*length[0], synop, small=False)
+    stats = fstats(length[1]*length[0], synopBr, small=False)
     
-    hdu  = fits.PrimaryHDU(synop_img)
+    hduBr = fits.PrimaryHDU(synopBr_img)
+    hduBt = fits.PrimaryHDU(synopBt_img)
+    hduBp = fits.PrimaryHDU(synopBp_img)
+
     table_hdu = create_src_fits_table(imrec)
 
-    create_header(hdu.header, config, stats, imrec)
+    create_header(hduBr.header, config, stats, imrec)
+    create_header(hduBt.header, config, stats, imrec)
+    create_header(hduBp.header, config, stats, imrec)
 
-    hdul = fits.HDUList([hdu, table_hdu])
-    hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
+    hdulBr = fits.HDUList([hduBr, table_hdu])
+    hdulBt = fits.HDUList([hduBt, table_hdu])
+    hdulBp = fits.HDUList([hduBp, table_hdu])
 
-    diagnostics(synop_img, table_hdu.data, synop_outpath, int(config["cr"]), global_config)
-    
-    if global_config.Mr:
-        plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
-    else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) 
+    hdulBr.writeto(os.path.join(synop_outpath,'synopBr.fits'), overwrite=True)
+    hdulBt.writeto(os.path.join(synop_outpath,'synopBt.fits'), overwrite=True)
+    hdulBp.writeto(os.path.join(synop_outpath,'synopBp.fits'), overwrite=True)
+
+    plot_synoptic_sources(synopBr_img, 'B_r', synop_outpath, 'synopBr', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBt_img, 'B_t', synop_outpath, 'synopBt', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBp_img, 'B_p', synop_outpath, 'synopBp', config['cr'], table_hdu.data, save=True)   
     
     if config["bin"]:
         # create small synoptic map
@@ -1494,27 +1547,53 @@ def main(global_config, session_folder):
         xbin = config["xbin"]
         ybin = config["ybin"] 
 
-        smallSynop = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        smallSynopBr = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        smallSynopBt = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        smallSynopBp = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
 
-        frebinbox(synop, smallSynop, length[0], length[1], xbin, ybin)
-        smallSynop_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
-        smallSynop_img = np.reshape(smallSynop, (int(length[1]/ybin), int(length[0]/xbin)))
+        frebinbox(synopBr, smallSynopBr, length[0], length[1], xbin, ybin)
+        frebinbox(synopBt, smallSynopBt, length[0], length[1], xbin, ybin)
+        frebinbox(synopBp, smallSynopBp, length[0], length[1], xbin, ybin)
+
+        smallSynopBr_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+        smallSynopBt_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+        smallSynopBp_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+
+        smallSynopBr_img = np.reshape(smallSynopBr, (int(length[1]/ybin), int(length[0]/xbin)))
+        smallSynopBt_img = np.reshape(smallSynopBt, (int(length[1]/ybin), int(length[0]/xbin)))
+        smallSynopBp_img = np.reshape(smallSynopBp, (int(length[1]/ybin), int(length[0]/xbin)))
         
         #smallEpts  = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
         #frebinbox(epts,  smallEpts,  length[0], length[1], xbin, ybin)
         #convert_image_array(smallSynop, smallSynop_img, int(length[0]/xbin), int(length[1]/ybin))
         
-        stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynop)
-        hdu_small = fits.PrimaryHDU(smallSynop_img)
-        create_header(hdu_small.header, config, stats_small, imrec, True)
-        hdul_small = fits.HDUList([hdu_small])
-        hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        if global_config.Mr:
-            plot_synoptic_sources(smallSynop_img, 'B_r', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
-        else: plot_synoptic_sources(smallSynop_img, 'B_{LoS}', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) 
+        stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynopBr)
+
+        hduBr_small = fits.PrimaryHDU(smallSynopBr_img)
+        hduBt_small = fits.PrimaryHDU(smallSynopBt_img)
+        hduBp_small = fits.PrimaryHDU(smallSynopBp_img)
+
+        table_hdu = create_src_fits_table(imrec)
+
+        create_header(hduBr_small.header, config, stats, imrec)
+        create_header(hduBt_small.header, config, stats, imrec)
+        create_header(hduBp_small.header, config, stats, imrec)
+
+        hdulBr_small = fits.HDUList([hduBr_small, table_hdu])
+        hdulBt_small = fits.HDUList([hduBt_small, table_hdu])
+        hdulBp_small = fits.HDUList([hduBp_small, table_hdu])
+
+        hdulBr_small.writeto(os.path.join(synop_outpath,'synopBr_small.fits'), overwrite=True)
+        hdulBt_small.writeto(os.path.join(synop_outpath,'synopBt_small.fits'), overwrite=True)
+        hdulBp_small.writeto(os.path.join(synop_outpath,'synopBp_small.fits'), overwrite=True)
+
+        plot_synoptic_sources(smallSynopBr_img, 'B_r', synop_outpath, 'synopBr_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBt_img, 'B_t', synop_outpath, 'synopBt_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBp_img, 'B_p', synop_outpath, 'synopBp_small', config['cr'], table_hdu.data, save=True)   
+
     print('%s complete' %__file__)
 
-    return STATUS_OK
+
 
 if __name__ == "__main__":
     from config import Config
@@ -1555,42 +1634,89 @@ if __name__ == "__main__":
     config = get_arg_parameters(global_config)    
     synop_outpath = os.path.join(session_folder, config["synop_path"])
 
-    synop, epts, length, imrec =  synoptic_map(config)
+    synopBr, synopBt, synopBp, epts, length, imrec =  synoptic_map(config)
 
-    synop_img = np.zeros([length[1], length[0]])
+    #synopBr_img = np.zeros([length[1], length[0]])
+    #synopBt_img = np.zeros([length[1], length[0]])
+    #synopBp_img = np.zeros([length[1], length[0]])  
+
     #convert_image_array(synop, synop_img, length[0], length[1])    
-    synop_img = np.reshape(synop, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    synopBr_img = np.reshape(synopBr, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    synopBt_img = np.reshape(synopBt, (length[1], length[0])) # confirmed to work identical to convert_image_array()
+    synopBp_img = np.reshape(synopBp, (length[1], length[0])) # confirmed to work identical to convert_image_array()
     
-    stats = fstats(length[1]*length[0], synop, small=False)
+    stats = fstats(length[1]*length[0], synopBr, small=False)
     
-    hdu  = fits.PrimaryHDU(synop_img)
+    hduBr = fits.PrimaryHDU(synopBr_img)
+    hduBt = fits.PrimaryHDU(synopBt_img)
+    hduBp = fits.PrimaryHDU(synopBp_img)
+
     table_hdu = create_src_fits_table(imrec)
 
-    create_header(hdu.header, config, stats, imrec)
-    hdul = fits.HDUList([hdu, table_hdu])
-    hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
-    if global_config.Mr:
-        plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
-    else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) 
+    create_header(hduBr.header, config, stats, imrec)
+    create_header(hduBt.header, config, stats, imrec)
+    create_header(hduBp.header, config, stats, imrec)
+
+    hdulBr = fits.HDUList([hduBr, table_hdu])
+    hdulBt = fits.HDUList([hduBt, table_hdu])
+    hdulBp = fits.HDUList([hduBp, table_hdu])
+
+    hdulBr.writeto(os.path.join(synop_outpath,'synopBr.fits'), overwrite=True)
+    hdulBt.writeto(os.path.join(synop_outpath,'synopBt.fits'), overwrite=True)
+    hdulBp.writeto(os.path.join(synop_outpath,'synopBp.fits'), overwrite=True)
+
+    plot_synoptic_sources(synopBr_img, 'B_r', synop_outpath, 'synopBr', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBt_img, 'B_t', synop_outpath, 'synopBt', config['cr'], table_hdu.data, save=True) 
+    plot_synoptic_sources(synopBp_img, 'B_p', synop_outpath, 'synopBp', config['cr'], table_hdu.data, save=True) 
     
     if config["bin"]:
-
+        # create small synoptic map
+        # length  = [x,y]
         xbin = config["xbin"]
         ybin = config["ybin"] 
 
-        smallSynop = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        smallSynopBr = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        smallSynopBt = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        smallSynopBp = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
 
-        frebinbox(synop, smallSynop, length[0], length[1], xbin, ybin)
-        smallSynop_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
-        smallSynop_img = np.reshape(smallSynop, (int(length[1]/ybin), int(length[0]/xbin)))
+        frebinbox(synopBr, smallSynopBr, length[0], length[1], xbin, ybin)
+        frebinbox(synopBt, smallSynopBt, length[0], length[1], xbin, ybin)
+        frebinbox(synopBp, smallSynopBp, length[0], length[1], xbin, ybin)
+
+        smallSynopBr_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+        smallSynopBt_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+        smallSynopBp_img = np.zeros([int(length[1]/ybin), int(length[0]/xbin)])
+
+        smallSynopBr_img = np.reshape(smallSynopBr, (int(length[1]/ybin), int(length[0]/xbin)))
+        smallSynopBt_img = np.reshape(smallSynopBt, (int(length[1]/ybin), int(length[0]/xbin)))
+        smallSynopBp_img = np.reshape(smallSynopBp, (int(length[1]/ybin), int(length[0]/xbin)))
         
-        stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynop)
-        hdu_small = fits.PrimaryHDU(smallSynop_img)
-        create_header(hdu_small.header, config, stats_small, imrec, True)
-        hdul_small = fits.HDUList([hdu_small])
-        hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
-        if global_config.Mr:
-            plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
-        else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) 
- 
+        #smallEpts  = np.zeros(int(length[1]/(ybin))* int(length[0]/xbin))
+        #frebinbox(epts,  smallEpts,  length[0], length[1], xbin, ybin)
+        #convert_image_array(smallSynop, smallSynop_img, int(length[0]/xbin), int(length[1]/ybin))
+        
+        stats_small = fstats(length[1]//ybin*length[0]//xbin, smallSynopBr)
+
+        hduBr_small = fits.PrimaryHDU(smallSynopBr_img)
+        hduBt_small = fits.PrimaryHDU(smallSynopBt_img)
+        hduBp_small = fits.PrimaryHDU(smallSynopBp_img)
+
+        create_header(hduBr_small.header, config, stats, imrec)
+        create_header(hduBt_small.header, config, stats, imrec)
+        create_header(hduBp_small.header, config, stats, imrec)
+
+        hdulBr_small = fits.HDUList([hduBr_small])
+        hdulBt_small = fits.HDUList([hduBt_small])
+        hdulBp_small = fits.HDUList([hduBp_small])
+
+        hdulBr_small.writeto(os.path.join(synop_outpath,'synopBr_small.fits'), overwrite=True)
+        hdulBt_small.writeto(os.path.join(synop_outpath,'synopBt_small.fits'), overwrite=True)
+        hdulBp_small.writeto(os.path.join(synop_outpath,'synopBp_small.fits'), overwrite=True)
+
+        plot_synoptic_sources(smallSynopBr_img, 'B_r', synop_outpath, 'synopBr_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBt_img, 'B_t', synop_outpath, 'synopBt_small', config['cr'], table_hdu.data, save=True) 
+        plot_synoptic_sources(smallSynopBp_img, 'B_p', synop_outpath, 'synopBp_small', config['cr'], table_hdu.data, save=True)  
+             
+        #TODO plot_synoptic_b3c script
+        
     print('%s complete' %__file__)

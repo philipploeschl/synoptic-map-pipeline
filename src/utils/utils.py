@@ -70,11 +70,11 @@ def create_src_fits_table(imrec):
             t_rec = f"{group_list[0]['tobs']}-{group_list[-1]['tobs']}"
 
             # append variables in dictionary (no need to separate files of HMI)
-            lines.append({"src": 'HMI',"crln_start": max_lon,"crln_obs": np.nan,"crln_end": min_lon,"t_rec": t_rec})
+            lines.append({"src": 'HMI',"crln_start": max_lon,"crln_obs": np.nan,"crln_end": min_lon,"t_rec": t_rec, "filename": ""})
         else:
             # append phi lines with src and crln_obs (crln_start and crln_end computed afterwards)                                    
             for e in group_list:
-                lines.append({"src": 'PHI',"crln_start": np.nan,"crln_obs": round(e["crln_obs"],2),"crln_end": np.nan,"t_rec": e["tobs"]})
+                lines.append({"src": 'PHI',"crln_start": np.nan,"crln_obs": round(e["crln_obs"],2),"crln_end": np.nan,"t_rec": e["tobs"], "filename": e["filename"]})
     
     def mean_longitude(a, b):
         diff = abs(a - b)
@@ -100,14 +100,16 @@ def create_src_fits_table(imrec):
     crlnobs_col = np.array([i['crln_obs'] for i in lines])
     crlnend_col = np.array([i['crln_end'] for i in lines])
     trec_col = np.array([i['t_rec'] for i in lines])
+    filename_col = np.array([i['filename'] for i in lines])
     
     col1 = fits.Column(name='SRC', format='3A', array=src_col)
     col2 = fits.Column(name='CRLN_START', format='E', array=crlnstart_col)
     col3 = fits.Column(name='CRLN_OBS', format='E', array=crlnobs_col)
     col4 = fits.Column(name='CRLN_END', format='E', array=crlnend_col)
     col5 = fits.Column(name='T_REC', format='47A', array=trec_col)
+    col6 = fits.Column(name='FILENAME', format='100A', array=filename_col)
 
-    table_hdu = fits.BinTableHDU.from_columns([col1, col2, col3, col4, col5])
+    table_hdu = fits.BinTableHDU.from_columns([col1, col2, col3, col4, col5, col6])
 
     return table_hdu
 
@@ -278,6 +280,7 @@ def get_dates_from_timestring(timestring, drms=False):
         latest   = max(times).strftime("%Y-%m-%d")
 
     return earliest, latest
+
 
 def clean_temporary_fits(outpath_data):
     # clean up temporary _drms.fits files from previous runs

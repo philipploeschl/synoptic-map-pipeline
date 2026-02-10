@@ -3,10 +3,12 @@ import numpy as np
 from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
-from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring, get_fits_extension_name
+from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
 
-STATUS_OK = 0
-STATUS_NODATA = 1
+
+# TODO VECTOR
+# - replace jv2ts and resizemappingmag with vect2helio command
+
 
 def main(config, session_folder):
     #set cwd to file directory
@@ -23,25 +25,20 @@ def main(config, session_folder):
     #times = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)  # list with all queued time stamps
     existing_timestamps = get_dataseries_times(config.data_series_remap_phi, config.timestring_phi, config.interval_phi)
 
-    #fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
-
     fitsfiles = []
-    for key in [config.key]:
+    for key in config.key:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
-    
-    fitsfiles = [x for sublist in fitsfiles for x in sublist]
 
-    if len(fitsfiles) == 0:
-        print(f"No PHI files found for the given time range {date_start}-{date_end}. Aborting run...")
-        return STATUS_NODATA
+    if fitsfiles[0][0].endswith(".fits"):
+        n_end = 5
+    else:
+        n_end = 8
 
     trecs = []
     clons = []
-    
+
+    fitsfiles = [x for sublist in fitsfiles for x in sublist]
     for file in fitsfiles:
-
-        n_end = get_fits_extension_name(file)
-
         #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
         l2 = fits.open(os.path.join(config.phi_dbpath,file))
         if config.verbose: print("Processing %s ..." %file)
@@ -198,7 +195,6 @@ def main(config, session_folder):
         #CRLT_OBS
         l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of PHI'), end=True)
         
-        # OBSOLETE
         #CAR_ROT        
         l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
         #l2drms.header.append(('CAR_ROT2', car_rot, 'Carrington rotation number of synoptic map'), end=True)
@@ -228,12 +224,19 @@ def main(config, session_folder):
         
         # DATAMAX
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
-
+        
         # FILENAME
         l2drms.header.append(('FILENAME', file[11:27]+'bmag'+file[31:] , 'Source PHI filename'), end=True)
         
-        hdul = fits.HDUList([prim, l2drms])
-        hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
+        if ("bamb" in file):
+            components=['disamb','configd','confmap'] #three components of 3D array of bamb files: disamb, config_disamb, confid_map
+            for i in range(l2drms.data.shape[0]): 
+                temp = fits.CompImageHDU(data=l2drms.data[i,:,:], header=l2drms.header)
+                hdul = fits.HDUList([prim, temp])
+                hdul.writeto(os.path.join(outpath_data, '%s%s%s_drms.fits' %(file[11:27], components[i], file[31:-n_end])), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
+        else:
+            hdul = fits.HDUList([prim, l2drms])
+            hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
 
     if config.verbose: print('\nDRMS compatible FITS header creation complete.\n\n')
 
@@ -242,26 +245,51 @@ def main(config, session_folder):
     files = os.listdir(outpath_data)
     fitsfiles = [file for file in files if file.endswith(".fits")]
 
+    bmag_fitsfiles = [f for f in fitsfiles if "bmag" in f]
+    binc_fitsfiles = [f for f in fitsfiles if "binc" in f]
+    bazi_fitsfiles = [f for f in fitsfiles if "bazi" in f]
+    disamb_fitsfiles = [f for f in fitsfiles if "disamb" in f]
+    configd_fitsfiles = [f for f in fitsfiles if "configd" in f]
+    confmap_fitsfiles = [f for f in fitsfiles if "confmap" in f]
+
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
-    set_info = 'setsid set_info -c ds="%s" T_REC="%s" magnetogram=%s\n'
-    jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
+
+    #when disambig data avail
+    
+    set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s conf_disambig=%s confid_map=%s\n'
+    #set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
+
+    #jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
+    vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
+    vectmag_poten  = 'setsid vectmag2helio3comp_poten  in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
+    vectmag_radial = 'setsid vectmag2helio3comp_radial in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
+
+    if config.b3c_disambig == "random":
+        vectmag = vectmag_random
+    elif config.b3c_disambig == "potential":
+        vectmag = vectmag_poten    
+    elif config.b3c_disambig == "radial":
+        vectmag = vectmag_radial
+    else:
+        raise("Unknown disambiguation setting in config.")
+    
     #set_keys = "setsid set_keys ds=%s[%s] %s=%s\n" #OBSOLETE
-    rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
+    #rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
 
     trec_out = open(outpath_scripts+'trecs.txt', 'w')
 
     j = 0 # nsplit counter
-    for i, fname in enumerate(fitsfiles):
+    for i, (fname_bmag, fname_binc, fname_bazi, fname_disamb, fname_configd, fname_confmap) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disamb_fitsfiles, configd_fitsfiles, confmap_fitsfiles)):#, disambig_fitsfiles)):
         
-        if config.verbose: print('Processing %s...' %fname)
+        if config.verbose: print('Processing %s...' %fname_bmag)
         
         # load with scaling to recognize blank cells -> necessary to prevent artifacts after resize
-        fld = fits.open(outpath_data+fname)#, do_not_scale_image_data=True) 
+        fld = fits.open(outpath_data+fname_bmag)#, do_not_scale_image_data=True) 
         trec = fld[1].header['T_REC']
         fld.close()
 
-        nsplit = int(np.ceil(len(fitsfiles)/config.nparallel_phi))
+        nsplit = int(np.ceil(len(bmag_fitsfiles)/config.nparallel_phi))
         
         if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
 
@@ -283,19 +311,20 @@ def main(config, session_folder):
             add_script_header(batch_out, remap_str)
 
         batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
-        batch_out.write('\n#%s' %fname)
-        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
-        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname)))
-    
-        file = fits.open(outpath_data+fname)[1]
-        batch_out.write('\necho %s' %jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts_phi, trec, config.mcorlev, config.phi_maprmax))
-        batch_out.write(jv2ts %(config.data_series_phi, trec, config.data_series_jv2ts_phi, trec, config.mcorlev, config.phi_maprmax))
-        #batch_out.write('\necho %s' %set_keys %(config.data_series_jv2ts_phi, trec, "CAR_ROT",  file.header['CAR_ROT2']))
-        #batch_out.write(set_keys %(config.data_series_jv2ts_phi, trec, "CAR_ROT",  file.header['CAR_ROT2']))
-
+        batch_out.write('\n#%s' %fname_bmag)
+        # set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts_phi, trec, config.data_series_remap_phi))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts_phi, trec, config.data_series_remap_phi)) 
+        #when disambig data avail
+        
+        #batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
+        #batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi)))
+
+        batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
+        batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
+        
+        batch_out.write('\necho %s' %vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
+        batch_out.write(vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
+        
         add_check_continue(batch_out)
         batch_out.write('\n')
 
@@ -308,7 +337,6 @@ def main(config, session_folder):
     if config.verbose: 
         print('\nDRMS ingestion script creation complete.\n')
 
-    return STATUS_OK
 
 if __name__ == "__main__":
     #main(sys.argv[1:])

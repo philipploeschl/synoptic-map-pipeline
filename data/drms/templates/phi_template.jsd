@@ -97,6 +97,7 @@ Keyword:CODEVER1, string, variable, record, "", "%s", "none", "version of the ga
 Keyword:CODEVER2, string, variable, record, "", "%s", "none", "version of the temporal interpolation subroutine used to produce the data"
 Keyword:CODEVER3, string, variable, record, "", "%s", "none", "version of the polarization calibration subroutine used to produce the data"
 Keyword:CALVER64, longlong, variable, record, 0x0000000000000000, "0x%016llX", "none", "Calibration Version"
+Keyword:FILENAME, string, variable, record, "", "%s", "none", "Original FITS filename used for this data segment"
 
 #=====Segments=====
 Data: magnetogram, vardim, int, 2, 1280, 1280, "Gauss", fits, "compress Rice", 0.000000, 0.100000, "magnetogram"
