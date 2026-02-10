@@ -711,7 +711,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
 
-    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs","src"]
+    #imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs","src"]
     imrec = [] # list to hold dictionary
 
     idx = 0
@@ -1462,6 +1462,7 @@ def get_arg_parameters(global_config):
     
     return config    
 
+
 def main(global_config, session_folder):
     config = get_arg_parameters(global_config)    
     synop_outpath = os.path.join(session_folder, config["synop_path"])
@@ -1486,7 +1487,8 @@ def main(global_config, session_folder):
     
     if global_config.Mr:
         plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
-    else: plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) 
+    else: 
+        plot_synoptic_sources(synop_img, 'B_{LoS}', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) 
     
     if config["bin"]:
         # create small synoptic map
@@ -1511,7 +1513,8 @@ def main(global_config, session_folder):
         hdul_small.writeto(os.path.join(synop_outpath,config['synop_small_name']), overwrite=True)
         if global_config.Mr:
             plot_synoptic_sources(smallSynop_img, 'B_r', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
-        else: plot_synoptic_sources(smallSynop_img, 'B_{LoS}', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) 
+        else: 
+            plot_synoptic_sources(smallSynop_img, 'B_{LoS}', synop_outpath, config['synop_small_name'][:-5], config['cr'], table_hdu.data, save=True) 
     print('%s complete' %__file__)
 
     return STATUS_OK

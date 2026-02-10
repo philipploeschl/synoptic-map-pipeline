@@ -23,8 +23,6 @@ def main(config, session_folder):
     #times = get_dataseries_times(config.data_series_phi, config.timestring_phi, config.interval_phi)  # list with all queued time stamps
     existing_timestamps = get_dataseries_times(config.data_series_remap_phi, config.timestring_phi, config.interval_phi)
 
-    #fitsfiles = get_phi_filenames(config.phi_dbpath, date_start, date_end, config.key, config.verbose)
-
     fitsfiles = []
     for key in [config.key]:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
@@ -198,7 +196,6 @@ def main(config, session_folder):
         #CRLT_OBS
         l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of PHI'), end=True)
         
-        # OBSOLETE
         #CAR_ROT        
         l2drms.header.append(('CAR_ROT', l2[0].header['CAR_ROT'], 'Carrington rotation number of CRLN_OBS'), end=True)
         #l2drms.header.append(('CAR_ROT2', car_rot, 'Carrington rotation number of synoptic map'), end=True)
@@ -228,7 +225,7 @@ def main(config, session_folder):
         
         # DATAMAX
         l2drms.header.append(('DATAMAX', l2[0].header['DATAMAX'], 'Maximum value from pixels within 99% of solar radius'), end=True)
-
+        
         # FILENAME
         l2drms.header.append(('FILENAME', file[11:27]+'bmag'+file[31:] , 'Source PHI filename'), end=True)
         

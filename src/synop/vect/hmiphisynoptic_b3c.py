@@ -17,9 +17,9 @@ from astropy.io import fits
 import os, sys
 from datetime import date
 
-from utils.plots import plot_synoptic
 from utils.plots import plot_synoptic_sources
 from utils.utils import create_src_fits_table
+from diagnostics import diagnostics
 
 
 
@@ -36,6 +36,9 @@ SHRT_MIN = -SHRT_MAX -1
 DRMS_MISSING_FLOAT = np.nan    
 kNOISE_EQ = 10.0 # redefined in CalcSynopCol but unused
 
+STATUS_OK = 0
+STATUS_ERROR = 1
+
 # DRMS Interface
 def get_drms_parameters_hmi(inRecs, input_ds):
 
@@ -43,9 +46,9 @@ def get_drms_parameters_hmi(inRecs, input_ds):
     drms_param = []
     nRecs = 0
 
-    if input_ds == "": return drms_param, nRecs
+    if inRecs is None or len(inRecs) < 23: return drms_param, nRecs
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
-    
+ 
     #nRecs = len(inRecs.split(','))
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
     show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
@@ -69,7 +72,7 @@ def get_drms_parameters_hmi(inRecs, input_ds):
             else:
                 dict_tmp[key] = formatted[i]
         dict_tmp["FILENAME"] = ''
-   
+
         drms_param.append(dict_tmp)
         nRecs += 1
 
@@ -89,7 +92,7 @@ def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
     #show_info = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC" -iPA'
     show_info_remap = 'show_info %s["%s"] key="CALVER64,T_REC,QUALITY,FDRADIAL,CARSTRCH,DIFROT_A,DIFROT_B,DIFROT_C,CRVAL1,CRLN_OBS,CAR_ROT,MAPLGMAX,MAPLGMIN,MAPMMAX,I_DREC,INSTRUME" -iPA' 
     show_info_base  = 'show_info %s["%s"] key="FILENAME" -iPA' 
-    
+
     #-P for path and -A for segment
     
     si_out_remap = subprocess.check_output(show_info_remap %(input_ds, inRecs) , shell=True)[:-1].decode("utf-8")
@@ -99,11 +102,11 @@ def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
     si_out_base = subprocess.check_output(show_info_base %(input_ds_origin, inRecs) , shell=True)[:-1].decode("utf-8")
     raw_base = si_out_base.split('\n')
     keys_base = raw_base[0].split('\t')
-
+    
     for (line_remap, line_base) in (zip(raw_remap[1:],raw_base[1:])):  
         formatted_remap = line_remap.split('\t') # [CALVER64, T_REC, QUALITY, FDRADIAL, CARSTRCH, DIFROT_A, DIFROT_B, DIFROT_C, CRVAL1, CRLN_OBS, CAR_ROT, MAPLGMAX, MAPLGMIN, I_DREC, INSTRUME]
         formatted_base = line_base.split('\t') # FILENAME
-
+        
         dict_tmp = {}
 
         for i, key in enumerate(keys_remap):
@@ -130,9 +133,12 @@ def update_common_carrot(drms_getkey):
     for inRec in drms_getkey:
         carrots.append(float(inRec['CAR_ROT']))
 
-    most_common = max(carrots, key=carrots.count)
-    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)   } records")
+    if not carrots:
+        raise ValueError("Error: No inRecs found!")
 
+    most_common = max(carrots, key=carrots.count)
+    print(f"Most common CAR_ROT: {most_common}, {carrots.count(most_common)} out of {len(carrots)} records")
+    
     for inRec in drms_getkey:
         inRec["CAR_ROT"] = most_common
     
@@ -257,12 +263,12 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     weights  = np.array([])
 
     multi = nimg     # total width of magnetogram slices, must be UNEVEN
-    delta_min = 4 # hours for HMI averaging
+    delta_min = 4  # hours for HMI averaging
     delta_max = 80 # hours: about 45° halfWidth. only used with data gaps
     
     nrows = len(mrd_cont)
     pph = (2.2/4)/synstep # pix per hour approximated from HMI cadence
-    
+
     # convert time strings into datetime objects
     for key in drms_getkey:
         time = np.append(time, datetime.datetime.strptime(key['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI"))
@@ -307,7 +313,6 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         if not widths[-1] % 2: widths[-1] += 1 # make widths uneven to have a central column
         
         mids = np.append(mids, (np.round(cad_max*pph*multi/2)).astype(int)) # floor for array[0] element
-        
     #weights = [np.zeros(int(w)) for w in widths]
 
     # np.floor to avoid going into the neighbour frame!
@@ -660,9 +665,13 @@ def synoptic_map(config):#, hw_overwrite=None):
     nRecs = nRecs_hmi + nRecs_phi
 
     # select the most common CAR_ROT entry and set it for all data
+    # WARNING, this requires
+    # - all data to be from the same map, as months offset would be overwritten by this
+    # - the HMI dataset not to overlap with itself!
+    # TODO this might need a decimal carrington number based on the first and last HMI date
     drms_getkey, common_carrot = update_common_carrot(drms_getkey)
     config["cr"] = common_carrot
-
+    
     #nsig, mapmmax, sinbdivs, lgmin, lgmax, nbin, center, halfWindow, checkqual, los, force, dlog, nEquivPtsReq, noiseS, maxNoiseAdj, minOutPts = get_arg_parameters()
     
     #if hw_overwrite is not None:
@@ -700,7 +709,7 @@ def synoptic_map(config):#, hw_overwrite=None):
     mrd_cont = adjacent_merdian_contributions(config["sinbdivs"], config["awf_dmin"], config["awf_dmax"], config["awf_cmin"], config["awf_cmax"]) #(sinbdivs, dmin, dmax, cmin, cmax) # TODO SETUP
     weights, cadences = adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=config["awf_nimg"], lim=config["awf_lim"], nlim=config["awf_nlim"]) #exp=config["awf_exp"])
 
-    imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
+    #imrec_keys = ["recno", "mapct", "mapCM", "mapdev", "ds", "tmin", "tmax", "tobs"]
     imrec = [] # list to hold dictionary
 
     idx = 0
@@ -838,10 +847,11 @@ def synoptic_map(config):#, hw_overwrite=None):
         # temporary, remove after debugging:
         imrec_tmp["cadence"] = cadences[ds] #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
         imrec_tmp["crln_obs"] = cmLong #wf #weight_function(300, 6, sigma=30, gamma=30, center=25)
+   
         
         imrec.append(imrec_tmp)
         idx += 1
-
+    
     ngood = idx
     
     config["ngood"] = ngood
@@ -1593,7 +1603,7 @@ def main(global_config, session_folder):
 
     print('%s complete' %__file__)
 
-
+    return STATUS_OK
 
 if __name__ == "__main__":
     from config import Config

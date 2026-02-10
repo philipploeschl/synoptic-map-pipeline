@@ -3,26 +3,20 @@ import os
 import numpy as np
 from utils.utils import add_script_header, add_check_continue, get_dataseries_count, get_dataseries_times
 
+STATUS_OK = 0
 
 def main(config, session_folder):
 
     outpath_scripts = os.path.join(session_folder, config.script_path)
     outpath_logs    = os.path.join(session_folder, config.log_path)
     
-    # TODO VECTOR
-    # - change JV2TS and resizemappingmag to vectmag2helio_disambigmethod
-    # - change data_series_ to data_series_b3c_
-    # - remove config.proj -> obsolete
-    # - batch_out string constructions need to be adapted to new vect2helio string
-
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
 
-    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n"
-    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n"
-    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n"
+    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
+    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
+    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
 
-    #TODO add selection through config
     vectmag = vectmag_random
 
     times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)  # list with all queued time stamps
@@ -77,6 +71,9 @@ def main(config, session_folder):
     
     if config.verbose: 
         print('\nHMI processing script creation complete.\n')
+
+    return STATUS_OK
+
 
 if __name__ == "__main__":
     #main(sys.argv[1:])

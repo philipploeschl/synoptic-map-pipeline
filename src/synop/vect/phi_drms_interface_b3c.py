@@ -3,12 +3,10 @@ import numpy as np
 from astropy.io import fits
 #from astropy.time import Time, TimeDelta, TimeDatetime
 from datetime import datetime, timedelta
-from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring
+from utils.utils import add_script_header, add_check_continue, get_phi_filenames, clean_temporary_fits, get_dataseries_count, get_dataseries_times, get_dates_from_timestring, get_fits_extension_name
 
-
-# TODO VECTOR
-# - replace jv2ts and resizemappingmag with vect2helio command
-
+STATUS_OK = 0
+STATUS_NODATA = 1
 
 def main(config, session_folder):
     #set cwd to file directory
@@ -28,17 +26,20 @@ def main(config, session_folder):
     fitsfiles = []
     for key in config.key:
         fitsfiles.append(get_phi_filenames(config.phi_dbpath, date_start, date_end, key, config.verbose))
+    
+    fitsfiles = [x for sublist in fitsfiles for x in sublist]
 
-    if fitsfiles[0][0].endswith(".fits"):
-        n_end = 5
-    else:
-        n_end = 8
+    if len(fitsfiles) == 0:
+        print(f"No PHI files found for the given time range {date_start}-{date_end}. Aborting run...")
+        return STATUS_NODATA
 
     trecs = []
     clons = []
-
-    fitsfiles = [x for sublist in fitsfiles for x in sublist]
+    
     for file in fitsfiles:
+
+        n_end = get_fits_extension_name(file)
+
         #l2 = fits.open(config.phi_datapath+file) # old version wihtout direct fmdb access
         l2 = fits.open(os.path.join(config.phi_dbpath,file))
         if config.verbose: print("Processing %s ..." %file)
@@ -261,9 +262,9 @@ def main(config, session_folder):
     #set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
 
     #jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
-    vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
-    vectmag_poten  = 'setsid vectmag2helio3comp_poten  in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
-    vectmag_radial = 'setsid vectmag2helio3comp_radial in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s\n'
+    vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n'
+    vectmag_poten  = 'setsid vectmag2helio3comp_poten  in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n'
+    vectmag_radial = 'setsid vectmag2helio3comp_radial in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n'
 
     if config.b3c_disambig == "random":
         vectmag = vectmag_random
@@ -337,6 +338,7 @@ def main(config, session_folder):
     if config.verbose: 
         print('\nDRMS ingestion script creation complete.\n')
 
+    return STATUS_OK
 
 if __name__ == "__main__":
     #main(sys.argv[1:])

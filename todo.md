@@ -16,7 +16,8 @@ This is currently abused as a todo list
   - PWCSCORR= '1       '           / WCS entries corrected 1 = yes
   - discard dataset if not 1
 
-
+## hmisynoptic.py
+  - remove CarringtonTime() dependencies?
 
 ## Data Selection
 ## Notes

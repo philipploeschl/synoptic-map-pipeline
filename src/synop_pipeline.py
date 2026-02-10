@@ -56,16 +56,31 @@ if __name__ == "__main__":
         # VECTOR PIPELINE
         if config.run_drms_prep:
             if config.verbose: print("Running drms_preparation_b3c.py ...")
-            drms_main_b3c(config, session_folder)
+            
+            status = drms_main_b3c(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+        
 
         if config.run_m720s_drms_pipe:
             if config.verbose: print("Running m720s_drms_pipe_b3c.py ...")
-            hmi_data_main_b3c(config, session_folder)
+
+            status = hmi_data_main_b3c(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+        
 
         if config.run_phi_drms_interface:
             if config.verbose: print("Running phi_drms_interface_b3c.py ...")
-            phi_data_main_b3c(config, session_folder)
 
+            status = phi_data_main_b3c(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+            
+            
         # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
         if config.run_hmi_scripts and config.run_phi_scripts:
             run_bash_scripts(config, session_folder, verbose=config.verbose)
@@ -76,22 +91,38 @@ if __name__ == "__main__":
 
         if config.run_hmiphisynoptic:
             if config.verbose: print("Running hmiphisynoptic_b3c.py ...")
-            synop_main_b3c(config, session_folder)
-        
+            
+            status = synop_main_b3c(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+
     else:
         # LINE OF SIGHT PIPELINE
         if config.run_drms_prep:
             if config.verbose: print("Running drms_preparation.py ...")
-            drms_main_los(config, session_folder)
+
+            status = drms_main_los(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
 
         if config.run_m720s_drms_pipe:
             if config.verbose: print("Running m720s_drms_pipe.py ...")
-            hmi_data_main_los(config, session_folder)
 
+            status = hmi_data_main_los(config, session_folder)
+            
+            if status != STATUS_OK: 
+                exit()
+            
         if config.run_phi_drms_interface:
             if config.verbose: print("Running phi_drms_interface.py ...")
-            phi_data_main_los(config, session_folder)
 
+            status = phi_data_main_los(config, session_folder)
+            
+            if status != STATUS_OK: 
+                exit()
+        
         # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
         if config.run_hmi_scripts and config.run_phi_scripts:
             run_bash_scripts(config, session_folder, verbose=config.verbose)
@@ -102,8 +133,12 @@ if __name__ == "__main__":
 
         if config.run_hmiphisynoptic:
             if config.verbose: print("Running hmiphisynoptic.py ...")
-            synop_main_los(config, session_folder)
 
+            status = synop_main_los(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+            
         # Todo
         #if config.run_polefilling:
             #subprocess.call(['los/4_polfil.sh'])
