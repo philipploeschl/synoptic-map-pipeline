@@ -371,6 +371,7 @@ def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0,
     if export: export_magnetic_flux(flux_phi, flux_hmi, carrington_number, file=export)
 
 
+
 def export_magnetic_flux(flux_phi, flux_hmi, cr, file):
 
     #is_empty = (not os.path.exists(file)) or os.path.getsize(file) == 0
@@ -390,6 +391,8 @@ def export_magnetic_flux(flux_phi, flux_hmi, cr, file):
 
         # write your data row
         f.write(f"{cr},{hmi_avg},{hmi_std},{hmi_rms},{phi_avg},{phi_std},{phi_rms}\n")
+
+
 
 def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
         
@@ -604,11 +607,7 @@ def main(path, carrington_number, run_diagnostics=True, run_pfss=True, export_di
         config.Btype = "line-of-sight"
 
     if run_diagnostics:
-<<<<<<< HEAD
-        diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0, thld_high=10)
-=======
         diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10, export=export_diagnostics, separate_maps=separate_maps, hmi_img=hmi_img)
->>>>>>> feature/diagnostics
     
     if run_pfss:
         pfss(phi_polfil,        synop_hmi, path, name='PHI-HMI', pdf=True)
