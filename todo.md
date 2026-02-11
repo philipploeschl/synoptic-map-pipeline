@@ -14,6 +14,10 @@ This is currently abused as a todo list
 - merge diagnostics
 - fix and merge data planning
 
+## diagnostics
+- HMI only functionality
+- Add HMI 4h stripes to the fits table! -> Francisca 
+
 ## PHI_DRMS_INTERFACE
 - add new WCS check (see gherardo email)
   - PWCSCORR= '1       '           / WCS entries corrected 1 = yes
