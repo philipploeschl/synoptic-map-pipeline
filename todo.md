@@ -4,6 +4,8 @@ This is currently abused as a todo list
 # Merge ToDo List
 ## Release blockers
 - confirm that all new parameters have default values in config.py
+- add example_config.py
+
 
 ## Misc
 - throw out everything that's obsolete from this list
