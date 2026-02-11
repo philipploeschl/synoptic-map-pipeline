@@ -19,8 +19,6 @@ from datetime import date
 
 from utils.plots import plot_synoptic_sources
 from utils.utils import create_src_fits_table
-from src import diagnostics
-
 
 
 # DEFINES
