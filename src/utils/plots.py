@@ -14,6 +14,8 @@ from matplotlib.gridspec import GridSpec
 
 def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, save=True):
 
+    (ny, nx) = synop.shape
+
     labelsize = 12
     ticksize  = 10
     titlesize = 14
@@ -32,13 +34,13 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
     fig, ax = plt.subplots(figsize=(14,6))
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
-    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,bar_height,1440+bar_height] , interpolation=None)
+    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,nx,bar_height,ny+bar_height] , interpolation=None)
     ax.set_title(f'PHI/HMI ${component}$ Synoptic Chart for Carrington Rotation {crt_rot}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
     xlabels    = [0,30,60,90,120,150,180,210,240,270,300,330,360]
-    xlocations = [0,300,600,900,1200,1500,1800,2100,2400,2700,3000,3300,3600]
+    xlocations = np.arange(0, nx+1, nx//12)
     ax.set_xticks(xlocations)
     ax.set_xticklabels(xlabels)
     ax.set_xlabel('Carrington Longitude [°]', fontsize=labelsize)
@@ -46,7 +48,7 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
     # Create the latitude labels on the right-hand side of the plot
     ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ',' 20',' ',' 40',' ',' 60',' ',' 80',' ']
     ylocations_r = [y + bar_height for y in ytick_normalize]
-    ax.set_ylim(0, 1440 + bar_height)
+    ax.set_ylim(0, ny + bar_height)
     ax.set_yticks(ylocations_r)
     ax.set_yticklabels(ylabels_r)
     ax.set_ylabel('Latitude [°]', fontsize=labelsize)
@@ -97,6 +99,8 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
 
 def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_table, pdf=True):
 
+    (ny, nx) = synop.shape
+
     labelsize = 12
     ticksize  = 10
     titlesize = 14
@@ -115,13 +119,13 @@ def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_tabl
     fig, ax = plt.subplots(figsize=(14,6))
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
-    im = ax.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,bar_height,1440+bar_height] , interpolation=None)
+    im = ax.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,nx,bar_height,ny+bar_height] , interpolation=None)
     ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
     xlabels    = [0,30,60,90,120,150,180,210,240,270,300,330,360]
-    xlocations = [0,300,600,900,1200,1500,1800,2100,2400,2700,3000,3300,3600]
+    xlocations = np.arange(0, nx+1, nx//12) #[0,300,600,900,1200,1500,1800,2100,2400,2700,3000,3300,3600]
     ax.set_xticks(xlocations)
     ax.set_xticklabels(xlabels)
     ax.set_xlabel('Carrington Longitude [°]', fontsize=labelsize)
@@ -129,7 +133,7 @@ def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_tabl
     # Create the latitude labels on the right-hand side of the plot
     ylabels_r = ['-10', ' ','-8',' ','-6',' ','-4',' ','-2',' ','0',' ',' 2',' ',' 4',' ',' 6',' ',' 8',' ', '10']
     ylocations_r = [y + bar_height for y in ytick_normalize]
-    ax.set_ylim(0, 1440 + bar_height)
+    ax.set_ylim(0, ny + bar_height)
     ax.set_yticks(ylocations_r)
     ax.set_yticklabels(ylabels_r)
     ax.set_ylabel('Stripe Magnitude [G]', fontsize=labelsize)
@@ -220,6 +224,8 @@ def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_tabl
 
 def plot_synoptic(synop, outpath, name, config, pdf=True):
 
+    (ny, nx) = synop.shape
+
     labelsize = 12
     ticksize  = 10
     titlesize = 14
@@ -237,13 +243,13 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
     fig, ax = plt.subplots(figsize=(14,6))
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
-    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,3600,0,1440])
+    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,nx,0,ny])
     ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
     xlabels    = [0,30,60,90,120,150,180,210,240,270,300,330,360]
-    xlocations = [0,300,600,900,1200,1500,1800,2100,2400,2700,3000,3300,3600]
+    xlocations = np.arange(0, nx+1, nx//12)
     ax.set_xticks(xlocations)
     ax.set_xticklabels(xlabels)
     ax.set_xlabel('Carrington Longitude [°]', fontsize=labelsize)
@@ -292,6 +298,8 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
     Legend in the empty bottom-right axis
     """
 
+    (ny, nx) = data.shape
+
     fig = plt.figure(figsize=(14, 10.5))
     gs = GridSpec(2, 2, figure=fig, width_ratios=[30, 1], height_ratios=[1.5, 1],
                   hspace=0.05, wspace=0.05)
@@ -315,7 +323,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
     # -------------------------
     im = ax_synop.imshow(
         data, cmap="hmimag", vmin=-1500, vmax=1500,
-        origin="lower", extent=[0, 3600, bar_height, 1440 + bar_height],
+        origin="lower", extent=[0, nx, bar_height, ny + bar_height],
         interpolation=None
     )
 
@@ -341,7 +349,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
     ytick_normalize = [(y+1)*720. + bar_height for y in ytick_latitude]
     ax_synop.set_yticks(ytick_normalize)
     ax_synop.set_yticklabels(ylabels_r)
-    ax_synop.set_ylim(0, 1440+bar_height)
+    ax_synop.set_ylim(0, ny+bar_height)
 
     # PHI/HMI horizontal bars (top)
     for row in fits_table:
@@ -380,7 +388,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
     for xx, yy, ll, cc in zip(pos, offset, legend, colors):
         ax_noise.scatter(xx, yy, s=7.5, label=ll, color=cc, marker='x')
 
-    ax_noise.set_xlim(0, 3600)
+    ax_noise.set_xlim(0, nx)
     ylim_noise = np.ceil(np.nanmax(noise)+1)
     #ylim_noise = 7
 
