@@ -262,7 +262,7 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 ####### ANALYSIS #######
 ########################
 
-def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10):
+def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0, thld_high=10):
 
     latwidth = 10  #px
     lats = np.arange(0,1440+latwidth, latwidth)
@@ -322,16 +322,21 @@ def diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high
 
     legend = ['[ -90°,  -30°]', '[ -30°, +30°]', '[+30°, +90°]']#
 
-    with PdfPages(os.path.join(path, f'CR{outname}_diagnostics.pdf')) as pdf:
+    if config.Mr: component = "B_r"
+    else: component = "B_LoS"
+
+    with PdfPages(os.path.join(path, f'CR{carrington_number}_diagnostics.pdf')) as pdf:
         fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=True)
-        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, path, outname, save=True)
+        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, path, carrington_number, save=True)
         pdf.savefig(fig_mag)
         pdf.savefig(fig_syn)
-        fig_mag.savefig(os.path.join(path, f'CR{outname}_latflux.png'), format='png')
-        fig_syn.savefig(os.path.join(path, f'CR{outname}_noise.png'),   format='png')
+        fig_mag.savefig(os.path.join(path, f'CR{carrington_number}_latflux.png'), format='png')
+        fig_syn.savefig(os.path.join(path, f'CR{carrington_number}_noise.png'),   format='png')
 
-        plot_synoptic_sources(phi_img, path, f'CR{outname}_synoptic', config, phi_table, pdf=True)
-
+        #old #plot_synoptic_sources(phi_img, path, f'CR{carrington_number}_synoptic', config, phi_table, save=True)
+        plot_synoptic_sources(phi_img, component, path, f'CR{carrington_number}_synoptic', carrington_number, phi_table, save=True)
+        #def #plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, save=True)  
+             
 
 def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
         
@@ -545,7 +550,7 @@ def main(path, run_diagnostics=True, run_pfss=True, fname="synopMr.fits", series
         config.Btype = "line-of-sight"
 
     if run_diagnostics:
-        diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10)
+        diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0, thld_high=10)
     
     if run_pfss:
         pfss(phi_polfil,        synop_hmi, path, name='PHI-HMI', pdf=True)
