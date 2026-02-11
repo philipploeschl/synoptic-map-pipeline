@@ -11,6 +11,10 @@ class Config:
         ################# Pipeline Configuration ##################
         ###########################################################
 
+        # Pipeline selection
+        "b3c":                     False, # LoS pipeline by default
+        "b3c_disambig":            "random",   # random, radial, potential
+
         "run_drms_prep":           False, # run 0_drms_prep.py to create JSD files and data series in DRMS
         "run_m720s_drms_pipe":     False,  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
         "run_phi_drms_interface":  False, # run 2_phi_drms_interface.py to create the phi data series
