@@ -671,11 +671,7 @@ def flux_statistics(file, outname):
     p0 = [2, 0.1, 0, 1]
     params1, cov1 = curve_fit(cosine, x_fit, yhmi_fit, p0=p0)
     params2, cov2 = curve_fit(cosine, x_fit, yphi_fit, p0=p0)
-<<<<<<< HEAD
-    #print(params1[3])
-=======
-
->>>>>>> feature/diagnostics
+    
     # --- Plot ---
     plt.figure(figsize=(7, 5))
     plt.errorbar(df['x'], df['HMI'], yerr=df['HMI_err'], color='tab:blue', fmt='o', capsize=5, label='HMI')
