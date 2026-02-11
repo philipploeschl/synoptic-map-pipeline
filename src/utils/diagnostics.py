@@ -519,7 +519,6 @@ def plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, name, pdf=
 
 
 
-
 def main(path, carrington_number, run_diagnostics=True, run_pfss=True, export_diagnostics=None, separate_maps=True, fname="synopMr.fits", series="hmi.synoptic_mr_polfil_720s", segment="Mr_polfil"):
 
     print(f"Processing {os.path.join(path, fname)}...")

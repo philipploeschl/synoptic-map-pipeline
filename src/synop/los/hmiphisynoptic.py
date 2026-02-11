@@ -19,7 +19,7 @@ from datetime import date
 
 from utils.plots import plot_synoptic_sources
 from utils.utils import create_src_fits_table
-from diagnostics import diagnostics
+from src import diagnostics
 
 
 
@@ -329,6 +329,7 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     
     # loop over weight of each magnetogram
     for i in range(len(weights)):
+
         # polynomial version
         # measured from current CM:
         # 1x chwidth reaches image border to the next record 
@@ -346,7 +347,7 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
         
         n1 = np.ceil((multi-1)*chwidth[i][0]).astype(int) # needs to be >1.0 to work without NaNs 
         n2 = np.ceil((multi-1)*chwidth[i][1]).astype(int) # needs to be >1.0 to work without NaNs
-        
+
         if lim:
             # nlim = 25 # this gives 2*25*0.1 = 5° wide overlap region
             # now set in config.py
@@ -1483,7 +1484,7 @@ def main(global_config, session_folder):
     hdul = fits.HDUList([hdu, table_hdu])
     hdul.writeto(os.path.join(synop_outpath,config['synop_name']), overwrite=True)
 
-    diagnostics(synop_img, table_hdu.data, synop_outpath, int(config["cr"]), global_config)
+    #diagnostics(synop_img, table_hdu.data, synop_outpath, int(config["cr"]), global_config)
     
     if global_config.Mr:
         plot_synoptic_sources(synop_img, 'B_r', synop_outpath, config['synop_name'][:-5], config['cr'], table_hdu.data, save=True) # cut out .fits
@@ -1519,6 +1520,11 @@ def main(global_config, session_folder):
 
     return STATUS_OK
 
+
+
+
+
+# PROBABLY OUTDATED, UPDATE FROM ABOVE MAIN FUNCTION BEFORE USE
 if __name__ == "__main__":
     from config import Config
     import argparse
