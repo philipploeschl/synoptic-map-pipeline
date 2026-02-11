@@ -281,6 +281,8 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 
 def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0, thld_high=10, export=None, separate_maps=False, hmi_img=None):
 
+    # ADAPT FOR COMBINED / PHI ONLY / HMI ONLY MAPS
+
     phi_filtered, phi_mask = ar_filtering(phi_img, high_thld=50, low_thld=5, empty=np.nan)
     phi_filtered = np.where(~phi_mask, phi_img, np.nan)
 
@@ -310,6 +312,7 @@ def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0,
             flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
     else:
         for (x1, x2) in window_hmi:
+            #UnboundLocalError: local variable 'hmi_filtered' referenced before assignment
             flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all HMI windows
