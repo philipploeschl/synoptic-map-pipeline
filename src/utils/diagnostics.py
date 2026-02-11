@@ -28,9 +28,6 @@ def magnetic_flux(data, thld=0):
 
 
 def magnetic_flux_latitudes(data, lats, x1, x2, thld_low=0, thld_high=25, mean=False, med=False):
-    #latwidth = 10  #px
-    #lats = np.arange(0,1440, latwidth)
-    #flux_hmi   = latitude_magnetic_flux(hmiMr_polfil.data, lats, x1=2000, x2=3600, thld_low=0, thld_high=25, norm=True, mean=False, med=False)
 
     flux = pd.DataFrame(columns=['pos', 'neg'], dtype=float)
 
@@ -212,6 +209,9 @@ def ar_filtering(img, high_thld=250.0, low_thld=25.0, empty=0.0):
 
 def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=10):
     # cadence_window_noise_plot
+
+    (ny, nx) = data.shape
+
     noise  = np.array([])
     mid    = np.array([])
     offset = np.array([])
@@ -248,7 +248,7 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
             slice2 = data[:,x1:]
 
             center1 = x2/2
-            center2 = x1+(3600-x1)/2
+            center2 = x1+(nx-x1)/2
 
             bins = np.linspace(-1e2, 1e2, 200)
             counts1, bin_edges1 = np.histogram(slice1.ravel(), bins=bins, density=False)
@@ -279,22 +279,56 @@ def noise_cadence_windows(data, fits_table, thld_low=0, thld_high=5000, deg2px=1
 ####### ANALYSIS #######
 ########################
 
-def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0, thld_high=10, export=None, separate_maps=False, hmi_img=None):
+def get_window_flux(synop_filtered, window, lats, latwidth, thld_low, thld_high, mean=True, med=False):
 
-    # ADAPT FOR COMBINED / PHI ONLY / HMI ONLY MAPS
+    flux_list = []
+    (ny, nx) = synop_filtered.shape
 
-    phi_filtered, phi_mask = ar_filtering(phi_img, high_thld=50, low_thld=5, empty=np.nan)
-    phi_filtered = np.where(~phi_mask, phi_img, np.nan)
-
-    latwidth = 10  #px
-    lats = np.arange(0,1440+latwidth, latwidth)
-    
-    n_rows = 1440//latwidth
+    n_rows = ny//latwidth
     columns = ['pos', 'neg']
     nandf = pd.DataFrame(np.nan, index=range(n_rows), columns=columns)
 
+    for (x1, x2) in window:
+        flux_list.append(magnetic_flux_latitudes(synop_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=mean, med=med))
+
+    # this gives the average flux over all PHI windows
+    #flux_phi = sum(flux_phi)/len(flux_phi)
+
+    if len(flux_list) > 1:
+        flux_combined = pd.concat(flux_list)
+        flux_out = flux_combined.groupby(flux_combined.index).mean()
+    elif len(flux_list) == 1:
+        flux_out = flux_list[0]
+    else:
+        flux_out = nandf
+
+    return flux_out
+
+    
+def diagnostics(synop_img, synop_table, path, carrington_number, config, export=None, separate_maps=False, hmi_img=None):
+
+    # ADAPT FOR COMBINED / PHI ONLY / HMI ONLY MAPS
+
+    ar_thld_low  = config.diag_ar_thld_low
+    ar_thld_high = config.diag_ar_thld_high 
+
+    flux_thld_low  = config.diag_flux_thld_low 
+    flux_thld_high = config.diag_flux_thld_high
+
+    synop_filtered, synop_mask = ar_filtering(synop_img, high_thld=ar_thld_high, low_thld=ar_thld_low, empty=np.nan)
+    synop_filtered = np.where(~synop_mask, synop_img, np.nan)
+
+    (ny, nx) = synop_img.shape
+
+    latwidth = 10  #px
+    lats = np.arange(0,ny+latwidth, latwidth)
+    print(synop_img.shape)
+    #n_rows = ny//latwidth
+    #columns = ['pos', 'neg']
+    #nandf = pd.DataFrame(np.nan, index=range(n_rows), columns=columns)
+
     #print(f"phi_table{phi_table}")
-    window_hmi, window_phi = get_phi_hmi_windows(phi_table, deg2px=10)
+    window_hmi, window_phi = get_phi_hmi_windows(synop_table, deg2px=10)
 
     flux_hmi = []
     flux_phi = []
@@ -304,19 +338,24 @@ def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0,
         #x1 = 0
         #x2 = len(hmi_img[0])
         
-        hmi_filtered, hmi_mask = ar_filtering(hmi_img, high_thld=50, low_thld=5, empty=np.nan)
+        hmi_filtered, hmi_mask = ar_filtering(hmi_img, high_thld=ar_thld_high, low_thld=ar_thld_low, empty=np.nan)
         hmi_filtered = np.where(~hmi_mask, hmi_img, np.nan)
 
         # use PHI windows for comparable activity and pixel statistics
-        for (x1, x2) in window_phi:
-            flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+        #for (x1, x2) in window_phi:
+        #    flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+
+        flux_hmi = get_window_flux(hmi_filtered, window_phi, lats, latwidth, flux_thld_low, flux_thld_high)
     else:
-        for (x1, x2) in window_hmi:
-            #UnboundLocalError: local variable 'hmi_filtered' referenced before assignment
-            flux_hmi.append(magnetic_flux_latitudes(hmi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+        # get HMI flux from window_hmi in combined synop_filtered
+        #for (x1, x2) in window_hmi:
+        #    flux_hmi.append(magnetic_flux_latitudes(synop_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+
+        flux_hmi = get_window_flux(synop_filtered, window_hmi, lats, latwidth, flux_thld_low, flux_thld_high)
 
     # this gives the average flux over all HMI windows
     #flux_hmi = sum(flux_hmi)/len(flux_hmi)
+    """
     if len(flux_hmi) > 1:
         flux_hmi_combined = pd.concat(flux_hmi)
         flux_hmi = flux_hmi_combined.groupby(flux_hmi_combined.index).mean()
@@ -324,10 +363,15 @@ def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0,
         flux_hmi = flux_hmi[0]
     else:
         flux_hmi = nandf
+    """
 
+    flux_phi = get_window_flux(synop_filtered, window_phi, lats, latwidth, flux_thld_low, flux_thld_high)
+
+    """
+    # Repeat for PHI
     for (x1, x2) in window_phi:
         #print(x1,x2)
-        flux_phi.append(magnetic_flux_latitudes(phi_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
+        flux_phi.append(magnetic_flux_latitudes(synop_filtered, lats, x1=x1, x2=x2, thld_low=thld_low, thld_high=thld_high, mean=True, med=False))
 
     # this gives the average flux over all PHI windows
     #flux_phi = sum(flux_phi)/len(flux_phi)
@@ -341,15 +385,17 @@ def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0,
         flux_phi = nandf
     #print(flux_phi)
     #print(flux_hmi)
+    """
+
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
     pix_lat  = [int((y+1)*720) for y in sine_lat]
 
     # pix_lat[6]  = +30°
     # pix_lat[12] = -30°
 
-    pos1, noise1, offset1 = noise_cadence_windows(phi_filtered[:pix_lat[6],:],             phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos2, noise2, offset2 = noise_cadence_windows(phi_filtered[pix_lat[6]:pix_lat[12],:],  phi_table, thld_low=thld_low, thld_high=thld_high)
-    pos3, noise3, offset3 = noise_cadence_windows(phi_filtered[pix_lat[12]:,:],            phi_table, thld_low=thld_low, thld_high=thld_high)
+    pos1, noise1, offset1 = noise_cadence_windows(synop_filtered[:pix_lat[6],:],             synop_table, thld_low=flux_thld_low, thld_high=flux_thld_high)
+    pos2, noise2, offset2 = noise_cadence_windows(synop_filtered[pix_lat[6]:pix_lat[12],:],  synop_table, thld_low=flux_thld_low, thld_high=flux_thld_high)
+    pos3, noise3, offset3 = noise_cadence_windows(synop_filtered[pix_lat[12]:,:],            synop_table, thld_low=flux_thld_low, thld_high=flux_thld_high)
 
     pos    = [pos1,    pos2,    pos3]
     noise  = [noise1,  noise2,  noise3]
@@ -361,15 +407,15 @@ def diagnostics(phi_img, phi_table, path, carrington_number, config, thld_low=0,
     else: component = "B_LoS"
 
     with PdfPages(os.path.join(path, f'CR{carrington_number}_diagnostics.pdf')) as pdf:
-        fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=True)
-        #fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, path, carrington_number, save=True)
-        fig_syn = combined_synoptic_noise_plot(phi_img, phi_table, pos, noise, offset, legend, config, save=True)
+        fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, flux_thld_low, flux_thld_high, latwidth=10, save=True)
+        #fig_syn = combined_synoptic_noise_plot(synop_img, synop_table, pos, noise, offset, legend, config, path, carrington_number, save=True)
+        fig_syn = combined_synoptic_noise_plot(synop_img, synop_table, pos, noise, offset, legend, config, save=True)
         pdf.savefig(fig_mag)
         pdf.savefig(fig_syn)
         fig_mag.savefig(os.path.join(path, f'CR{carrington_number}_latflux.png'), format='png')
         fig_syn.savefig(os.path.join(path, f'CR{carrington_number}_noise.png'),   format='png')
 
-        plot_synoptic_sources(phi_img, component, path, f'CR{carrington_number}_synoptic', carrington_number, phi_table, save=True)
+        plot_synoptic_sources(synop_img, component, path, f'CR{carrington_number}_synoptic', carrington_number, synop_table, save=True)
 
     if export: export_magnetic_flux(flux_phi, flux_hmi, carrington_number, file=export)
 
@@ -609,7 +655,7 @@ def main(path, carrington_number, run_diagnostics=True, run_pfss=True, export_di
         config.Btype = "line-of-sight"
 
     if run_diagnostics:
-        diagnostics(phi_img, phi_table, path, outname, config, thld_low=0, thld_high=10, export=export_diagnostics, separate_maps=separate_maps, hmi_img=hmi_img)
+        diagnostics(phi_img, phi_table, path, outname, config, export=export_diagnostics, separate_maps=separate_maps, hmi_img=hmi_img)
     
     if run_pfss:
         pfss(phi_polfil,        synop_hmi, path, name='PHI-HMI', pdf=True)
