@@ -25,6 +25,8 @@ class Config:
         "run_hmiphisynoptic":      True, # run 3_hmisynoptic.py to create the synoptic maps
         "run_polefilling":         False, # run all synoptic map pole filling
 
+        "run_diagnostics":         False, # run diagnostics.py to create the synoptic maps diagnostics
+
         ###########################################################
         #################### Global parameters ####################
         ###########################################################
