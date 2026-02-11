@@ -3,19 +3,22 @@ import subprocess
 import argparse
 
 from utils.utils import run_bash_scripts, create_session_folder, create_session_structure
+from config.config import Config
+
 from synop.los.drms_preparation import main as drms_main_los
 from synop.los.m720s_drms_pipe import main as hmi_data_main_los
 from synop.los.phi_drms_interface import main as phi_data_main_los
 from synop.los.hmiphisynoptic import main as synop_main_los
-from synop.los.diagnostics import main as diagnostics_los
+from synop.los.polfil_los import main as polfil_los
+from synop.los.diagnostics_los import main as diagnostics_los
 
 from synop.vect.drms_preparation_b3c import main as drms_main_b3c
 from synop.vect.m720s_drms_pipe_b3c import main as hmi_data_main_b3c
 from synop.vect.phi_drms_interface_b3c import main as phi_data_main_b3c
 from synop.vect.hmiphisynoptic_b3c import main as synop_main_b3c
-#from synop.vect.diagnostics import main as diagnostics_b3c
+from synop.vect.polfil_b3c import main as polfil_b3c
+from synop.vect.diagnostics_b3c import main as diagnostics_b3c
 
-from config.config import Config
 
 STATUS_OK = 0
 
@@ -91,6 +94,7 @@ if __name__ == "__main__":
         elif config.run_hmi_scripts:
             run_bash_scripts(config, session_folder, verbose=config.verbose, prefix='hmi')
 
+
         if config.run_hmiphisynoptic:
             if config.verbose: print("Running hmiphisynoptic_b3c.py ...")
             
@@ -99,13 +103,25 @@ if __name__ == "__main__":
             if status != STATUS_OK: 
                 exit()
 
-        #if config.run_diagnostics:
-        #    if config.verbose: print("Running diagnostics_b3c.py ...")
-        #    
-        #    status = diagnostics_b3c(config, session_folder)
-        #
-        #    if status != STATUS_OK: 
-        #        exit()
+
+        if config.run_polefilling:
+            if config.verbose: print("Running polfil_b3c.py ...")
+
+            status = polfil_los(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+
+
+        if config.run_diagnostics:
+            if config.verbose: print("Running diagnostics_b3c.py ...")
+            
+            status = diagnostics_b3c(config, session_folder)
+        
+            if status != STATUS_OK: 
+                exit()
+
+        
 
     else:
         # LINE OF SIGHT PIPELINE
@@ -117,6 +133,7 @@ if __name__ == "__main__":
             if status != STATUS_OK: 
                 exit()
 
+
         if config.run_m720s_drms_pipe:
             if config.verbose: print("Running m720s_drms_pipe.py ...")
 
@@ -125,6 +142,7 @@ if __name__ == "__main__":
             if status != STATUS_OK: 
                 exit()
             
+
         if config.run_phi_drms_interface:
             if config.verbose: print("Running phi_drms_interface.py ...")
 
@@ -133,6 +151,7 @@ if __name__ == "__main__":
             if status != STATUS_OK: 
                 exit()
         
+
         # This will run all / only phi/ only hmi scripts in the outpath_scripts directory 
         if config.run_hmi_scripts and config.run_phi_scripts:
             run_bash_scripts(config, session_folder, verbose=config.verbose)
@@ -140,6 +159,7 @@ if __name__ == "__main__":
             run_bash_scripts(config, session_folder, verbose=config.verbose, prefix='phi')
         elif config.run_hmi_scripts:
             run_bash_scripts(config, session_folder, verbose=config.verbose, prefix='hmi')
+
 
         if config.run_hmiphisynoptic:
             if config.verbose: print("Running hmiphisynoptic.py ...")
@@ -149,9 +169,15 @@ if __name__ == "__main__":
             if status != STATUS_OK: 
                 exit()
             
-        # Todo
-        #if config.run_polefilling:
-            #subprocess.call(['los/4_polfil.sh'])
+
+        if config.run_polefilling:
+            if config.verbose: print("Running polfil_los.py ...")
+
+            status = polfil_los(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+
 
         if config.run_diagnostics:
             if config.verbose: print("Running diagnostics.py ...")
