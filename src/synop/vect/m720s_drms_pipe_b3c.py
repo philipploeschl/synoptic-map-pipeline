@@ -4,6 +4,8 @@ import numpy as np
 from utils.utils import add_script_header, add_check_continue, get_dataseries_count, get_dataseries_times
 
 STATUS_OK = 0
+STATUS_NODATA = 1
+STATUS_DISAMBIG_ERROR = 2
 
 def main(config, session_folder):
 
@@ -12,13 +14,21 @@ def main(config, session_folder):
     
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
-
+    
     vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
     vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
     vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
 
-    vectmag = vectmag_random
-
+    if config.b3c_disambig == "random":
+        vectmag = vectmag_random
+    elif config.b3c_disambig == "potential":
+        vectmag = vectmag_poten    
+    elif config.b3c_disambig == "radial":
+        vectmag = vectmag_radial
+    else:
+        print(f'Unknown disambiguation setting in config: {config.b3c_disambig}. Select between "random", "potential", "radial"')
+        return STATUS_DISAMBIG_ERROR
+    
     times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)  # list with all queued time stamps
     
     if config.filter_duplicates_hmi:

@@ -273,7 +273,8 @@ def main(config, session_folder):
     elif config.b3c_disambig == "radial":
         vectmag = vectmag_radial
     else:
-        raise("Unknown disambiguation setting in config.")
+        print(f'Unknown disambiguation setting in config: {config.b3c_disambig}. Select between "random", "potential", "radial"')
+        return STATUS_DISAMBIG_ERROR
     
     #set_keys = "setsid set_keys ds=%s[%s] %s=%s\n" #OBSOLETE
     #rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
