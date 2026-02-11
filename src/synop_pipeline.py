@@ -7,11 +7,13 @@ from synop.los.drms_preparation import main as drms_main_los
 from synop.los.m720s_drms_pipe import main as hmi_data_main_los
 from synop.los.phi_drms_interface import main as phi_data_main_los
 from synop.los.hmiphisynoptic import main as synop_main_los
+from synop.los.diagnostics import main as diagnostics_los
 
 from synop.vect.drms_preparation_b3c import main as drms_main_b3c
 from synop.vect.m720s_drms_pipe_b3c import main as hmi_data_main_b3c
 from synop.vect.phi_drms_interface_b3c import main as phi_data_main_b3c
 from synop.vect.hmiphisynoptic_b3c import main as synop_main_b3c
+#from synop.vect.diagnostics import main as diagnostics_b3c
 
 from config.config import Config
 
@@ -97,6 +99,14 @@ if __name__ == "__main__":
             if status != STATUS_OK: 
                 exit()
 
+        #if config.run_diagnostics:
+        #    if config.verbose: print("Running diagnostics_b3c.py ...")
+        #    
+        #    status = diagnostics_b3c(config, session_folder)
+        #
+        #    if status != STATUS_OK: 
+        #        exit()
+
     else:
         # LINE OF SIGHT PIPELINE
         if config.run_drms_prep:
@@ -142,5 +152,13 @@ if __name__ == "__main__":
         # Todo
         #if config.run_polefilling:
             #subprocess.call(['los/4_polfil.sh'])
-    
+
+        if config.run_diagnostics:
+            if config.verbose: print("Running diagnostics.py ...")
+            
+            status = diagnostics_los(config, session_folder)
+
+            if status != STATUS_OK: 
+                exit()
+            
 # python src/synop_pipeline.py --config=config.yaml --session=/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/multi-source-test/
