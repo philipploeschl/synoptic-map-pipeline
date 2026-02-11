@@ -322,7 +322,7 @@ def diagnostics(synop_img, synop_table, path, carrington_number, config, export=
 
     latwidth = 10  #px
     lats = np.arange(0,ny+latwidth, latwidth)
-    print(synop_img.shape)
+
     #n_rows = ny//latwidth
     #columns = ['pos', 'neg']
     #nandf = pd.DataFrame(np.nan, index=range(n_rows), columns=columns)
@@ -406,18 +406,18 @@ def diagnostics(synop_img, synop_table, path, carrington_number, config, export=
     if config.Mr: component = "B_r"
     else: component = "B_LoS"
 
-    with PdfPages(os.path.join(path, f'CR{carrington_number}_diagnostics.pdf')) as pdf:
+    with PdfPages(os.path.join(path, f'CR{int(carrington_number)}_diagnostics.pdf')) as pdf:
         fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, flux_thld_low, flux_thld_high, latwidth=10, save=True)
         #fig_syn = combined_synoptic_noise_plot(synop_img, synop_table, pos, noise, offset, legend, config, path, carrington_number, save=True)
         fig_syn = combined_synoptic_noise_plot(synop_img, synop_table, pos, noise, offset, legend, config, save=True)
         pdf.savefig(fig_mag)
         pdf.savefig(fig_syn)
-        fig_mag.savefig(os.path.join(path, f'CR{carrington_number}_latflux.png'), format='png')
-        fig_syn.savefig(os.path.join(path, f'CR{carrington_number}_noise.png'),   format='png')
+        fig_mag.savefig(os.path.join(path, f'CR{int(carrington_number)}_latflux.png'), format='png')
+        fig_syn.savefig(os.path.join(path, f'CR{int(carrington_number)}_noise.png'),   format='png')
 
-        plot_synoptic_sources(synop_img, component, path, f'CR{carrington_number}_synoptic', carrington_number, synop_table, save=True)
+        plot_synoptic_sources(synop_img, component, path, f'CR{int(carrington_number)}_synoptic', int(carrington_number), synop_table, save=True)
 
-    if export: export_magnetic_flux(flux_phi, flux_hmi, carrington_number, file=export)
+    if export: export_magnetic_flux(flux_phi, flux_hmi, int(carrington_number), file=export)
 
 
 

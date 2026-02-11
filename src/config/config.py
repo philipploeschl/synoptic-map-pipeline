@@ -187,11 +187,11 @@ class Config:
         ###########################################################
 
         # NEW PARAMETERS
-        "diag_ar_thld_high"  : 50,  # [G] high threshold for active region filtering
-        "diag_ar_thld_low"   :  5,  # [G] low  threshold for active region filtering
+        "diag_ar_thld_high"  : 100,  # [G] high threshold for active region filtering
+        "diag_ar_thld_low"   :   5,  # [G] low  threshold for active region filtering
 
-        "diag_flux_thld_high": 10,  # [G] high threshold for magnetic flux analysis
-        "diag_flux_thld_low" :  5,  # [G] low  threshold for magnetic flux filtering
+        "diag_flux_thld_high":  10,  # [G] high threshold for magnetic flux analysis
+        "diag_flux_thld_low" :   0,  # [G] low  threshold for magnetic flux filtering
 
 
         ###########################################################
