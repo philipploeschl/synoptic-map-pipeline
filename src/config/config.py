@@ -175,6 +175,23 @@ class Config:
         "noiseS"      : 3.0,  # std dev of noise
         "maxNoiseAdj" : 3.0,  # maximum adjustment due to increases with latitude of the noise level (radial data only) 
         "minOutPts"   : 4.0,  # minimum number of points that must exist before outliers can be  discarded when calulating summary statistics
+        
+        ###########################################################
+        ####################### Pole Filling ######################
+        ###########################################################
+
+        # Placeholder
+
+        ###########################################################
+        ####################### Diagnostics #######################
+        ###########################################################
+
+        # NEW PARAMETERS
+        "diag_ar_thld_high"  : 50,  # [G] high threshold for active region filtering
+        "diag_ar_thld_low"   :  5,  # [G] low  threshold for active region filtering
+
+        "diag_flux_thld_high": 10,  # [G] high threshold for magnetic flux analysis
+        "diag_flux_thld_low" :  5,  # [G] low  threshold for magnetic flux filtering
 
 
         ###########################################################
