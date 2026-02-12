@@ -64,13 +64,17 @@ def create_src_fits_table(imrec):
         group_list = list(group)
 
         if src =='HMI_COMBINED':
-            # get start and end of crln_obs in this HMI group
-            max_lon = round(group_list[0]["crln_obs"],2)
-            min_lon = round(group_list[-1]["crln_obs"],2)    
-            t_rec = f"{group_list[0]['tobs']}-{group_list[-1]['tobs']}"
+            
+            # create a line in table for HMI every 4h (every 20 records)
+            for e in range(0, len(group_list), 20):
+                sub_group = group_list[e : e+20]
+                mid_idx = len(sub_group) // 2
+                # get start and end of crln_obs in this HMI group
+                max_lon = round(sub_group[0]["crln_obs"],2)
+                min_lon = round(sub_group[-1]["crln_obs"],2)   
 
-            # append variables in dictionary (no need to separate files of HMI)
-            lines.append({"src": 'HMI',"crln_start": max_lon,"crln_obs": np.nan,"crln_end": min_lon,"t_rec": t_rec, "filename": ""})
+                # append variables in dictionary (no need to separate files of HMI)
+                lines.append({"src": 'HMI',"crln_start": max_lon,"crln_obs": round(sub_group[mid_idx]["crln_obs"],2),"crln_end": min_lon,"t_rec": sub_group[mid_idx]["tobs"], "filename": sub_group[mid_idx]["filename"]})
         else:
             # append phi lines with src and crln_obs (crln_start and crln_end computed afterwards)                                    
             for e in group_list:
@@ -86,8 +90,10 @@ def create_src_fits_table(imrec):
     n=len(lines)
     for i, line in enumerate(lines):
         if line["src"]=='HMI':
-            line["crln_start"] = mean_longitude(line["crln_start"], lines[(i-1) % n]['crln_obs'])
-            line["crln_end"] = mean_longitude(line["crln_end"], lines[(i+1) % n]['crln_obs'])
+            if lines[(i-1) % n]['src']!='HMI':
+                line["crln_start"] = mean_longitude(line["crln_start"], lines[(i-1) % n]['crln_obs'])
+            if lines[(i+1) % n]['src']!='HMI':    
+                line["crln_end"] = mean_longitude(line["crln_end"], lines[(i+1) % n]['crln_obs'])
 
             lines[(i-1) % n]["crln_end"] = line["crln_start"]
             lines[(i+1) % n]["crln_start"] = line["crln_end"]
