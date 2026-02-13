@@ -27,8 +27,8 @@ def main(config, session_folder):
                 if config.verbose: print("Skipping %s (duplicate)" %duplicate)
                 times.remove(duplicate)
 
-    xdim = (config.mapmmax * config.rescale_phi) + 1
-    ydim = (config.sinbdivs * config.rescale_phi)
+    xdim = (config.mapmmax * config.rescale_hmi) + 1
+    ydim = (config.sinbdivs * config.rescale_hmi)
 
     # looks like this is unsed and obsolete   
     #n_m720s = get_dataseries_count(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)     # line count for time stamps
