@@ -5,16 +5,16 @@ import argparse
 from utils.utils import run_bash_scripts, create_session_folder, create_session_structure
 from config.config import Config
 
-from synop.los.drms_preparation import main as drms_main_los
-from synop.los.m720s_drms_pipe import main as hmi_data_main_los
-from synop.los.phi_drms_interface import main as phi_data_main_los
-from synop.los.hmiphisynoptic import main as synop_main_los
+from synop.los.drms_preparation_los import main as drms_main_los
+from synop.los.hmi_preparation_los import main as hmi_data_main_los
+from synop.los.phi_preparation_los import main as phi_data_main_los
+from synop.los.hmiphisynoptic_los import main as synop_main_los
 from synop.los.polfil_los import main as polfil_los
 from synop.los.diagnostics_los import main as diagnostics_los
 
 from synop.vect.drms_preparation_b3c import main as drms_main_b3c
-from synop.vect.m720s_drms_pipe_b3c import main as hmi_data_main_b3c
-from synop.vect.phi_drms_interface_b3c import main as phi_data_main_b3c
+from synop.vect.hmi_preparation_b3c import main as hmi_data_main_b3c
+from synop.vect.phi_preparation_b3c import main as phi_data_main_b3c
 from synop.vect.hmiphisynoptic_b3c import main as synop_main_b3c
 from synop.vect.polfil_b3c import main as polfil_b3c
 from synop.vect.diagnostics_b3c import main as diagnostics_b3c
