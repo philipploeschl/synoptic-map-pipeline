@@ -1,5 +1,5 @@
 
-import os, glob
+import os, sys, glob
 import pandas as pd
 import numpy as np
 from scipy import optimize
@@ -9,8 +9,13 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from pathlib import Path
 
+SRC_PATH = (Path.cwd() / "../").resolve()
+sys.path.insert(0, str(SRC_PATH))
+os.chdir("..")
+
 from config.config import Config
 from utils.plots import magnetic_flux_plot_latitudes, combined_synoptic_noise_plot, plot_synoptic_sources, plot_synoptic_with_stripe_magnitudes
+
 
 ##############################################
 ####### FUNCTION DEFINITIONS FOR UTILS #######
@@ -769,6 +774,8 @@ def stripe_pattern_magnitude(path):
 
 
 if __name__ == "__main__":
+
+
 
     # function call from pipeline modules  "diagnostics(synop_img, table_hdu.data, synop_outpath, config['synop_name'][:-5], global_config)"
     
