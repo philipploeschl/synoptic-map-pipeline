@@ -4,7 +4,7 @@ This is currently abused as a todo list
 # Merge ToDo List
 ## Release blockers
 - confirm that all new parameters have default values in config.py
-- add example_config.py
+- update example_config.py
 - test if diagnostics.py still works as standalone
 
 ## Misc
@@ -12,18 +12,17 @@ This is currently abused as a todo list
 - update readme.md
 
 ## General
-- implement smaller intermediate reprojection dimensions
 - fix and merge data planning
 
 ## diagnostics
 - HMI only functionality -> SHOULD WORK NOW, TESTING TBD
-- Add HMI 4h stripes to the fits table! -> Francisca 
 
 ## PHI_DRMS_INTERFACE
 - add new WCS check (see gherardo email)
   - PWCSCORR= '1       '           / WCS entries corrected 1 = yes
   - discard dataset if not 1
   - WAIT FOR NEW FMDB RELEASE
+  - probably has to be tied to fmdb linked data selection
   
 ## hmisynoptic.py
   - remove CarringtonTime() dependencies?
