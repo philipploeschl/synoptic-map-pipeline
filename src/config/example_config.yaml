@@ -3,16 +3,24 @@
 ################# Pipeline Configuration ##################
 ###########################################################
 
-run_drms_prep:           False # run 0_drms_prep.py to create JSD files and data series in DRMS
-run_m720s_drms_pipe:     False  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-run_phi_drms_interface:  False # run 2_phi_drms_interface.py to create the phi data series
+# Pipeline selection
 
-run_hmi_scripts:         False # run all HMI scripts in the outpath_scripts directory 
-run_phi_scripts:         False # run all PHI scripts in the outpath_scripts directory 
+# NEW PARAMETER
+b3c: False
+b3c_disambig: "random" # random, randial, potential
 
-run_hmiphisynoptic:      False # run 3_hmisynoptic.py to create the synoptic maps
-run_polefilling:         False # run all synoptic map pole filling
+run_drms_prep:           True # run 0_drms_prep.py to create JSD files and data series in DRMS
+run_m720s_drms_pipe:     True # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+run_phi_drms_interface:  True # run 2_phi_drms_interface.py to create the phi data series
 
+run_hmi_scripts:         True   # run all HMI scripts in the outpath_scripts directory 
+run_phi_scripts:         True   # run all PHI scripts in the outpath_scripts directory 
+
+run_hmiphisynoptic:      True  # run 3_hmisynoptic.py to create the synoptic maps
+run_polefilling:         False  # run all synoptic map pole filling - NOT YET IMPLEMENTED
+
+# NEW PARAMETER
+run_diagnostics:         True  # run diagnostics.py to create the synoptic maps diagnostics
 
 
 ###########################################################
@@ -26,11 +34,20 @@ verbose: True
 id: "pipeline_test" # DEPCRECATED 
 
 # database path for new implementation
-phi_dbpath: "/data/solo/phi/data/fmdb/public/l2"
-#date_start: "2022-06-03" # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
-#date_end  : "2022-06-18" # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
-key       : "blos"       # data segment
+#phi_dbpath: "/data/solo/phi/data/fmdb/public/l2" # public fmdb
+#phi_dbpath: "/data/slam/valori/test_l2_fmdb/polar_2025/v01/l2" # experimental fmdb branch
+phi_dbpath: "/data/slam/valori/test_l2_fmdb/FDT_test_release_v08_2025/v1/l2" # latest calibration as of Oct 2025
+#phi_dbpath: "/data/slam/valori/test_l2_fmdb/FDT_test_release_v08_2025/v2/l2" # latest calibration as of Feb 2026
+key        : "blos"       # data segment
 
+# NEW PARAMETER
+# search key vector version uses a list
+#key:  
+# - "blos"
+# - "bmag"
+# - "binc"
+# - "bazi"
+# - "bamb"
 
 # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
 output_path: 'output/'
@@ -44,7 +61,7 @@ obsplan_path: 'observation_plan/' # path to data selection output
 
 # File structure created in misc.py: create_session_folder
 # - OUTPUT_PATH/
-#   - CR_NUMBER_YYYYMMDD_HHMMSS
+#   - PROVIDED_DIRECTORY_NAME
 #       - DATA
 #       - SCRIPTS   
 #       - LOGS
@@ -55,7 +72,6 @@ obsplan_path: 'observation_plan/' # path to data selection output
 template_path: "data/drms/templates/" 
 
 
-
 ###########################################################
 ################# Data series definition ##################
 ###########################################################
@@ -63,34 +79,32 @@ template_path: "data/drms/templates/"
 # Ml/Mr selection -> False: Blos, True: Mr
 Mr: True 
 
-# Carrington rotation number (primary key for synoptic maps)
-cr: 2284 # POSSIBLY OBSOLETE, NOW USING MOST COMMON CR FROM TIMESTRING_HMI/PHIs
-
 # owner of temporary data series, used for output file names
 dataseries_owner: "mps_loeschl"
 
-data_series_phi      : "mps_loeschl.phi_M"           #  mps_phi.something
+data_series_phi      : "mps_loeschl.phi_M"            #  mps_phi.something
 data_series_jv2ts_phi: "mps_loeschl.phi_Mr_hiresmap"  # "mps_loeschl.Ml_hiresmap_720s_test"
 data_series_remap_phi: "mps_loeschl.phi_Mr_remap"     # "mps_loeschl.Ml_remap_720s_test"
 
-data_series_hmi      : "hmi.M_720s"                   # "mps_production.hmi_m_720s_nrt"
+data_series_hmi      : "hmi.M_720s"                        # "mps_production.hmi_m_720s_nrt"
 data_series_jv2ts_hmi: "mps_loeschl.hmi_Mr_hiresmap"  # "mps_loeschl.Ml_hiresmap_720s_test"
 data_series_remap_hmi: "mps_loeschl.hmi_Mr_remap"     # "mps_loeschl.Ml_remap_720s_test"
 
-data_series_synop    : "mps_loeschl.synoptic_Mr"        # synoptic data series name
-data_series_polfil   : "mps_loeschl.synoptic_Mr_polfil" # synoptic Mr polfil data series name
+data_series_synop :    "mps_loeschl.synoptic_Mr"         # synoptic data series name
+data_series_polfil:    "mps_loeschl.synoptic_Mr_polfil"  # synoptic Mr polfil data series name
 
 
 # toggle creation jsd files for data series
-create_jsd_phi         : False 
-create_jsd_hiresmap_phi: False
-create_jsd_remap_phi   : False
+create_jsd_phi         : True 
+create_jsd_hiresmap_phi: True
+create_jsd_remap_phi   : True
 
-create_jsd_hiresmap_hmi: False
-create_jsd_remap_hmi   : False
+create_jsd_hiresmap_hmi: True
+create_jsd_remap_hmi   : True
 
-create_jsd_synoptic    : False 
+create_jsd_synoptic    : True 
 create_jsd_polfil      : False
+
 
 remap_template   : "remap_template.jsd"              # template for remap data series
 hiresmap_template: "hiresmap_template.jsd"           # template for hiresmap data series
@@ -98,11 +112,13 @@ phi_template     : "phi_template.jsd"                # template for phi data ser
 synoptic_template: "synoptic_template.jsd"           # template for synoptic data series
 polfil_template  : "synoptic_mr_polfil_template.jsd" # template for polfil data series
 
+
 # Toggle data series creation from above JSD files in DRMS
-create_series: False
+create_series: True
 
 # Use temporary data series based on ID and CR number
 use_temp_series: False
+
 
 ###########################################################
 ################### HMI & PHI Processing ##################
@@ -120,33 +136,51 @@ filter_duplicates_hmi: True
 filter_duplicates_phi: True
 
 # split batch scripts after nsplit entries
-nparallel_hmi: 5  # number of parallel HMI DRMS shell scripts
-nparallel_phi: 1   # number of parallel PHI DRMS shell scripts
+nparallel_hmi: 20  # number of parallel HMI DRMS shell scripts
+nparallel_phi: 5   # number of parallel PHI DRMS shell scripts
 
-hmi_maprmax: 0.998  # HMI default value
-phi_maprmax: 0.9925 # maximum radius for the synoptic map
+hmi_maprmax: 0.998  # HMI default value: 0.998
+phi_maprmax: 0.995 # maximum radius for the synoptic map
+
+# Remap frame dimensions for synoptic maps
+# synoptic maps will be 2x mapmmax and 2x sinbdivs sized 
+mapmmax     : 900 # determines mapcols (default: 1800)
+sinbdivs    : 360  # number of increments in sin latitude from 0 to 1 (default: 720)
+
+# NEW PARAMETER
+# anti-aliasing rescale parameter for jv2ts -> remap step
+# this controls the jv2ts intermediate resolution in hmi_prep.py and phi_prep.py
+# set to 1 for no anti-aliasing
+# example: 
+# mapmmax=1800, sinbdivs=720, rescale_hmi=3: 
+# - jv2ts frame: 5400x4320 (mapmmax * rescale, (sinbdivs*2)*rescale)
+# - remap frame: 1800x1440 (jv2ts / rescale_hmi)  
+rescale_hmi: 6
+rescale_phi: 1
 
 
 ###########################################################
 ################# Synoptic Map Processing #################
 ###########################################################
 
-
 # Timestrings or HMI and PHI data selection, don't add interval "@12m" here
-# it's added automatically from "interval_hmi" and "intervaL_phi" parameters
+# it's added automatically from "interval_hmi" and "interval_phi" parameters
 # and will crash if you add it here
-timestring_hmi: "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI"
-timestring_phi: "2022.06.17_22:54:23_TAI,2022.06.18_10:56:25_TAI,2022.06.18_23:03:13_TAI,2022.06.19_11:15:52_TAI,2022.06.19_23:22:58_TAI,2022.06.20_11:36:08_TAI,2022.06.20_23:53:39_TAI,2022.06.21_04:17:58_TAI,2022.06.22_00:04:49_TAI,2022.06.22_12:18:51_TAI,2022.06.22_18:23:04_TAI,2022.06.23_00:26:52_TAI,2022.06.23_06:33:54_TAI,2022.06.23_12:41:16_TAI,2022.06.23_18:45:28_TAI,2022.06.24_00:49:36_TAI,2022.06.24_06:56:58_TAI,2022.05.28_08:15:44_TAI,2022.05.28_14:22:55_TAI,2022.05.28_20:26:46_TAI,2022.05.29_02:31:46_TAI,2022.05.29_08:40:07_TAI,2022.05.29_14:47:11_TAI,2022.05.29_20:51:05_TAI,2022.05.30_02:56:29_TAI,2022.05.30_09:05:03_TAI,2022.05.30_15:12:00_TAI,2022.05.30_21:15:56_TAI,2022.05.31_03:21:44_TAI,2022.05.31_09:30:30_TAI,2022.06.01_09:56:24_TAI,2022.06.01_16:03:02_TAI,2022.06.01_22:07:09_TAI,2022.06.02_04:13:44_TAI,2022.06.02_10:22:46_TAI,2022.06.02_16:29:13_TAI,2022.06.02_22:33:28_TAI,2022.06.03_04:40:26_TAI,2022.06.03_10:49:32_TAI,2022.06.03_16:55:48_TAI,2022.06.03_23:00:11_TAI,2022.06.04_05:07:33_TAI,2022.06.04_11:16:41_TAI,2022.06.04_17:22:45_TAI,2022.06.04_23:27:20_TAI,2022.06.05_05:35:04_TAI,2022.06.05_11:44:11_TAI,2022.06.05_17:50:04_TAI,2022.06.05_23:54:52_TAI,2022.06.06_06:02:58_TAI,2022.06.06_12:12:00_TAI,2022.06.06_18:17:43_TAI"
+
+# cr2297 old
+cr: 2297         # Carrington rotation number (primary key for synoptic maps)
+timestring_hmi: "2025.04.27_00:56:26_TAI-2025.05.10_12:56:26_TAI"
+timestring_phi: "2025.05.09_12:56:26_TAI-2025.05.10_08:56:26_TAI,2025.04.26_04:56:26_TAI-2025.05.09_08:56:26_TAI"
 
 
 # Adjacent Meridian Contribution for Weight Function Shape
-awf_nimg: 5  # UNEVEN number of images considered by the weight function default:5: central image +2 on each side
-awf_cmin: 5  # minimum contribution %
-awf_cmax: 5  # maximum contribution %
+awf_nimg: 7  # UNEVEN number of images considered by the weight function default:5: central image +2 on each side
+awf_cmin: 25  # minimum contribution %
+awf_cmax: 25  # maximum contribution %
 awf_dmin: 25 # latitude border until which minimum contribution is used
 awf_dmax: 60 # latitude border from which maximum contribution is used
 awf_lim : False  # TODO DO NOT USE FOR NOW. Unexpected behaviour with NaN in synop.fits output when using awf_nlim: 25
-awf_nlim: 25 # default: 25, TODO understand this parameter again, there might be a factor 2 missing/too much in the code using this
+awf_nlim: 250 # default: 250, TODO understand this parameter again, there might be a factor 2 missing/too much in the code using this
 
 # rebinning
 bin: True
@@ -155,8 +189,6 @@ ybin: 4 # HMI default 4
 
 # classic hmisynoptic parameters
 nsig        : 3.0  # TODO: not sure what the difference to noiseS is
-mapmmax     : 1800 # determines mapcols (default: 1800)
-sinbdivs    : 720  # number of increments in sin latitude from 0 to 1 (default: 720)
 lgmin       : -90  # longitude minimum, degrees (default: -90)
 lgmax       : +90  # longitude maximum, degrees (default: +90)
 checkqual   : 0    # un
@@ -168,10 +200,30 @@ noiseS      : 3.0  # std dev of noise
 maxNoiseAdj : 3.0  # maximum adjustment due to increases with latitude of the noise level (radial data only) 
 minOutPts   : 4.0  # minimum number of points that must exist before outliers can be  discarded when calulating summary statistics
 
+###########################################################
+####################### Pole Filling ######################
+###########################################################
+
+# Placeholder
+
+
+###########################################################
+####################### Diagnostics #######################
+###########################################################
+
+# NEW PARAMETERS
+diag_ar_thld_high:   50  # high threshold for active region filtering
+diag_ar_thld_low:     5  # low  threshold for active region filtering
+
+diag_flux_thld_high: 10  # high threshold for magnetic flux filtering
+diag_flux_thld_low:   0  # low  threshold for magnetic flux filtering
+
 
 ###########################################################
 ###################### Data selection #####################
 ###########################################################
+
+# GENERAL PARAMETERS
 
 # Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
 # https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
@@ -183,7 +235,21 @@ et_resolution: 3600 # default: 3600 = 1h in seconds
 earth_cad: 14400  # defaut: 14400 = 4h in seconds
 solo_cad:  14400  # defaut: 14400 = 4h in seconds
 
-# Use ISO 8601 compatible format for numpy datetime: 'YYYY-MM-DDTHH:MM:SS'
-cr_date_start: '2022-01-01T00:00:00'
-cr_date_end:   '2026-12-31T00:00:00'
+start_cad: 14400 # simulate synoptic maps starting every {start_cat} seconds, default = 43200 = 12h
 
+# LONG TERM DATA SELECTION
+detailed_output: True
+# Use ISO 8601 compatible format for numpy datetime: 'YYYY-MM-DDTHH:MM:SS'
+cr_date_start: '2024-10-01T00:00:00' #'2021-11-01T00:00:00' #'2024-04-01T00:00:00' #
+cr_date_end:   '2025-07-01T00:00:00' #'2030-11-20T04:00:00' #'2024-08-01T00:00:00' #
+
+# INDIVIDUAL DATA SELECTION
+single_carrington: True
+
+# overlapping priority periods will prioritise PHI for now
+priority_phi: 'YYYY-MM-DDTHH:MM:SS' # timestring
+priority_hmi: 'YYYY-MM-DDTHH:MM:SS' # timestring
+
+
+# Example command line code
+#python src/synop_pipeline.py --config=config.yaml --session=/scratch/slam/loeschl/dev/python/synoptic-map-pipeline/output/CR2297_polar_2025_v01/

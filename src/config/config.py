@@ -15,17 +15,17 @@ class Config:
         "b3c":                     False, # LoS pipeline by default
         "b3c_disambig":            "random",   # random, radial, potential
 
-        "run_drms_prep":           False, # run 0_drms_prep.py to create JSD files and data series in DRMS
-        "run_m720s_drms_pipe":     False,  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-        "run_phi_drms_interface":  False, # run 2_phi_drms_interface.py to create the phi data series
+        "run_drms_prep":           True, # run 0_drms_prep.py to create JSD files and data series in DRMS
+        "run_m720s_drms_pipe":     True,  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+        "run_phi_drms_interface":  True, # run 2_phi_drms_interface.py to create the phi data series
 
-        "run_hmi_scripts":         False, # run all HMI scripts in the outpath_scripts directory 
-        "run_phi_scripts":         False, # run all PHI scripts in the outpath_scripts directory 
+        "run_hmi_scripts":         True, # run all HMI scripts in the outpath_scripts directory 
+        "run_phi_scripts":         True, # run all PHI scripts in the outpath_scripts directory 
 
         "run_hmiphisynoptic":      True, # run 3_hmisynoptic.py to create the synoptic maps
         "run_polefilling":         False, # run all synoptic map pole filling
 
-        "run_diagnostics":         False, # run diagnostics.py to create the synoptic maps diagnostics
+        "run_diagnostics":         True, # run diagnostics.py to create the synoptic maps diagnostics
 
         ###########################################################
         #################### Global parameters ####################
@@ -37,22 +37,10 @@ class Config:
         # Session ID, also used as data series appendix e.g. "FDT_test_release_june_2022_defri" for FDT test release june 2022 defringed      
         "id": "pipeline_test", # DEPRECATED
 
-        "data_series_phi"      : "mps_loeschl.phi_M",            
-        "data_series_jv2ts_phi": "mps_loeschl.phi_%s_hiresmap", 
-        "data_series_remap_phi": "mps_loeschl.phi_%s_remap",    
-
-        "data_series_hmi"      : "hmi.M_720s",                  # "mps_production.hmi_m_720s_nrt"
-        "data_series_jv2ts_hmi": "mps_loeschl.hmi_%s_hiresmap", 
-        "data_series_remap_hmi": "mps_loeschl.hmi_%s_remap",     
-
-        "data_series_synop"    : "mps_loeschl.synoptic_%s",        # synoptic data series name
-        "data_series_polfil"   : "mps_loeschl.synoptic_Mr_polfil", # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
-
         # database path for new implementation
         "phi_dbpath": "/data/solo/phi/data/fmdb/public/l2",
-        #"date_start": "2022-06-03", # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
-        #"date_end"  : "2022-06-18", # YYYY-MM-DD # PROBABLY OBSOLETE, NOW USING TIMESTRING_PHI --IGNORE--
         "key"       : "blos",       # data segment
+        
 
         # Output path for DRMS scripts relative (relative to synop/)- e.g. synop/output/CR_NUMBER_SESSION_ID/
         "output_path": 'output/',
@@ -86,21 +74,32 @@ class Config:
         ################# Data series definition ##################
         ###########################################################
 
-        # owner of temporary data series, used for output file names
-        "dataseries_owner": "mps_loeschl", 
-
         # Ml/Mr selection -> False: Blos, True: Mr
         "Mr": True, 
 
-        # Carrington rotation number (primary key for synoptic maps)
-        "cr": 2258,
+        # owner of temporary data series, used for output file names
+        "dataseries_owner": "mps_loeschl", 
+
+        "data_series_phi"      : "mps_loeschl.phi_M",            
+        "data_series_jv2ts_phi": "mps_loeschl.phi_%s_hiresmap", 
+        "data_series_remap_phi": "mps_loeschl.phi_%s_remap",    
+
+        "data_series_hmi"      : "hmi.M_720s",                  # "mps_production.hmi_m_720s_nrt"
+        "data_series_jv2ts_hmi": "mps_loeschl.hmi_%s_hiresmap", 
+        "data_series_remap_hmi": "mps_loeschl.hmi_%s_remap",     
+
+        "data_series_synop"    : "mps_loeschl.synoptic_%s",        # synoptic data series name
+        "data_series_polfil"   : "mps_loeschl.synoptic_Mr_polfil", # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
+
 
         # toggle creation jsd files for data series
         "create_jsd_phi"         : False, 
         "create_jsd_hiresmap_phi": False,
         "create_jsd_hiresmap_hmi": False,
+
         "create_jsd_remap_phi"   : False,
         "create_jsd_remap_hmi"   : False,
+        
         "create_jsd_synoptic"    : False, 
         "create_jsd_polfil"      : False,
 
@@ -151,9 +150,13 @@ class Config:
         "rescale_hmi": 3,
         "rescale_phi": 3,
         
+
         ###########################################################
         ################# Synoptic Map Processing #################
         ###########################################################
+        
+        # Carrington rotation number (primary key for synoptic maps)
+        "cr": 2258,  #POSSIBLY OBSOLETE, NOW USING MOST COMMON CR FROM TIMESTRING_HMI/PHIs
 
         # timestring2258_phi_hmi12m
         "timestring_hmi": "2022.06.06_03:00:00_TAI-2022.06.17_19:00:00_TAI",
