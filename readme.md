@@ -135,21 +135,27 @@ SYNOPTIC-MAP-PIPELINE
    ├─ diagnostics.py
    ├─ CONFIG/
    │  ├─ config.py           # config parser class
-   │  └─ example_config.yaml # example config, not read for defaults
+   │  └─ example_config.yaml # example config, NOT read for defaults
    ├─ SYNOP/
    │  ├─ LOS/                # line-of-sight code
-   │  │  ├─ drms_preparation.py
-   │  │  ├─ m720s_drms_pipe.py
-   │  │  ├─ phi_drms_interface.py
-   │  │  └─ hmiphisynoptic.py
+   │  │  ├─ drms_preparation_los.py
+   │  │  ├─ hmi_preparation_los.py
+   │  │  ├─ phi_preparation_los.py
+   │  │  ├─ hmiphisynoptic_los.py
+   │  │  ├─ polfil_los.py
+   │  │  └─ diagnostics_los.py
    │  └─ VECT/               # vector code
    │     ├─ drms_preparation_b3c.py
-   │     ├─ m720s_drms_pipe_b3c.py
-   │     ├─ phi_drms_interface_b3c.py
-   │     └─ hmiphisynoptic_b3c.py
+   │     ├─ hmi_preparation_b3c.py
+   │     ├─ phi_preparation_b3c.py
+   │     ├─ hmiphisynoptic_b3c.py
+   │     ├─ polfil_b3c.py
+   │     └─ diagnostics_b3c.py
    └─ UTILS/
-      ├─ solepehm.py         # ephemeris functions for hmiphisynoptic.py
+      ├─ diagnostics.py      # diagnostics scripts
       ├─ plots.py            # plotting scripts
+      ├─ solepehm.py         # ephemeris functions for hmiphisynoptic.py
+      ├─ spicetools.py       # functions supporting spiceypy usage
       └─ utils.py            # formerly misc.py
 ```
 

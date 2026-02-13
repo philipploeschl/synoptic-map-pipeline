@@ -3,9 +3,6 @@ This is currently abused as a todo list
 
 # Merge ToDo List
 ## Release blockers
-- confirm that all new parameters have default values in config.py
-- update example_config.py
-- test if diagnostics.py still works as standalone
 
 ## Misc
 - throw out everything that's obsolete from this list
