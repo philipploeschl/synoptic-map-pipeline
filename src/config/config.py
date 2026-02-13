@@ -136,7 +136,21 @@ class Config:
         "hmi_maprmax": 0.998,  # HMI default value
         "phi_maprmax": 0.9925, # maximum radius for the synoptic map
         
+        # Remap frame dimensions for synoptic maps
+        # synoptic maps will be 2x mapmmax and 2x sinbdivs sized 
+        "mapmmax"     : 1800, # determines mapcols (default: 1800)
+        "sinbdivs"    : 720,  # number of increments in sin latitude from 0 to 1 (default: 720)
 
+        # NEW PARAMETER
+        # anti-aliasing rescale parameter for jv2ts -> remap step
+        # this controls the jv2ts intermediate resolution in hmi_prep.py and phi_prep.py
+        # example: 
+        # mapmmax=1800, sinbdivs=720, rescale_hmi=3: 
+        # - jv2ts frame: 5400x4320 (mapmmax * rescale, (sinbdivs*2)*rescale)
+        # - remap frame: 1800x1440 (jv2ts / rescale_hmi)  
+        "rescale_hmi": 3,
+        "rescale_phi": 3,
+        
         ###########################################################
         ################# Synoptic Map Processing #################
         ###########################################################
@@ -163,8 +177,9 @@ class Config:
 
         # classic hmisynoptic parameters
         "nsig"        : 3.0,  # TODO: not sure what the difference to noiseS is
-        "mapmmax"     : 1800, # determines mapcols (default: 1800)
-        "sinbdivs"    : 720,  # number of increments in sin latitude from 0 to 1 (default: 720)
+        # moved to HMI & PHI Processing section
+        #"mapmmax"     : 1800, # determines mapcols (default: 1800)
+        #"sinbdivs"    : 720,  # number of increments in sin latitude from 0 to 1 (default: 720)
         "lgmin"       : -90,  # longitude minimum, degrees (default: -90)
         "lgmax"       : +90,  # longitude maximum, degrees (default: +90)
         "checkqual"   : 0,    # un
