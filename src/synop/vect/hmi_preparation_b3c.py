@@ -15,9 +15,9 @@ def main(config, session_folder):
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
     
-    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
-    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
-    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n"
+    vectmag_random = "vectmag2helio3comp_random in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=%s SINBDIVS=%s RESCALE=%s\n"
+    vectmag_poten  = "vectmag2helio3comp_poten  in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=%s SINBDIVS=%s RESCALE=%s\n"
+    vectmag_radial = "vectmag2helio3comp_radial in='%s[%s]' v2hout=%s histlink=none TSTART=%s TTOTAL='12m' TCHUNK='12m' NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%sMAPMMAX=%s SINBDIVS=%s RESCALE=%s\n"
 
     if config.b3c_disambig == "random":
         vectmag = vectmag_random
@@ -29,6 +29,11 @@ def main(config, session_folder):
         print(f'Unknown disambiguation setting in config: {config.b3c_disambig}. Select between "random", "potential", "radial"')
         return STATUS_DISAMBIG_ERROR
     
+    xdim = (config.mapmmax * config.rescale_hmi) + 1
+    ydim = (config.sinbdivs * config.rescale_hmi)
+    rescale = np.round(1/config.rescale_hmi, 6) # default value at 6 decimal precison: 0.333333
+
+
     times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)  # list with all queued time stamps
     
     if config.filter_duplicates_hmi:
@@ -70,8 +75,8 @@ def main(config, session_folder):
 
         # write the commands to the batch script
         batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
-        batch_out.write('\necho %s' %vectmag %(config.data_series_hmi, time, config.data_series_remap_hmi, time, config.hmi_maprmax))
-        batch_out.write(vectmag %(config.data_series_hmi, time, config.data_series_remap_hmi, time, config.hmi_maprmax))
+        batch_out.write('\necho %s' %vectmag %(config.data_series_hmi, time, config.data_series_remap_hmi, time, config.hmi_maprmax, xdim, ydim, rescale))
+        batch_out.write(vectmag %(config.data_series_hmi, time, config.data_series_remap_hmi, time, config.hmi_maprmax, xdim, ydim, rescale))
         
         add_check_continue(batch_out)
         batch_out.write('\n')

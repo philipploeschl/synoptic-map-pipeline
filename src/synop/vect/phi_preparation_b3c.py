@@ -7,6 +7,7 @@ from utils.utils import add_script_header, add_check_continue, get_phi_filenames
 
 STATUS_OK = 0
 STATUS_NODATA = 1
+STATUS_DISAMBIG_ERROR = 2
 
 def main(config, session_folder):
     #set cwd to file directory
@@ -262,9 +263,9 @@ def main(config, session_folder):
     #set_info = 'setsid set_info -c ds="%s" T_REC="%s" field=%s inclination=%s azimuth=%s disambig=%s\n'
 
     #jv2ts    = "setsid jv2ts in=%s['%s'] v2hout=%s histlink=none TSTART='%s' TTOTAL='12m' TCHUNK='12m' MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n"
-    vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n'
-    vectmag_poten  = 'setsid vectmag2helio3comp_poten  in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n'
-    vectmag_radial = 'setsid vectmag2helio3comp_radial in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=5402 SINBDIVS=2160 RESCALE=0.333333\n'
+    vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=%s SINBDIVS=%s RESCALE=%s\n'
+    vectmag_poten  = 'setsid vectmag2helio3comp_poten  in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=%s SINBDIVS=%s RESCALE=%s\n'
+    vectmag_radial = 'setsid vectmag2helio3comp_radial in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=%s SINBDIVS=%s RESCALE=%s\n'
 
     if config.b3c_disambig == "random":
         vectmag = vectmag_random
@@ -276,6 +277,10 @@ def main(config, session_folder):
         print(f'Unknown disambiguation setting in config: {config.b3c_disambig}. Select between "random", "potential", "radial"')
         return STATUS_DISAMBIG_ERROR
     
+    xdim = (config.mapmmax * config.rescale_phi) + 1
+    ydim = config.sinbdivs * config.rescale_phi
+    rescale = np.round(1/config.rescale_phi, 6) # default value at 6 decimal precison: 0.333333
+
     #set_keys = "setsid set_keys ds=%s[%s] %s=%s\n" #OBSOLETE
     #rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
 
@@ -324,7 +329,7 @@ def main(config, session_folder):
         batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
         batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
         
-        batch_out.write('\necho %s' %vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
+        batch_out.write('\necho %s' %vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax, xdim, ydim, rescale))
         batch_out.write(vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
         
         add_check_continue(batch_out)

@@ -12,10 +12,10 @@ def main(config, session_folder):
     
     #setsid is a Linux/Unix command that runs a program in a new session and new process group. 
     #It effectively detaches the process from the current terminal’s job control (and signals like Ctrl+C).
-    jv2ts = 'setsid jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" MAPMMAX=5402 SINBDIVS=2160 LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n' 
+    jv2ts = 'setsid jv2ts in=%s["%s"] v2hout=%s histlink=none TSTART="%s" TTOTAL="12m" TCHUNK="12m" MAPMMAX=%s SINBDIVS=%s LGSHIFT=3 CARRSTRETCH=1 MCORLEV=%s MAPRMAX=%s MAPLGMAX=90.0 MAPLGMIN=-90 MAPBMAX=90.0 VCORLEV=0 NAN_BEYOND_RMAX=1 FORCEOUTPUT=1\n' 
             #timestamp, v2hout, timestamp, config.mcorlev, logfile
 
-    rsmapmag = 'setsid resizemappingmag in=%s["%s"] out=%s nbin=3\n' #in_ds, timestamp, out_ds, logfile
+    rsmapmag = 'setsid resizemappingmag in=%s["%s"] out=%s nbin=%s\n' #in_ds, timestamp, out_ds, logfile
     
     times = get_dataseries_times(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)  # list with all queued time stamps
     
@@ -26,6 +26,9 @@ def main(config, session_folder):
             if duplicate in times:
                 if config.verbose: print("Skipping %s (duplicate)" %duplicate)
                 times.remove(duplicate)
+
+    xdim = (config.mapmmax * config.rescale_phi) + 1
+    ydim = (config.sinbdivs * config.rescale_phi)
 
     # looks like this is unsed and obsolete   
     #n_m720s = get_dataseries_count(config.data_series_hmi, config.timestring_hmi, config.interval_hmi)     # line count for time stamps
@@ -58,11 +61,11 @@ def main(config, session_folder):
 
         # write the commands to the batch script
         batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
-        batch_out.write('\necho %s' %jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, config.mcorlev, config.hmi_maprmax))
-        batch_out.write(jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, config.mcorlev, config.hmi_maprmax))
+        batch_out.write('\necho %s' %jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, xdim, ydim, config.mcorlev, config.hmi_maprmax))
+        batch_out.write(jv2ts %(config.data_series_hmi, time, config.data_series_jv2ts_hmi, time, xdim, ydim, config.mcorlev, config.hmi_maprmax))
         
-        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi))
-        batch_out.write(rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi))
+        batch_out.write('\necho %s' %rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi, config.rescale_hmi))
+        batch_out.write(rsmapmag %(config.data_series_jv2ts_hmi, time, config.data_series_remap_hmi, config.rescale_hmi))
         add_check_continue(batch_out)
         batch_out.write('\n')
 
