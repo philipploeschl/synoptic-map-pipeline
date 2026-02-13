@@ -388,7 +388,7 @@ def diagnostics(synop_img, synop_table, path, carrington_number, config, export=
     """
 
     sine_lat = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
-    pix_lat  = [int((y+1)*720) for y in sine_lat]
+    pix_lat  = [int((y+1)*(ny//2)) for y in sine_lat]
 
     # pix_lat[6]  = +30°
     # pix_lat[12] = -30°
@@ -407,7 +407,7 @@ def diagnostics(synop_img, synop_table, path, carrington_number, config, export=
     else: component = "B_LoS"
 
     with PdfPages(os.path.join(path, f'CR{int(carrington_number)}_diagnostics.pdf')) as pdf:
-        fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, flux_thld_low, flux_thld_high, latwidth=10, save=True)
+        fig_mag = magnetic_flux_plot_latitudes(flux_phi, flux_hmi, flux_thld_low, flux_thld_high, ny, latwidth=10, save=True)
         #fig_syn = combined_synoptic_noise_plot(synop_img, synop_table, pos, noise, offset, legend, config, path, carrington_number, save=True)
         fig_syn = combined_synoptic_noise_plot(synop_img, synop_table, pos, noise, offset, legend, config, save=True)
         pdf.savefig(fig_mag)

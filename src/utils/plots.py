@@ -28,7 +28,7 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
     for i in range(19):
         calculation = np.sin((np.pi/18)*(i-9.0))
         ytick_latitude.append(calculation)
-        ytick_normalize.append((calculation+1)*720.)
+        ytick_normalize.append((calculation+1)*(ny/2))
 
     # MAKE PLOT #1
     fig, ax = plt.subplots(figsize=(14,6))
@@ -66,7 +66,7 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
     fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
 
     # make the horizontal bar with color coded data sources
-    deg2px = 10  
+    deg2px = nx/360.  
     for row in fits_table:
         # make the colored boxes for each fits table line
         color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
@@ -155,7 +155,7 @@ def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_tabl
     fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
 
     # make the horizontal bar with color coded data sources
-    deg2px = 10  
+    deg2px = nx/360.  
     for row in fits_table:
         # make the colored boxes for each fits table line
         color = 'steelblue' if row['SRC'] == 'HMI' else 'orange'
@@ -314,7 +314,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
     ax_legend.axis('off')  # hide axis
 
     labelsize = 12
-    deg2px = 10
+    deg2px = nx/360.
     bar_height = 40
     noise_bar_height = 0.15
 
@@ -337,7 +337,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
 
     # Longitude ticks
     xlabels = [0,30,60,90,120,150,180,210,240,270,300,330,360]
-    xlocations = [i * 10 for i in xlabels]
+    xlocations = [i * deg2px for i in xlabels]
     ax_synop.set_xticks(xlocations)
     ax_synop.set_xticklabels(xlabels)
     ax_synop.set_ylabel('Latitude [°]', fontsize=labelsize)
@@ -346,7 +346,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
     # Latitude ticks
     ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ','20',' ','40',' ','60',' ','80',' ']
     ytick_latitude = [np.sin((np.pi/18)*(i-9.0)) for i in range(19)]
-    ytick_normalize = [(y+1)*720. + bar_height for y in ytick_latitude]
+    ytick_normalize = [(y+1)*(ny/2) + bar_height for y in ytick_latitude]
     ax_synop.set_yticks(ytick_normalize)
     ax_synop.set_yticklabels(ylabels_r)
     ax_synop.set_ylim(0, ny+bar_height)
@@ -456,7 +456,7 @@ def combined_synoptic_noise_plot(data, fits_table, pos, noise, offset, legend, c
 
 
 
-def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwidth=10, save=False):
+def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, ny, latwidth=10, save=False):
 
     labelsize = 18
     titlesize = 24
@@ -466,7 +466,7 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, latwid
     line1 = ax.plot(flux_hmi['pos'].values+flux_hmi['neg'].values, linestyle='dashed',  linewidth=2, label='HMI')
     line2 = ax.plot(flux_phi['pos'].values+flux_phi['neg'].values, linestyle='dashdot', linewidth=2, label='PHI')
 
-    xticks = np.linspace(0, 1440/latwidth, 19)-0.5
+    xticks = np.linspace(0, ny/latwidth, 19)-0.5
     xlabels = np.linspace(-90,90, 19, dtype=int)
 
     plt.axhline(y=0, color='grey', linestyle=(0,(5,10)), alpha=0.75)
