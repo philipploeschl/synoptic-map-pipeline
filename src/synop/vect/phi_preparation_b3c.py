@@ -329,8 +329,10 @@ def main(config, session_folder):
         batch_out.write('\necho %s' %set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
         batch_out.write(set_info %(config.data_series_phi, trec, os.path.join(outpath_data, fname_bmag), os.path.join(outpath_data, fname_binc), os.path.join(outpath_data, fname_bazi), os.path.join(outpath_data, fname_disamb), os.path.join(outpath_data, fname_configd), os.path.join(outpath_data, fname_confmap)))
         
+        vectmag_random = 'setsid vectmag2helio3comp_random in=%s[%s] v2hout=%s histlink=none TSTART=%s TTOTAL="12m" TCHUNK="12m" NAN_BEYOND_RMAX=1 DATASIGN=1 FORCEOUTPUT=1 MAPRMAX=%s MAPMMAX=%s SINBDIVS=%s RESCALE=%s\n'
+
         batch_out.write('\necho %s' %vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax, xdim, ydim, rescale))
-        batch_out.write(vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax))
+        batch_out.write(vectmag %(config.data_series_phi, trec, config.data_series_remap_phi, trec, config.phi_maprmax, xdim, ydim, rescale))
         
         add_check_continue(batch_out)
         batch_out.write('\n')
