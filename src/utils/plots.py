@@ -21,7 +21,7 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
     titlesize = 14
     suptitlesize=16
     fontsize = labelsize
-    bar_height = 40
+    bar_height = ny//36
 
     ytick_latitude = []
     ytick_normalize = []
@@ -32,23 +32,24 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
 
     # MAKE PLOT #1
     fig, ax = plt.subplots(figsize=(14,6))
-    fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
-    im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,nx,bar_height,ny+bar_height] , interpolation=None)
+    
+    im = ax.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower', aspect='auto' , interpolation=None)
     ax.set_title(f'PHI/HMI ${component}$ Synoptic Chart for Carrington Rotation {crt_rot}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
     xlabels    = [0,30,60,90,120,150,180,210,240,270,300,330,360]
     xlocations = np.arange(0, nx+1, nx//12)
+    ax.set_xlim(0, 360)
     ax.set_xticks(xlocations)
     ax.set_xticklabels(xlabels)
     ax.set_xlabel('Carrington Longitude [°]', fontsize=labelsize)
 
     # Create the latitude labels on the right-hand side of the plot
     ylabels_r = [' ','-80',' ','-60',' ','-40',' ','-20',' ','0',' ',' 20',' ',' 40',' ',' 60',' ',' 80',' ']
-    ylocations_r = [y + bar_height for y in ytick_normalize]
-    ax.set_ylim(0, ny + bar_height)
+    ylocations_r = ytick_normalize
+    ax.set_ylim(-bar_height, ny)
     ax.set_yticks(ylocations_r)
     ax.set_yticklabels(ylabels_r)
     ax.set_ylabel('Latitude [°]', fontsize=labelsize)
@@ -63,7 +64,7 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
     cbar = fig.colorbar(im, cax=cax, orientation='vertical')
     cbar.set_label(label=f'${component}$ [Gauss]', size=labelsize, labelpad=-15)
     
-    fig.subplots_adjust(left=0.06, right=0.94, top=1., bottom=0.025)
+    fig.subplots_adjust(left=0.06, right=0.94, top=0.9, bottom=0.1)
 
     # make the horizontal bar with color coded data sources
     deg2px = nx/360.  
@@ -73,16 +74,16 @@ def plot_synoptic_sources(synop, component, outpath, name, crt_rot, fits_table, 
         width = row["CRLN_START"] - row["CRLN_END"]
 
         if width > 0:
-            ax.barh(bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
+            ax.barh(-bar_height/2, width*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
         else:
             # interval wraps around 0°
-            ax.barh(bar_height/2, (360-row["CRLN_END"])*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
-            ax.barh(bar_height/2, row["CRLN_START"]*deg2px, left=0, height=bar_height, color=color)
+            ax.barh(-bar_height/2, (360-row["CRLN_END"])*deg2px, left=row["CRLN_END"]*deg2px, height=bar_height, color=color)
+            ax.barh(-bar_height/2, row["CRLN_START"]*deg2px, left=0, height=bar_height, color=color)
 
         # add vertical black lines as boundaries
-        ax.vlines(row["CRLN_END"]*deg2px, 0, bar_height, color='black', linewidth=0.7)
+        ax.vlines(row["CRLN_END"]*deg2px, -bar_height, 0, color='black', linewidth=0.7)
     
-    ax.hlines(y=bar_height, xmin=0, xmax=360*deg2px, color='black',linewidth=0.7)
+    ax.hlines(y=0, xmin=0, xmax=360*deg2px, color='black',linewidth=0.7)
 
     phi_patch = mpatches.Patch(color='orange', label='PHI')
     hmi_patch = mpatches.Patch(color='steelblue', label='HMI')
