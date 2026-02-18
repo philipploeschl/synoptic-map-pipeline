@@ -43,7 +43,8 @@ def get_drms_parameters_hmi(inRecs, input_ds):
     formatted = [] 
     drms_param = []
     nRecs = 0
-
+    
+    if input_ds == "": return drms_param, nRecs
     if inRecs is None or len(inRecs) < 23: return drms_param, nRecs
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
  
@@ -82,8 +83,9 @@ def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
     formatted_base = [] 
     drms_param = []
     nRecs = 0
-
+    
     if input_ds == "": return drms_param, nRecs
+    if inRecs is None or len(inRecs) < 23: return drms_param, nRecs
     #inRecs = "2014.05.12_12:00:00_TAI, 2014.05.13_00:00:00_TAI, 2014.05.13_12:00:00_TAI, 2014.05.14_00:00:00_TAI" # input argument
     
     #nRecs = len(inRecs.split(','))
@@ -651,9 +653,9 @@ def magStats(val, npts, sum_, outThreshold):
 # Synoptic map main function
 def synoptic_map(config):#, hw_overwrite=None):
     
-    inRecs_hmi = config["timestring_hmi"]
-    inRecs_phi = config["timestring_phi"]
-
+    inRecs_hmi = config["timestring_hmi"]+config["interval_hmi"]
+    inRecs_phi = config["timestring_phi"]+config["interval_phi"]
+    
     # query HMI and PHI remap data series separately
     drms_getkey_hmi, nRecs_hmi = get_drms_parameters_hmi(inRecs_hmi, config["input_ds_hmi"])
     drms_getkey_phi, nRecs_phi = get_drms_parameters_phi(inRecs_phi, config["input_ds_phi"], config["input_ds_phi_origin"])
@@ -1420,6 +1422,8 @@ def get_arg_parameters(global_config):
         "input_ds_phi_origin": global_config.data_series_phi,
         "timestring_hmi":      global_config.timestring_hmi, 
         "timestring_phi":      global_config.timestring_phi,
+        "interval_hmi":        global_config.interval_hmi,
+        "interval_phi":        global_config.interval_phi, 
         "synop_name":          global_config.synop_name,
         "synop_small_name":    global_config.synop_small_name,
 
