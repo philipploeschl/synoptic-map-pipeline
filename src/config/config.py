@@ -12,20 +12,20 @@ class Config:
         ###########################################################
 
         # Pipeline selection
-        "b3c":                     False, # LoS pipeline by default
-        "b3c_disambig":            "random",   # random, radial, potential
+        "b3c":                False, # LoS pipeline by default
+        "b3c_disambig":       "random",   # random, radial, potential
 
-        "run_drms_prep":           True, # run 0_drms_prep.py to create JSD files and data series in DRMS
-        "run_m720s_drms_pipe":     True,  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
-        "run_phi_drms_interface":  True, # run 2_phi_drms_interface.py to create the phi data series
+        "run_drms_prep":      True, # run 0_drms_prep.py to create JSD files and data series in DRMS
+        "run_hmi_prep":       True,  # run 1_m720s_drms_pipe.py to create the hiresmap and remap
+        "run_phi_prep":       True, # run 2_phi_drms_interface.py to create the phi data series
 
-        "run_hmi_scripts":         True, # run all HMI scripts in the outpath_scripts directory 
-        "run_phi_scripts":         True, # run all PHI scripts in the outpath_scripts directory 
+        "run_hmi_scripts":    True, # run all HMI scripts in the outpath_scripts directory 
+        "run_phi_scripts":    True, # run all PHI scripts in the outpath_scripts directory 
 
-        "run_hmiphisynoptic":      True, # run 3_hmisynoptic.py to create the synoptic maps
-        "run_polefilling":         False, # run all synoptic map pole filling
+        "run_hmiphisynoptic": True, # run 3_hmisynoptic.py to create the synoptic maps
+        "run_polefilling":    False, # run all synoptic map pole filling
 
-        "run_diagnostics":         True, # run diagnostics.py to create the synoptic maps diagnostics
+        "run_diagnostics":    True, # run diagnostics.py to create the synoptic maps diagnostics
 
         ###########################################################
         #################### Global parameters ####################

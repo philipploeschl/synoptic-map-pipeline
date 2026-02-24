@@ -68,8 +68,8 @@ if __name__ == "__main__":
                 exit()
         
 
-        if config.run_m720s_drms_pipe:
-            if config.verbose: print("Running m720s_drms_pipe_b3c.py ...")
+        if config.run_hmi_prep:
+            if config.verbose: print("Running hmi_preparation_b3c.py ...")
 
             status = hmi_data_main_b3c(config, session_folder)
 
@@ -77,8 +77,8 @@ if __name__ == "__main__":
                 exit()
         
 
-        if config.run_phi_drms_interface:
-            if config.verbose: print("Running phi_drms_interface_b3c.py ...")
+        if config.run_phi_prep:
+            if config.verbose: print("Running phi_preparation_b3c.py ...")
 
             status = phi_data_main_b3c(config, session_folder)
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     else:
         # LINE OF SIGHT PIPELINE
         if config.run_drms_prep:
-            if config.verbose: print("Running drms_preparation.py ...")
+            if config.verbose: print("Running drms_preparation_los.py ...")
 
             status = drms_main_los(config, session_folder)
 
@@ -134,8 +134,8 @@ if __name__ == "__main__":
                 exit()
 
 
-        if config.run_m720s_drms_pipe:
-            if config.verbose: print("Running m720s_drms_pipe.py ...")
+        if config.run_hmi_prep:
+            if config.verbose: print("Running hmi_preparation_los.py ...")
 
             status = hmi_data_main_los(config, session_folder)
             
@@ -143,8 +143,8 @@ if __name__ == "__main__":
                 exit()
             
 
-        if config.run_phi_drms_interface:
-            if config.verbose: print("Running phi_drms_interface.py ...")
+        if config.run_phi_prep:
+            if config.verbose: print("Running phi_preparation_los.py ...")
 
             status = phi_data_main_los(config, session_folder)
             
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
 
         if config.run_hmiphisynoptic:
-            if config.verbose: print("Running hmiphisynoptic.py ...")
+            if config.verbose: print("Running hmiphisynoptic_los.py ...")
 
             status = synop_main_los(config, session_folder)
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
 
         if config.run_diagnostics:
-            if config.verbose: print("Running diagnostics.py ...")
+            if config.verbose: print("Running diagnostics_los.py ...")
             
             status = diagnostics_los(config, session_folder)
 
