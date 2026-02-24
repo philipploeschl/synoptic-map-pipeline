@@ -144,8 +144,8 @@ phi_maprmax: 0.995 # maximum radius for the synoptic map
 
 # Remap frame dimensions for synoptic maps
 # synoptic maps will be 2x mapmmax and 2x sinbdivs sized 
-mapmmax     : 900 # determines mapcols (default: 1800)
-sinbdivs    : 360  # number of increments in sin latitude from 0 to 1 (default: 720)
+mapmmax     : 1800 # determines mapcols (default: 1800)
+sinbdivs    : 720  # number of increments in sin latitude from 0 to 1 (default: 720)
 
 # NEW PARAMETER
 # anti-aliasing rescale parameter for jv2ts -> remap step
@@ -155,8 +155,8 @@ sinbdivs    : 360  # number of increments in sin latitude from 0 to 1 (default: 
 # mapmmax=1800, sinbdivs=720, rescale_hmi=3: 
 # - jv2ts frame: 5400x4320 (mapmmax * rescale, (sinbdivs*2)*rescale)
 # - remap frame: 1800x1440 (jv2ts / rescale_hmi)  
-rescale_hmi: 6
-rescale_phi: 1
+rescale_hmi: 3
+rescale_phi: 3
 
 
 ###########################################################
