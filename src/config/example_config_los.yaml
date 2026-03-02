@@ -10,6 +10,8 @@ b3c:                False
 b3c_disambig:       "random" # random, randial, potential
 
 run_drms_prep:      True # run 0_drms_prep.py to create JSD files and data series in DRMS
+
+# RENAMED PARAMETER
 run_hmi_prep:       True # run 1_m720s_drms_pipe.py to create the hiresmap and remap
 run_phi_prep :      True # run 2_phi_drms_interface.py to create the phi data series
 
@@ -106,10 +108,10 @@ create_jsd_synoptic    : True
 create_jsd_polfil      : False
 
 
-remap_template   : "remap_template.jsd"              # template for remap data series
-hiresmap_template: "hiresmap_template.jsd"           # template for hiresmap data series
-phi_template     : "phi_template.jsd"                # template for phi data series            
-synoptic_template: "synoptic_template.jsd"           # template for synoptic data series
+remap_template   : "remap_template_los.jsd"              # template for remap data series
+hiresmap_template: "hiresmap_template_los.jsd"           # template for hiresmap data series
+phi_template     : "phi_template_los.jsd"                # template for phi data series            
+synoptic_template: "synoptic_template_los.jsd"           # template for synoptic data series
 polfil_template  : "synoptic_mr_polfil_template.jsd" # template for polfil data series
 
 
