@@ -45,7 +45,10 @@ def main(config, session_folder):
         if config.verbose: print("Processing %s ..." %file)
         
         prim = fits.PrimaryHDU()
-        l2drms = fits.CompImageHDU(data=l2[0].data.astype(np.int32))
+        if config.key == "blos":
+            l2drms = fits.CompImageHDU(data=l2[0].data.astype(np.int32))
+        if config.key == "bamb":
+            l2drms = fits.CompImageHDU(data=l2[0].data.astype(np.int32))
 
         # open updated source file
         l2drms.header.append(('', '', ''), end=True)
@@ -192,7 +195,7 @@ def main(config, session_folder):
         #CRLN_OBS
         crln_obs = l2[0].header['CRLN_OBS'] if l2[0].header['CRLN_OBS'] >= 0 else l2[0].header['CRLN_OBS'] + 360.0
         l2drms.header.append(('CRLN_OBS', crln_obs, 'Carrington longitude of PHI'), end=True)
-        
+
         #CRLT_OBS
         l2drms.header.append(('CRLT_OBS', l2[0].header['CRLT_OBS'], 'Carrington latitude of PHI'), end=True)
         
@@ -228,9 +231,15 @@ def main(config, session_folder):
         
         # FILENAME
         l2drms.header.append(('FILENAME', file[11:27]+'bmag'+file[31:] , 'Source PHI filename'), end=True)
-        
-        hdul = fits.HDUList([prim, l2drms])
-        hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
+
+        if config.key == "bamb":
+            components=['configd'] #three components of 3D array of bamb files: disamb, config_disamb, confid_map
+            temp = fits.CompImageHDU(data=l2drms.data[1,:,:], header=l2drms.header)
+            hdul = fits.HDUList([prim, temp])
+            hdul.writeto(os.path.join(outpath_data, '%s%s%s_drms.fits' %(file[11:27], components[0], file[31:-n_end])), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
+        if config.key == "blos":
+            hdul = fits.HDUList([prim, l2drms])
+            hdul.writeto(os.path.join(outpath_data, '%s_drms.fits' %file[11:-n_end]), overwrite=True) #ignore first 12 characters YYYY-MM-DD/ and .fits/fits.gz ending 
 
     if config.verbose: print('\nDRMS compatible FITS header creation complete.\n\n')
 
