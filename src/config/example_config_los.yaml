@@ -176,9 +176,9 @@ timestring_phi: "2025.05.09_12:56:26_TAI-2025.05.10_08:56:26_TAI,2025.04.26_04:5
 
 
 # Adjacent Meridian Contribution for Weight Function Shape
-awf_nimg: 7  # UNEVEN number of images considered by the weight function default:5: central image +2 on each side
-awf_cmin: 25  # minimum contribution %
-awf_cmax: 25  # maximum contribution %
+awf_nimg: 5  # UNEVEN number of images considered by the weight function default:5: central image +2 on each side
+awf_cmin: 5  # minimum contribution %
+awf_cmax: 5  # maximum contribution %
 awf_dmin: 25 # latitude border until which minimum contribution is used
 awf_dmax: 60 # latitude border from which maximum contribution is used
 awf_lim : False  # TODO DO NOT USE FOR NOW. Unexpected behaviour with NaN in synop.fits output when using awf_nlim: 25
