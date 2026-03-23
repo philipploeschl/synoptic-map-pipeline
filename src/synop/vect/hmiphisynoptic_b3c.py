@@ -649,8 +649,8 @@ def magStats(val, npts, sum_, outThreshold):
 # Synoptic map main function
 def synoptic_map(config):#, hw_overwrite=None):
     
-    inRecs_hmi = config["timestring_hmi"]
-    inRecs_phi = config["timestring_phi"]
+    inRecs_hmi = config["timestring_hmi"]+config["interval_hmi"]
+    inRecs_phi = config["timestring_phi"]+config["interval_phi"]
 
     # query HMI and PHI remap data series separately
     drms_getkey_hmi, nRecs_hmi = get_drms_parameters_hmi(inRecs_hmi, config["input_ds_hmi"])
