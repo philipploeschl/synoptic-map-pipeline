@@ -518,7 +518,7 @@ def pfss(phi_polfil, synop_hmi, path, name=None, pdf=False):
             fig.savefig(os.path.join(path, f'CR{synop_hmi[1].header["CAR_ROT"]}_{name}_pfss_mag{phi_map.data.shape[1]}x{phi_map.data.shape[0]}_nrho{nrho}_nsteps{nsteps}.png'), format='png')
            
     else:
-        fig = plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, pdf=None)
+        fig = plot_pfss(pfss_in, pfss_out, field_lines, lon_1d, lat_1d, nsteps, name, pdf=None)
     
 
 

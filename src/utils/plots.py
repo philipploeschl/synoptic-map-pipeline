@@ -214,8 +214,8 @@ def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_tabl
     plt.tight_layout()
 
     if pdf:
-        plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
         plt.savefig(os.path.join(outpath, f'{name}.png'), format='png')
+        plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
     else:
         plt.show()
     
@@ -223,7 +223,7 @@ def plot_synoptic_with_stripe_magnitudes(synop, outpath, name, config, fits_tabl
 
     return fig
 
-def plot_synoptic(synop, outpath, name, config, pdf=True):
+def plot_synoptic(synop, outpath, name, src, config, pdf=True):
 
     (ny, nx) = synop.shape
 
@@ -245,7 +245,7 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
     fig.subplots_adjust(left=0,right=1,top=1,bottom=0)
     ax.tick_params(labelsize=14)
     im = plt.imshow(synop,cmap="hmimag",vmin=-1500,vmax=1500,origin='lower',extent=[0,nx,0,ny])
-    ax.set_title(f'PHI/HMI B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
+    ax.set_title(f'{src} B {config.Btype} Synoptic Chart for Carrington Rotation {config.cr}', y=1.015, fontsize=suptitlesize)
     ax.tick_params(axis='both', which='both', labelbottom=True, labeltop=False, labelleft=True, labelright=True)
 
     # label the x-axis 
@@ -280,6 +280,7 @@ def plot_synoptic(synop, outpath, name, config, pdf=True):
     
     if pdf:
         plt.savefig(os.path.join(outpath, f'{name}.pdf'), format='pdf')
+        plt.savefig(os.path.join(outpath, f'{name}.png'), format='png')
     else:
         plt.show()
 
