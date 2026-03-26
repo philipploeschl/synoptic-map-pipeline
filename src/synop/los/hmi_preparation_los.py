@@ -27,7 +27,7 @@ def main(config, session_folder):
                 if config.verbose: print("Skipping %s (duplicate)" %duplicate)
                 times.remove(duplicate)
 
-    xdim = (config.mapmmax * config.rescale_hmi) + 1
+    xdim = (config.mapmmax * config.rescale_hmi) + config.rescale_hmi
     ydim = (config.sinbdivs * config.rescale_hmi)
 
     # looks like this is unsed and obsolete   

@@ -29,7 +29,7 @@ def main(config, session_folder):
         print(f'Unknown disambiguation setting in config: {config.b3c_disambig}. Select between "random", "potential", "radial"')
         return STATUS_DISAMBIG_ERROR
     
-    xdim = (config.mapmmax * config.rescale_hmi) + 1
+    xdim = (config.mapmmax * config.rescale_hmi) + config.rescale_hmi
     ydim = (config.sinbdivs * config.rescale_hmi)
     rescale = np.round(1/config.rescale_hmi, 6) # default value at 6 decimal precison: 0.333333
 
