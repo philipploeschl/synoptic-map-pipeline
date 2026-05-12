@@ -341,7 +341,7 @@ class Config:
                 self._data["data_series_remap_hmi"] = self._data["data_series_remap_hmi"] %self._data["proj"] # 
 
                 self._data["data_series_synop"]     = self._data["data_series_synop"]     %self._data["proj"] # synoptic data series name
-                self._data["data_series_polfil"]    = "mps_loeschl.synoptic_Mr_polfil" # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
+                self._data["data_series_polfil"]    = self._data["data_series_polfil"] # synoptic Mr polfil data series name, no Ml equivalent as polfil requires Mr projection
             except:
                 pass
 
