@@ -175,6 +175,8 @@ def gauss(x,a,x0,sigma):
     return a*np.exp(-(x-x0)**2/(2*sigma**2))
 
 def gaussian_fit(a, show=True):
+    import warnings
+    from scipy.optimize import OptimizeWarning
     #a=np.histogram(data.flat,density=True,bins=100)
     xx = a[1][:-1] + (a[1][1]-a[1][0])/2
     y  = a[0][:]
@@ -182,7 +184,10 @@ def gaussian_fit(a, show=True):
     p0[0] = y[find_nearest(xx,p0[1])-5:find_nearest(xx,p0[1])+5].mean()
     
     try: 
-        p,cov = optimize.curve_fit(gauss,xx,y,p0=p0, maxfev=25000)
+        with warnings.catch_warnings():
+        warnings.simplefilter("ignore", OptimizeWarning)
+        p,cov = optimize.curve_fit(gauss, xx, y, p0=p0, maxfev=25000)
+
     except RuntimeError:
         p = [np.nan, np.nan, np.nan]
 
