@@ -185,8 +185,8 @@ def gaussian_fit(a, show=True):
     
     try: 
         with warnings.catch_warnings():
-        warnings.simplefilter("ignore", OptimizeWarning)
-        p,cov = optimize.curve_fit(gauss, xx, y, p0=p0, maxfev=25000)
+            warnings.simplefilter("ignore", OptimizeWarning)
+            p,cov = optimize.curve_fit(gauss, xx, y, p0=p0, maxfev=25000)
 
     except RuntimeError:
         p = [np.nan, np.nan, np.nan]
