@@ -253,29 +253,33 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     # default: exp=2.5
     # mrd_cont = meridian contribution
 
-    time     = np.array([])
+    lon      = np.array([])
     deltas   = np.array([])
-    cadences = np.array([])  # cadence to the left!
+    cadences = np.array([])  # spacing [deg longitude] to the left and right neighbour!
     widths   = np.array([]).astype(int) # total widths of each slice 
     mids     = np.array([]).astype(int)  # mid column to place weight function (works with asymmetric cadences)
     weights  = np.array([])
 
     multi = nimg     # total width of magnetogram slices, must be UNEVEN
-    delta_min = 4  # hours for HMI averaging
-    delta_max = 80 # hours: about 45° halfWidth. only used with data gaps
+    # spacings are longitude differences between adjacent records (sorted by CRLN_OBS), not time
+    # differences: HMI and PHI observe from different vantage points and the records of both are
+    # merged in longitude order, so neighbours in longitude are not neighbours in time.
+    delta_min = 2.2  # deg: 4h * 0.55 deg/h. Each HMI hiresmap pixel averages 20 frames at 12min cadence = 4h
+    delta_max = 45.0 # deg: 80h * 0.55 deg/h, about 45° halfWidth. only used with data gaps
     
     nrows = len(mrd_cont)
-    pph = (2.2/4)/synstep # pix per hour approximated from HMI cadence
+    ppd = 1.0/synstep # pix per degree
 
-    # convert time strings into datetime objects
+    # central meridian longitude of each record, same definition as mapCM in synoptic_map()
+    # (the center offset cancels in the differences)
     for key in drms_getkey:
-        time = np.append(time, datetime.datetime.strptime(key['T_REC'], "%Y.%m.%d_%H:%M:%S_TAI"))
+        lon = np.append(lon, float(key["CAR_ROT"])*360.0 - float(key["CRLN_OBS"]))
 
-    # find the local cadence by building a timedelta to the next time object
-    deltas = (time[1:] - time[:-1])
+    # find the local spacing by building the difference to the next record
+    deltas = (lon[1:] - lon[:-1])
 
     # set beginning boundary condition cadence
-    delta1 = deltas[0].days*24+deltas[0].seconds/3600
+    delta1 = deltas[0]
     
     delta1, delta2 = minimumDelta(delta1, delta1, delta_min)
     delta1, delta2 = maximumDelta(delta1, delta1, delta_max)
@@ -287,8 +291,8 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     for i in range(len(deltas)-1):
         
         #cadences = np.vstack((cadences, [deltas[i].days*24+deltas[i].seconds/3600, deltas[i+1].days*24+deltas[i+1].seconds/3600]))
-        delta1 = deltas[i].days*24+deltas[i].seconds/3600
-        delta2 = deltas[i+1].days*24+deltas[i+1].seconds/3600
+        delta1 = deltas[i]
+        delta2 = deltas[i+1]
 
         delta1, delta2 = minimumDelta(delta1, delta2, delta_min)
         delta1, delta2 = maximumDelta(delta1, delta2, delta_max)
@@ -297,7 +301,7 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
 
     # set end boundary condition cadence
     #cadences = np.vstack((cadences, [deltas[-1].days*24+deltas[-1].seconds/3600, deltas[-1].days*24+deltas[-1].seconds/3600]))
-    delta1 = deltas[-1].days*24+deltas[-1].seconds/3600
+    delta1 = deltas[-1]
     
     delta1, delta2 = minimumDelta(delta1, delta1, delta_min)
     delta1, delta2 = maximumDelta(delta1, delta1, delta_max)
@@ -306,16 +310,16 @@ def adaptive_weight_functions(drms_getkey, synstep, mrd_cont, nimg=5, lim=False,
     
     for cadence in cadences:
         cad_max = np.max(cadence)
-        widths = np.append(widths, np.ceil(multi*cad_max*pph).astype(int)) 
+        widths = np.append(widths, np.ceil(np.round(multi*cad_max*ppd, 6)).astype(int)) 
         
         if not widths[-1] % 2: widths[-1] += 1 # make widths uneven to have a central column
         
-        mids = np.append(mids, (np.round(cad_max*pph*multi/2)).astype(int)) # floor for array[0] element
+        mids = np.append(mids, (np.round(cad_max*ppd*multi/2)).astype(int)) # floor for array[0] element
     #weights = [np.zeros(int(w)) for w in widths]
 
     # np.floor to avoid going into the neighbour frame!
     # cadence half width
-    chwidth = np.floor(cadences*pph/2).astype(int)
+    chwidth = np.floor(np.round(cadences*ppd/2, 6)).astype(int)
     
     exp_pos = 1-1/(multi-1) # position of the adjacent central meridian
                   # 0.5 for 1 adjacent slice = middle of the wing
@@ -883,6 +887,10 @@ def synoptic_map(config):#, hw_overwrite=None):
     # divide the synoptic chart into pieces to avoid reading too much data
     nsynop = rint(360.0 / synRange)
     
+    # frames are revisited in every sub-synoptic pass, so collect per frame index
+    width_mismatch = {}  # idx -> (T_REC, INSTRUME, frame width, assumed width mapcols)
+    skipped_cols   = {}  # idx -> number of window columns outside the frame
+
     for ds in range (0, nsynop): #(ds = 0; ds < nsynop; ds++)
 
         subSynopStart = synstart + ds * synRange
@@ -965,8 +973,22 @@ def synoptic_map(config):#, hw_overwrite=None):
             #else:                                        # right part out of segment
             #    dwt = 0                                  # no shift required
             
-            # first column of each segment is missing if mrc+1 not used 
+            # The column window is derived from MAPMMAX (mapcols = MAPMMAX+1 columns, centre at mapmidcol).
+            # If the frame has a different width the window can reach beyond the data (eg. with large 
+            # cadence gaps the window reaches the limb column). Columns outside the data are skipped; 
+            # mlc is kept so that weight and synoptic column offsets stay aligned.
+            ncols = inArray[0].data.shape[1]
+            if ncols != mapcols:
+                width_mismatch[idx] = (drms_getkey[inRec]["T_REC"], drms_getkey[inRec].get("INSTRUME"), ncols, mapcols)
+            nvalid = max(0, min(mrc+1, ncols) - max(mlc, 0))
+            if nvalid < mrc+1-mlc:
+                skipped_cols[idx] = mrc+1-mlc - nvalid
+
+            # first column of each segment is missing if mrc+1 not used
             for col in range(mlc, mrc+1): #(col = mlc; col <= mrc; ++col)
+                if col < 0 or col >= ncols:
+                    continue
+
                 mMagCol = init_MagCol(length)  # MagCol_t mMagCol;
 
                 mMagCol["dist"]     = ((col - mapmidcol) * synstep + imrec[idx]["mapct"]) - imrec[idx]["mapCM"]
@@ -1011,6 +1033,18 @@ def synoptic_map(config):#, hw_overwrite=None):
                                  kNOISE_EQ)
 
         #FreeMagColsData(SyncolStart, SyncolEnd, -1, wt, sortedMagCol, length)
+
+    if width_mismatch:
+        groups = {}
+        for (t, inst, nc, mc) in width_mismatch.values():
+            groups[(inst, nc, mc)] = groups.get((inst, nc, mc), 0) + 1
+        print("WARNING: %d of %d frames have a width different from the MAPMMAX+1 columns assumed for the column calculation:" %(len(width_mismatch), ngood))
+        for (inst, nc, mc), n in sorted(groups.items(), key=lambda x: str(x[0])):
+            print("  %s: %d frames with %d columns (assumed %d)" %(inst, n, nc, mc))
+
+    if skipped_cols:
+        print("WARNING: the column window of %d frames extends beyond the data, %d columns skipped in total (max %d per frame)" 
+              %(len(skipped_cols), sum(skipped_cols.values()), max(skipped_cols.values())))
 
     #smallSynop = np.zeros([int(length[1]/config["nbin"]), int(length[0]/config["nbin"])])
     #smallEpts  = np.zeros([int(length[1]/config["nbin"]), int(length[0]/config["nbin"])])

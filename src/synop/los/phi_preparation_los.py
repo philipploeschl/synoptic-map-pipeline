@@ -246,7 +246,7 @@ def main(config, session_folder):
     #set_keys = "setsid set_keys ds=%s[%s] %s=%s\n" #OBSOLETE
     rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=%s\n"
 
-    xdim = (config.mapmmax * config.rescale_phi) + 1
+    xdim = (config.mapmmax * config.rescale_phi) + config.rescale_phi
     ydim = config.sinbdivs * config.rescale_phi
 
     trec_out = open(outpath_scripts+'trecs.txt', 'w')
