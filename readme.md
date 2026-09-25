@@ -131,7 +131,6 @@ SYNOPTIC-MAP-PIPELINE
 │     └─ config.yaml         # copy of config file of the last session rerun
 └─ SRC/
    ├─ synop_pipeline.py
-   ├─ data_selection.py
    ├─ diagnostics.py
    ├─ CONFIG/
    │  ├─ config.py           # config parser class
@@ -155,7 +154,6 @@ SYNOPTIC-MAP-PIPELINE
       ├─ diagnostics.py      # diagnostics scripts
       ├─ plots.py            # plotting scripts
       ├─ solepehm.py         # ephemeris functions for hmiphisynoptic.py
-      ├─ spicetools.py       # functions supporting spiceypy usage
       └─ utils.py            # formerly misc.py
 ```
 
@@ -227,7 +225,6 @@ log_path   : 'logs/'    # path to log files, relative to synop/output/CR_NUMBER_
 data_path  : 'data/'    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
 jsd_path   : 'jsd/'     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
 synop_path : 'synop/'   # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
-obsplan_path: 'observation_plan/' # path to data selection output
 
 # File structure created in misc.py: create_session_folder
 # - OUTPUT_PATH/
@@ -381,41 +378,8 @@ minOutPts   : 4.0  # minimum number of points that must exist before outliers ca
 ```
 
 
-### Data Selection 
-_src/data_selection.py_s
-
-```yaml
-###########################################################
-###################### Data selection #####################
-###########################################################
-
-# GENERAL PARAMETERS
-
-# Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
-# https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
-spice_mkpath: '/scratch/slam/loeschl/spice/solar-orbiter/kernels/mk/'  # path to meta kernel
-spice_mkname: 'solo_ANC_soc-flown-mk.tm' # meta kernel name
-
-et_resolution: 3600 # default: 3600 = 1h in seconds
-
-earth_cad: 14400  # defaut: 14400 = 4h in seconds
-solo_cad:  14400  # defaut: 14400 = 4h in seconds
-
-start_cad: 14400 # simulate synoptic maps starting every {start_cat} seconds, default = 43200 = 12h
-
-# LONG TERM DATA SELECTION
-detailed_output: True
-# Use ISO 8601 compatible format for numpy datetime: 'YYYY-MM-DDTHH:MM:SS'
-cr_date_start: '2021-11-01T00:00:00' #'2024-04-01T00:00:00' #
-cr_date_end:   '2030-11-20T04:00:00' #'2024-08-01T00:00:00' #
-
-# INDIVIDUAL DATA SELECTION
-single_carrington: False
-
-# overlapping priority periods will prioritise PHI for now
-priority_phi: 'YYYY-MM-DDTHH:MM:SS' # timestring
-priority_hmi: 'YYYY-MM-DDTHH:MM:SS' # timestring
-```
+### Data Selection
+Data selection is not part of this pipeline. It lives in the separate repository `synoptic-map-data-selection` and hands its result over through the `timestring_hmi`, `timestring_phi` and `cr` parameters of the config file.
 
 
 
