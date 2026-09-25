@@ -286,7 +286,8 @@ def main(config, session_folder):
 
     j = 0 # nsplit counter
     trec_out  = open(outpath_scripts+'trecs.txt', 'w')
-    batch_out = None  # stays None if there is no data
+    remap_str = 'phi_remap_rebin_%s_%s.sh' % (config.proj, j)
+    batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
 
     for i, (fname_bmag, fname_binc, fname_bazi, fname_disamb, fname_configd, fname_confmap) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disamb_fitsfiles, configd_fitsfiles, confmap_fitsfiles)):#, disambig_fitsfiles)):
         
@@ -315,7 +316,8 @@ def main(config, session_folder):
 
             # beginning of new batch script    
             remap_str = 'phi_remap_rebin_%s_%s.sh' % (config.proj, j)
-            batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
+            if i > 0:
+                batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
             add_script_header(batch_out, remap_str)
 
         batch_out.write('\necho $(date +"%Y-%m-%d %H:%M:%S")')
@@ -340,9 +342,8 @@ def main(config, session_folder):
 
         trec_out.write("%s\n"%trec)
 
-    if batch_out is not None:
-        batch_out.write('echo "PHI data batch %s done"'%j)
-        batch_out.close()
+    batch_out.write('echo "PHI data batch %s done"'%j)
+    batch_out.close()
     trec_out.close()
 
     if config.verbose: 

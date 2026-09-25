@@ -38,8 +38,9 @@ def main(config, session_folder):
 
     # split files after nsplit entries    
     j = 0
-    batch_out = None  # stays None if there is no data
-    
+    remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
+    batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
+
     for i, time in enumerate(times):
 
         if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
@@ -57,7 +58,8 @@ def main(config, session_folder):
 
             # beginning of new batch script    
             remap_str = 'hmi_remap_rebin_%s_%s.sh' % (config.proj, j)
-            batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
+            if i > 0:
+                batch_out = open(os.path.join(outpath_scripts, remap_str), 'w')
             add_script_header(batch_out, remap_str)
 
 
@@ -71,9 +73,8 @@ def main(config, session_folder):
         add_check_continue(batch_out)
         batch_out.write('\n')
 
-    if batch_out is not None:
-        batch_out.write('echo "HMI data batch %s done"'%j)
-        batch_out.close()
+    batch_out.write('echo "HMI data batch %s done"'%j)
+    batch_out.close()
     
     if config.verbose: 
         print('\nHMI processing script creation complete.\n')
