@@ -80,10 +80,3 @@ def main(config, session_folder):
         print('\nHMI processing script creation complete.\n')
 
     return STATUS_OK
-
-
-if __name__ == "__main__":
-    #main(sys.argv[1:])
-    import config.config as Config
-    config = Config()
-    main(config)

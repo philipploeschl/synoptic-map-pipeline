@@ -350,8 +350,3 @@ def main(config, session_folder):
         print('\nDRMS ingestion script creation complete.\n')
 
     return STATUS_OK
-
-if __name__ == "__main__":
-    #main(sys.argv[1:])
-    main()
-
