@@ -284,9 +284,10 @@ def main(config, session_folder):
     #set_keys = "setsid set_keys ds=%s[%s] %s=%s\n" #OBSOLETE
     #rsmapmag = "setsid resizemappingmag in=%s['%s'] out=%s nbin=3\n"
 
-    trec_out = open(outpath_scripts+'trecs.txt', 'w')
-
     j = 0 # nsplit counter
+    trec_out  = open(outpath_scripts+'trecs.txt', 'w')
+    batch_out = None  # stays None if there is no data
+
     for i, (fname_bmag, fname_binc, fname_bazi, fname_disamb, fname_configd, fname_confmap) in enumerate(zip(bmag_fitsfiles, binc_fitsfiles, bazi_fitsfiles, disamb_fitsfiles, configd_fitsfiles, confmap_fitsfiles)):#, disambig_fitsfiles)):
         
         if config.verbose: print('Processing %s...' %fname_bmag)
@@ -339,8 +340,9 @@ def main(config, session_folder):
 
         trec_out.write("%s\n"%trec)
 
-    batch_out.write('echo "PHI data batch %s done"'%j)
-    batch_out.close()
+    if batch_out is not None:
+        batch_out.write('echo "PHI data batch %s done"'%j)
+        batch_out.close()
     trec_out.close()
 
     if config.verbose: 

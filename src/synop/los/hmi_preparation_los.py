@@ -38,6 +38,8 @@ def main(config, session_folder):
 
     # split files after nsplit entries    
     j = 0
+    batch_out = None  # stays None if there is no data
+    
     for i, time in enumerate(times):
 
         if i % nsplit == 0:  # create a total of 10 batch scripts every SPLIT steps
@@ -69,8 +71,9 @@ def main(config, session_folder):
         add_check_continue(batch_out)
         batch_out.write('\n')
 
-    batch_out.write('echo "HMI data batch %s done"'%j)
-    batch_out.close()
+    if batch_out is not None:
+        batch_out.write('echo "HMI data batch %s done"'%j)
+        batch_out.close()
     
     if config.verbose: 
         print('\nHMI processing script creation complete.\n')

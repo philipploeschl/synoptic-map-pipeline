@@ -249,9 +249,10 @@ def main(config, session_folder):
     xdim = (config.mapmmax * config.rescale_phi) + config.rescale_phi
     ydim = config.sinbdivs * config.rescale_phi
 
-    trec_out = open(outpath_scripts+'trecs.txt', 'w')
-
     j = 0 # nsplit counter
+    trec_out = open(outpath_scripts+'trecs.txt', 'w')
+    batch_out = None  # stays None if there is no data
+
     for i, fname in enumerate(fitsfiles):
         
         if config.verbose: print('Processing %s...' %fname)
@@ -301,8 +302,9 @@ def main(config, session_folder):
 
         trec_out.write("%s\n"%trec)
 
-    batch_out.write('echo "PHI data batch %s done"'%j)
-    batch_out.close()
+    if batch_out is not None:
+        batch_out.write('echo "PHI data batch %s done"'%j)
+        batch_out.close()
     trec_out.close()
 
     if config.verbose: 
