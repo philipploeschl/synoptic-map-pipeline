@@ -50,7 +50,6 @@ class Config:
         "data_path"   : 'data/',    # path to data files, relative to synop/output/CR_NUMBER_SESSION_ID/
         "jsd_path"    : 'jsd/',     # path to JSD files, relative to synop/output/CR_NUMBER_SESSION_ID/
         "synop_path"  : 'synop/',   # path to synoptic maps, relative to synop/output/CR_NUMBER_SESSION_ID/
-        "obsplan_path": 'obsplan/', # path to observation plans, relative to synop/output/CR_NUMBER_SESSION_ID/
 
         # File structure created in misc.py: create_session_folder
         # - OUTPUT_PATH/
@@ -64,11 +63,6 @@ class Config:
         # path to JSD templates, relative to synop/
         "template_path": "data/drms/templates/", 
 
-
-        # Solar Orbiter spice kernel https://www.cosmos.esa.int/web/spice/solar_orbiter
-        # https://repos.cosmos.esa.int/socci/scm/spice_kernels/solar-orbiter.git
-        "spice_mkpath": '/scratch/slam/loeschl/spice/solar-orbiter/kernels/mk/',  # path to meta kernel
-        "spice_mkname": 'solo_ANC_soc-flown-mk.tm', # meta kernel name
 
         ###########################################################
         ################# Data series definition ##################
