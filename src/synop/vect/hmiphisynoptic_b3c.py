@@ -127,7 +127,7 @@ def get_drms_parameters_phi(inRecs, input_ds, input_ds_origin):
     return drms_param, nRecs
 
 
-def update_common_carrot(drms_getkey):
+def update_common_carrot_old(drms_getkey):
     
     carrots = []
     for inRec in drms_getkey:
@@ -143,6 +143,62 @@ def update_common_carrot(drms_getkey):
         inRec["CAR_ROT"] = most_common
     
     return drms_getkey, most_common
+
+
+def update_common_carrot(drms_getkey):
+    # selects the common CAR_ROT value that covers the largest range of longitudes, 
+    # rather than the most common CAR_ROT value. This is important because HMI and 
+    # PHI have different cadences and may not have the same number of records for 
+    # each CAR_ROT value.
+    
+    if not drms_getkey:
+        raise ValueError("Error: No inRecs found!")
+
+    car_rot  = np.array([float(inRec["CAR_ROT"]) for inRec in drms_getkey])
+    crln_obs = np.array([float(inRec["CRLN_OBS"]) for inRec in drms_getkey])
+
+    # absolute Carrington longitude of the central meridian, same convention as
+    # used in adaptive_weight_functions() to merge HMI/PHI onto one longitude axis
+    lon = car_rot * 360.0 - crln_obs
+
+    order = np.argsort(lon)
+    lon_sorted = lon[order]
+    car_rot_sorted = car_rot[order]
+
+    # weigh each record by the slice of longitude it "owns": half the distance to
+    # its left and right neighbour on the merged axis. A vote-by-record-count is
+    # dominated by HMI's much higher cadence even though those records are tightly
+    # clustered in longitude; weighting by local spacing instead means a cluster of
+    # closely-spaced records only contributes the small range it actually spans,
+    # while sparser records (or gaps) contribute proportionally more.
+    if len(lon_sorted) == 1:
+        coverage = np.array([1.0])
+    else:
+        gaps = np.diff(lon_sorted)
+        coverage = np.empty_like(lon_sorted)
+        coverage[0]    = gaps[0]
+        coverage[-1]   = gaps[-1]
+        coverage[1:-1] = (gaps[:-1] + gaps[1:]) / 2.0
+
+    coverage_by_carrot = {}
+    for cr, cov in zip(car_rot_sorted, coverage):
+        coverage_by_carrot[cr] = coverage_by_carrot.get(cr, 0.0) + cov
+
+    most_common = max(coverage_by_carrot, key=coverage_by_carrot.get)
+    total_coverage = sum(coverage_by_carrot.values())
+
+    print("CAR_ROT longitude coverage: " + ", ".join(
+        f"{cr}={cov:.1f} deg ({cov/total_coverage:.1%})"
+        for cr, cov in sorted(coverage_by_carrot.items())))
+    print(f"Selected CAR_ROT {most_common}: {int((car_rot == most_common).sum())} out of {len(car_rot)} records, "
+          f"{coverage_by_carrot[most_common]/total_coverage:.1%} of longitude coverage")
+
+    for inRec in drms_getkey:
+        inRec["CAR_ROT"] = most_common
+
+    return drms_getkey, most_common
+
+
 
 # Misc functions
 
