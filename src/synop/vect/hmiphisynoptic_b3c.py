@@ -973,7 +973,14 @@ def synoptic_map(config):#, hw_overwrite=None):
             # truncating magnetograms at _subSynop_ borders produces NaN stripes with sparse PHI data
             maprightct = np.max([synstart, imrec[idx]["tmin"]])
             mapleftct  = np.min([synend, imrec[idx]["tmax"]])
-            mapcols = int(drms_getkey[inRec]["MAPMMAX"]) + 1
+            # originally "+ 1": in the C pipeline MAPMMAX was the raw (even) jv2ts cmdline
+            # value, and jv2ts's actual column count is 2*floor(MAPMMAX/2)+1, so +1 recovered
+            # the true odd width. Here xdim = mapmmax*rescale + rescale is passed as jv2ts's
+            # MAPMMAX instead, and rsmapmag divides both the array and the MAPMMAX keyword by
+            # the same rescale factor, so the keyword in the remapped record already equals the
+            # final column count. Adding +1 here double-counts it and overshoots the frame by
+            # one column (the "window reaches column 1800 of an 1800-wide frame" IndexError).
+            mapcols = int(drms_getkey[inRec]["MAPMMAX"]) #+ 1
             
             mapmidcol  = rint((mapcols - 1.0) / 2 + config["center"] / synstep)
             cols2right = rint((imrec[idx]["mapct"] - maprightct) / synstep)
@@ -1310,7 +1317,7 @@ def CalcSynCols(start, #int start,
                 del(statVals) #free(statVals);
 
             #/* Calcuate the average value for each x,y in the stack */
-            if (nptsfinal):
+            if (nptsfinal and wtfinal):
                 #TODO: check if this is correct: RuntimeWarning: invalid value encountered in scalar divide
                 synValBr = sumfinalBr / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
                 synValBt = sumfinalBt / wtfinal #nptsfinal          #float synVal = sumfinal / nptsfinal;
