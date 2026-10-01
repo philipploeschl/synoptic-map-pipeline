@@ -512,7 +512,7 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, ny, la
     )
     
     plt.annotate(
-        f"HMI: {hmi_avg} $\pm$ {hmi_std} G\n",
+        f"HMI: {hmi_avg} \u00B1 {hmi_std} G\n",
         xy=(1, 1),
         xycoords='axes fraction',   # relative to axes (1.0 = right/top)
         textcoords='offset points',
@@ -525,7 +525,7 @@ def magnetic_flux_plot_latitudes(flux_phi, flux_hmi, thld_low, thld_high, ny, la
 
 
     plt.annotate(
-        f"PHI: {phi_avg} $\pm$ {phi_std} G",
+        f"PHI: {phi_avg} \u00B1 {phi_std} G",
         xy=(1, 1),
         xycoords='axes fraction',   # relative to axes (1.0 = right/top)
         textcoords='offset points',
