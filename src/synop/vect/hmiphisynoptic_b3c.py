@@ -1465,7 +1465,8 @@ def create_header(outRec, config, stats, imrec, small=False):
     outRec["CRVAL2"] = 0.0
     outRec["CDELT1"] = -360.0 / xout
     
-    #new convention following Eq (80), in Sect. 5.2.2 of https://ui.adsabs.harvard.edu/abs/2002A%26A...395.1077C/abstract
+    # HMI used outdated Sine Latitude CEA convention!
+    # New convention following Eq (80), in Sect. 5.2.2 of https://ui.adsabs.harvard.edu/abs/2002A%26A...395.1077C/abstract
     outRec["PV2_1"]  = (1.0, "CEA lambda parameter")
 
     outRec["CDELT2"] = 180 / np.pi * (1.0 / config["sinbdivs"]) * 1/outRec["PV2_1"] 
